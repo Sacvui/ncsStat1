@@ -8,8 +8,9 @@ export default function Home() {
         {/* Hero Section */}
         <div className="text-center text-white mb-16">
           <div className="flex items-center justify-center gap-3 mb-6">
-            <BarChart3 className="w-16 h-16" />
-            <h1 className="text-6xl font-bold">StatViet</h1>
+            {/* <BarChart3 className="w-16 h-16" /> */}
+            <img src="/logo.png" alt="ncsStat Logo" className="w-20 h-20 rounded-xl" />
+            <h1 className="text-6xl font-bold">ncsStat</h1>
           </div>
           <p className="text-2xl mb-4 text-blue-100">
             Phân tích thống kê cho NCS Việt Nam

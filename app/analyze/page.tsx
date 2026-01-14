@@ -84,7 +84,7 @@ export default function AnalyzePage() {
                         <div className="flex items-center gap-3">
                             <BarChart3 className="w-8 h-8 text-blue-600" />
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-800">StatViet</h1>
+                                <h1 className="text-2xl font-bold text-gray-800">ncsStat</h1>
                                 <p className="text-sm text-gray-500">Phân tích thống kê cho NCS Việt Nam</p>
                             </div>
                         </div>

@@ -75,7 +75,7 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
   `;
 
     const result = await webR.evalR(rCode);
-    const jsResult = await result.toJs();
+    const jsResult = await result.toJs() as any;
 
     return {
         alpha: jsResult.raw_alpha,
@@ -120,7 +120,7 @@ export async function runEFA(data: number[][], nfactors: number): Promise<{
   `;
 
     const result = await webR.evalR(rCode);
-    const jsResult = await result.toJs();
+    const jsResult = await result.toJs() as any;
 
     return {
         kmo: jsResult.kmo,
@@ -154,12 +154,24 @@ export async function runCorrelation(data: number[][]): Promise<{
   `;
 
     const result = await webR.evalR(rCode);
-    const jsResult = await result.toJs();
+    const jsResult = await result.toJs() as any;
 
     return {
         correlationMatrix: jsResult.correlation,
         pValues: jsResult.p_values
     };
+}
+
+/**
+ * Run descriptive statistics
+ */
+
+function toArray(val: any): number[] {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    if (typeof val === 'object' && 'length' in val) return Array.from(val);
+    if (typeof val === 'object') return Object.values(val) as number[];
+    return [Number(val)];
 }
 
 /**
@@ -171,6 +183,7 @@ export async function runDescriptiveStats(data: number[][]): Promise<{
     min: number[];
     max: number[];
     median: number[];
+    N: number;
 }> {
     const webR = await initWebR();
 
@@ -182,18 +195,20 @@ export async function runDescriptiveStats(data: number[][]): Promise<{
       sd = apply(data, 2, sd, na.rm=TRUE),
       min = apply(data, 2, min, na.rm=TRUE),
       max = apply(data, 2, max, na.rm=TRUE),
-      median = apply(data, 2, median, na.rm=TRUE)
+      median = apply(data, 2, median, na.rm=TRUE),
+      n = nrow(data)
     )
   `;
 
     const result = await webR.evalR(rCode);
-    const jsResult = await result.toJs();
+    const jsResult = await result.toJs() as any;
 
     return {
-        mean: Array.from(jsResult.mean),
-        sd: Array.from(jsResult.sd),
-        min: Array.from(jsResult.min),
-        max: Array.from(jsResult.max),
-        median: Array.from(jsResult.median)
+        mean: toArray(jsResult.mean),
+        sd: toArray(jsResult.sd),
+        min: toArray(jsResult.min),
+        max: toArray(jsResult.max),
+        median: toArray(jsResult.median),
+        N: jsResult.n
     };
 }

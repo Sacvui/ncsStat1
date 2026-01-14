@@ -48,69 +48,61 @@ export function ResultsDisplay({ analysisType, results, columns }: ResultsDispla
 
 function CronbachResults({ results }: { results: any }) {
     const alpha = results.alpha || results.rawAlpha || 0;
+    // Use N of Items if available, otherwise fallback (we normally get this from raw data columns count if not in result)
+    const nItems = results.nItems || 'N/A';
 
-    const getAlphaInterpretation = (value: number) => {
-        if (value >= 0.9) return { text: 'Xuất sắc', color: 'text-green-600', bg: 'bg-green-50' };
-        if (value >= 0.8) return { text: 'Tốt', color: 'text-blue-600', bg: 'bg-blue-50' };
-        if (value >= 0.7) return { text: 'Chấp nhận được', color: 'text-yellow-600', bg: 'bg-yellow-50' };
-        if (value >= 0.6) return { text: 'Khá', color: 'text-orange-600', bg: 'bg-orange-50' };
-        return { text: 'Kém', color: 'text-red-600', bg: 'bg-red-50' };
-    };
-
-    const interpretation = getAlphaInterpretation(alpha);
+    // SPSS Style Table Component
+    const SPSSTable = ({ title, children }: { title: string, children: React.ReactNode }) => (
+        <div className="mb-8">
+            <h4 className="text-sm font-bold uppercase mb-2 tracking-wide text-gray-700">{title}</h4>
+            <div className="bg-white border-t-2 border-b-2 border-black">
+                {children}
+            </div>
+        </div>
+    );
 
     return (
-        <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold mb-6">Cronbach's Alpha</h3>
+        <div className="space-y-8 font-sans text-gray-900">
 
-                {/* Alpha Value Card */}
-                <div className={`${interpretation.bg} rounded-xl p-8 mb-6`}>
-                    <div className="text-center">
-                        <p className="text-gray-600 mb-2">Hệ số Cronbach's Alpha</p>
-                        <p className={`text-6xl font-bold ${interpretation.color} mb-2`}>
-                            {alpha.toFixed(3)}
-                        </p>
-                        <p className={`text-xl font-semibold ${interpretation.color}`}>
-                            {interpretation.text}
-                        </p>
-                    </div>
-                </div>
+            {/* Reliability Statistics Table - SPSS Style */}
+            <SPSSTable title="Reliability Statistics">
+                <table className="w-full text-left text-sm">
+                    <thead>
+                        <tr className="border-b border-gray-400">
+                            <th className="py-2 pr-4 font-semibold">Cronbach's Alpha</th>
+                            <th className="py-2 pr-4 font-semibold">N of Items</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td className="py-2 pr-4">{alpha.toFixed(3)}</td>
+                            <td className="py-2 pr-4">{nItems}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </SPSSTable>
 
-                {/* Interpretation Guide */}
-                <div className="bg-gray-50 rounded-lg p-6">
-                    <h4 className="font-bold mb-4">Cách Diễn Giải:</h4>
-                    <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-3">
-                            <span className="w-20 font-medium">α ≥ 0.9:</span>
-                            <span className="text-green-600">Xuất sắc - Độ tin cậy rất cao</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="w-20 font-medium">0.8 ≤ α &lt; 0.9:</span>
-                            <span className="text-blue-600">Tốt - Độ tin cậy cao</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="w-20 font-medium">0.7 ≤ α &lt; 0.8:</span>
-                            <span className="text-yellow-600">Chấp nhận được</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="w-20 font-medium">0.6 ≤ α &lt; 0.7:</span>
-                            <span className="text-orange-600">Khá - Cần cải thiện</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <span className="w-20 font-medium">α &lt; 0.6:</span>
-                            <span className="text-red-600">Kém - Không chấp nhận được</span>
+            {/* Interpretation Section (Kept for user friendliness, but styled cleaner) */}
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-sm">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Đánh Giáp & Khuyến Nghị</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div className="text-sm font-medium mb-2 text-gray-600">Độ tin cậy thang đo:</div>
+                        <div className={`text-2xl font-bold ${alpha >= 0.7 ? 'text-green-700' : 'text-orange-600'}`}>
+                            {alpha >= 0.9 ? 'Xuất sắc' :
+                                alpha >= 0.8 ? 'Tốt' :
+                                    alpha >= 0.7 ? 'Chấp nhận được' :
+                                        alpha >= 0.6 ? 'Khá' : 'Kém'}
                         </div>
                     </div>
-                </div>
-
-                {/* Recommendation */}
-                <div className="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded">
-                    <p className="text-sm text-gray-700">
-                        <strong>Khuyến nghị:</strong> {alpha >= 0.7
-                            ? 'Thang đo có độ tin cậy tốt, có thể sử dụng cho nghiên cứu.'
-                            : 'Nên xem xét loại bỏ một số item hoặc điều chỉnh thang đo để cải thiện độ tin cậy.'}
-                    </p>
+                    <div>
+                        <div className="text-sm font-medium mb-2 text-gray-600">Khuyến nghị:</div>
+                        <p className="text-sm text-gray-800 leading-relaxed">
+                            {alpha >= 0.7
+                                ? 'Thang đo đảm bảo độ tin cậy. Có thể sử dụng cho các phân tích tiếp theo.'
+                                : 'Cần xem xét loại bỏ biến quan sát rác hoặc kiểm tra lại cấu trúc thang đo.'}
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -120,141 +112,101 @@ function CronbachResults({ results }: { results: any }) {
 function CorrelationResults({ results, columns }: { results: any; columns: string[] }) {
     const matrix = results.correlationMatrix;
 
-    const getCorrelationColor = (value: number) => {
-        if (value >= 0.7) return 'bg-green-500';
-        if (value >= 0.5) return 'bg-green-300';
-        if (value >= 0.3) return 'bg-yellow-300';
-        if (value >= 0) return 'bg-gray-200';
-        if (value >= -0.3) return 'bg-orange-200';
-        if (value >= -0.5) return 'bg-orange-400';
-        return 'bg-red-500';
-    };
-
+    // SmartPLS/SPSS Style Matrix
     return (
-        <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold mb-6">Ma Trận Tương Quan</h3>
+        <div className="space-y-6 overflow-x-auto">
+            <h3 className="text-lg font-bold text-gray-800 uppercase tracking-wide border-b-2 border-black pb-2 inline-block">Ma Trận Tương Quan</h3>
 
-                {/* Correlation Matrix Heatmap */}
-                <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                        <thead>
-                            <tr>
-                                <th className="p-2 border"></th>
-                                {columns.map((col, idx) => (
-                                    <th key={idx} className="p-2 border text-xs font-medium">
-                                        {col.substring(0, 10)}
-                                    </th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {matrix.map((row: number[], rowIdx: number) => (
-                                <tr key={rowIdx}>
-                                    <td className="p-2 border text-xs font-medium">
-                                        {columns[rowIdx].substring(0, 10)}
-                                    </td>
-                                    {row.map((value: number, colIdx: number) => (
-                                        <td
-                                            key={colIdx}
-                                            className={`p-2 border text-center ${getCorrelationColor(value)}`}
-                                            title={`${columns[rowIdx]} × ${columns[colIdx]}: ${value.toFixed(3)}`}
-                                        >
-                                            <span className="text-xs font-medium">
-                                                {value.toFixed(2)}
-                                            </span>
-                                        </td>
-                                    ))}
-                                </tr>
+            <table className="min-w-full text-sm border-collapse">
+                <thead>
+                    <tr className="border-b-2 border-black">
+                        <th className="py-3 px-4 text-left font-semibold bg-gray-50 border-r border-gray-200">Construct</th>
+                        {columns.map((col, idx) => (
+                            <th key={idx} className="py-3 px-4 font-semibold text-center border-b border-gray-300">
+                                {col}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {matrix.map((row: number[], rowIdx: number) => (
+                        <tr key={rowIdx} className="hover:bg-gray-50 border-b border-gray-200 last:border-b-2 last:border-black">
+                            <td className="py-3 px-4 font-medium border-r border-gray-200 bg-gray-50">
+                                {columns[rowIdx]}
+                            </td>
+                            {row.map((value: number, colIdx: number) => (
+                                <td
+                                    key={colIdx}
+                                    className={`py-3 px-4 text-center ${rowIdx === colIdx ? 'font-bold text-black' : ''} ${Math.abs(value) > 0.5 && rowIdx !== colIdx ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
+                                >
+                                    {value.toFixed(3)}
+                                </td>
                             ))}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* Legend */}
-                <div className="mt-6 flex items-center justify-center gap-4 text-sm">
-                    <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-red-500 rounded"></div>
-                        <span>Âm mạnh</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-gray-200 rounded"></div>
-                        <span>Yếu</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 bg-green-500 rounded"></div>
-                        <span>Dương mạnh</span>
-                    </div>
-                </div>
-            </div>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+            <p className="text-xs text-gray-500 italic mt-2">* Tương quan &gt; 0.5 được tô màu xanh.</p>
         </div>
     );
 }
 
 function DescriptiveResults({ results, columns }: { results: any; columns: string[] }) {
-    const chartData = {
-        labels: columns,
-        datasets: [
-            {
-                label: 'Mean',
-                data: results.mean,
-                backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                borderColor: 'rgb(59, 130, 246)',
-                borderWidth: 2,
-            },
-        ],
-    };
-
-    const chartOptions = {
-        responsive: true,
-        plugins: {
-            legend: {
-                position: 'top' as const,
-            },
-            title: {
-                display: true,
-                text: 'Giá Trị Trung Bình (Mean)',
-            },
-        },
-    };
-
     return (
-        <div className="space-y-6">
-            <div className="bg-white rounded-xl shadow-lg p-8">
-                <h3 className="text-2xl font-bold mb-6">Thống Kê Mô Tả</h3>
-
-                {/* Chart */}
-                <div className="mb-8">
-                    <Bar data={chartData} options={chartOptions} />
-                </div>
-
-                {/* Statistics Table */}
-                <div className="overflow-x-auto">
-                    <table className="w-full">
+        <div className="space-y-8">
+            <div>
+                <h4 className="text-sm font-bold uppercase mb-2 tracking-wide text-gray-700">Descriptive Statistics</h4>
+                <div className="bg-white border-t-2 border-b-2 border-black overflow-x-auto">
+                    <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead>
-                            <tr className="border-b">
-                                <th className="text-left py-3 px-4 font-semibold">Biến</th>
-                                <th className="text-right py-3 px-4 font-semibold">Mean</th>
-                                <th className="text-right py-3 px-4 font-semibold">SD</th>
-                                <th className="text-right py-3 px-4 font-semibold">Min</th>
-                                <th className="text-right py-3 px-4 font-semibold">Max</th>
-                                <th className="text-right py-3 px-4 font-semibold">Median</th>
+                            <tr className="border-b border-gray-600">
+                                <th className="py-2 px-4 font-semibold"></th>
+                                <th className="py-2 px-4 font-semibold text-right">N</th>
+                                <th className="py-2 px-4 font-semibold text-right">Minimum</th>
+                                <th className="py-2 px-4 font-semibold text-right">Maximum</th>
+                                <th className="py-2 px-4 font-semibold text-right">Mean</th>
+                                <th className="py-2 px-4 font-semibold text-right">Std. Deviation</th>
                             </tr>
                         </thead>
                         <tbody>
                             {columns.map((col, idx) => (
-                                <tr key={idx} className="border-b hover:bg-gray-50">
-                                    <td className="py-3 px-4 font-medium">{col}</td>
-                                    <td className="py-3 px-4 text-right">{results.mean[idx].toFixed(2)}</td>
-                                    <td className="py-3 px-4 text-right">{results.sd[idx].toFixed(2)}</td>
-                                    <td className="py-3 px-4 text-right">{results.min[idx].toFixed(2)}</td>
-                                    <td className="py-3 px-4 text-right">{results.max[idx].toFixed(2)}</td>
-                                    <td className="py-3 px-4 text-right">{results.median[idx].toFixed(2)}</td>
+                                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                                    <td className="py-2 px-4 font-medium text-gray-900">{col}</td>
+                                    <td className="py-2 px-4 text-right text-gray-600">{results.N || 'N/A'}</td>
+                                    <td className="py-2 px-4 text-right text-gray-600">{(results.min && results.min[idx] !== undefined) ? results.min[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-2 px-4 text-right text-gray-600">{(results.max && results.max[idx] !== undefined) ? results.max[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-2 px-4 text-right text-gray-900 font-medium">{(results.mean && results.mean[idx] !== undefined) ? results.mean[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-2 px-4 text-right text-gray-600">{(results.sd && results.sd[idx] !== undefined) ? results.sd[idx].toFixed(3) : '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
                 </div>
+            </div>
+
+            {/* Chart is still useful for quick visual check */}
+            <div className="mt-8 p-6 bg-white border border-gray-200 shadow-sm rounded-sm">
+                <h4 className="text-sm font-bold uppercase mb-4 tracking-wide text-gray-700 text-center">Mean Value Comparison</h4>
+                <Bar
+                    data={{
+                        labels: columns,
+                        datasets: [{
+                            label: 'Mean',
+                            data: results.mean,
+                            backgroundColor: 'rgba(15, 76, 129, 0.7)', // Deep Blue
+                            borderColor: 'rgba(15, 76, 129, 1)',
+                            borderWidth: 1
+                        }]
+                    }}
+                    options={{
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
+                            x: { grid: { display: false } }
+                        }
+                    }}
+                />
             </div>
         </div>
     );
