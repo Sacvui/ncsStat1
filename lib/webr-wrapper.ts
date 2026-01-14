@@ -46,8 +46,7 @@ export async function initWebR(): Promise<WebR> {
 
     try {
         webRInstance = new WebR({
-            baseUrl: '/webr/',
-            serviceWorkerUrl: '/webr-serviceworker.js'
+            channelType: 1, // PostMessage channel - works without SharedArrayBuffer/Service Worker
         });
 
         updateProgress('Đang tải R runtime...');
