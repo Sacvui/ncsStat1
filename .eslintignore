@@ -1,0 +1,6 @@
+node_modules
+.next
+public/webr
+*.config.js
+*.config.mjs
+*.config.ts
