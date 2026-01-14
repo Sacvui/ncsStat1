@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { DataProfiler } from '@/components/DataProfiler';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
-import { VariableSelector, AISettings } from '@/components/VariableSelector';
+import { SmartGroupSelector, VariableSelector, AISettings } from '@/components/VariableSelector';
 import { profileData, DataProfile } from '@/lib/data-profiler';
 import { runCronbachAlpha, runCorrelation, runDescriptiveStats } from '@/lib/webr-wrapper';
 import { BarChart3, Brain, FileText } from 'lucide-react';
@@ -18,6 +18,7 @@ export default function AnalyzePage() {
     const [profile, setProfile] = useState<DataProfile | null>(null);
     const [analysisType, setAnalysisType] = useState<string>('');
     const [results, setResults] = useState<any>(null);
+    const [multipleResults, setMultipleResults] = useState<any[]>([]);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [scaleName, setScaleName] = useState('');
 
@@ -46,6 +47,7 @@ export default function AnalyzePage() {
         setIsAnalyzing(true);
         setAnalysisType('cronbach');
         setScaleName(name);
+        setMultipleResults([]);
 
         try {
             const selectedData = data.map(row =>
@@ -63,6 +65,36 @@ export default function AnalyzePage() {
             setStep('results');
         } catch (error) {
             console.error('Analysis error:', error);
+            alert(`Lỗi phân tích: ${error}`);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    // Run Cronbach for multiple groups (batch analysis)
+    const runCronbachBatch = async (groups: { name: string; columns: string[] }[]) => {
+        setIsAnalyzing(true);
+        setAnalysisType('cronbach-batch');
+        setResults(null);
+        setMultipleResults([]);
+
+        try {
+            const allResults = [];
+            for (const group of groups) {
+                const groupData = data.map(row =>
+                    group.columns.map(col => Number(row[col]) || 0)
+                );
+                const result = await runCronbachAlpha(groupData);
+                allResults.push({
+                    scaleName: group.name,
+                    columns: group.columns,
+                    data: result
+                });
+            }
+            setMultipleResults(allResults);
+            setStep('results');
+        } catch (error) {
+            console.error('Batch analysis error:', error);
             alert(`Lỗi phân tích: ${error}`);
         } finally {
             setIsAnalyzing(false);
@@ -260,19 +292,20 @@ export default function AnalyzePage() {
                     )}
 
                     {step === 'cronbach-select' && (
-                        <div className="max-w-2xl mx-auto space-y-6">
+                        <div className="max-w-3xl mx-auto space-y-6">
                             <div className="text-center mb-8">
                                 <h2 className="text-3xl font-bold text-gray-800 mb-2">
                                     Cronbach&apos;s Alpha
                                 </h2>
                                 <p className="text-gray-600">
-                                    Chọn các biến thuộc cùng một thang đo (construct)
+                                    Tự động nhận diện và gom nhóm biến theo tên (VD: SAT1, SAT2 → SAT)
                                 </p>
                             </div>
 
-                            <VariableSelector
+                            <SmartGroupSelector
                                 columns={getNumericColumns()}
-                                onAnalyze={runCronbachWithSelection}
+                                onAnalyzeGroup={runCronbachWithSelection}
+                                onAnalyzeAllGroups={runCronbachBatch}
                                 isAnalyzing={isAnalyzing}
                             />
 
@@ -292,25 +325,87 @@ export default function AnalyzePage() {
                         </div>
                     )}
 
-                    {step === 'results' && results && (
+                    {step === 'results' && (results || multipleResults.length > 0) && (
                         <div className="max-w-6xl mx-auto space-y-6" id="results-container">
                             <div className="text-center mb-8">
                                 <h2 className="text-3xl font-bold text-gray-800 mb-2">
                                     Kết quả phân tích
                                 </h2>
                                 <p className="text-gray-600">
-                                    {analysisType === 'cronbach' && `Cronbach's Alpha${results.scaleName ? ` - ${results.scaleName}` : ''}`}
+                                    {analysisType === 'cronbach' && `Cronbach's Alpha${results?.scaleName ? ` - ${results.scaleName}` : ''}`}
+                                    {analysisType === 'cronbach-batch' && `Cronbach's Alpha - ${multipleResults.length} thang đo`}
                                     {analysisType === 'correlation' && "Ma trận tương quan"}
                                     {analysisType === 'descriptive' && "Thống kê mô tả"}
                                 </p>
                             </div>
 
-                            {/* Enhanced Results Display */}
-                            <ResultsDisplay
-                                analysisType={analysisType}
-                                results={results.data}
-                                columns={results.columns}
-                            />
+                            {/* Single Result Display */}
+                            {results && analysisType !== 'cronbach-batch' && (
+                                <ResultsDisplay
+                                    analysisType={analysisType}
+                                    results={results.data}
+                                    columns={results.columns}
+                                />
+                            )}
+
+                            {/* Batch Results Display */}
+                            {analysisType === 'cronbach-batch' && multipleResults.length > 0 && (
+                                <div className="space-y-8">
+                                    {/* Summary Table */}
+                                    <div className="bg-white rounded-xl shadow-lg p-6">
+                                        <h3 className="text-lg font-bold text-gray-800 mb-4">Tổng hợp độ tin cậy các thang đo</h3>
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="border-b-2 border-gray-300">
+                                                    <th className="py-2 px-3 font-semibold">Thang đo</th>
+                                                    <th className="py-2 px-3 font-semibold text-center">Số biến</th>
+                                                    <th className="py-2 px-3 font-semibold text-center">Cronbach&apos;s Alpha</th>
+                                                    <th className="py-2 px-3 font-semibold text-center">Đánh giá</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {multipleResults.map((r, idx) => {
+                                                    const alpha = r.data?.alpha || r.data?.rawAlpha || 0;
+                                                    let evaluation = '';
+                                                    let evalColor = '';
+                                                    if (alpha >= 0.9) { evaluation = 'Xuất sắc'; evalColor = 'text-green-700 bg-green-100'; }
+                                                    else if (alpha >= 0.8) { evaluation = 'Tốt'; evalColor = 'text-green-600 bg-green-50'; }
+                                                    else if (alpha >= 0.7) { evaluation = 'Chấp nhận'; evalColor = 'text-blue-600 bg-blue-50'; }
+                                                    else if (alpha >= 0.6) { evaluation = 'Khá'; evalColor = 'text-yellow-600 bg-yellow-50'; }
+                                                    else { evaluation = 'Kém'; evalColor = 'text-red-600 bg-red-50'; }
+
+                                                    return (
+                                                        <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                                                            <td className="py-3 px-3 font-medium">{r.scaleName}</td>
+                                                            <td className="py-3 px-3 text-center">{r.columns.length}</td>
+                                                            <td className="py-3 px-3 text-center font-bold">{alpha.toFixed(3)}</td>
+                                                            <td className="py-3 px-3 text-center">
+                                                                <span className={`px-2 py-1 rounded text-sm font-medium ${evalColor}`}>
+                                                                    {evaluation}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Detailed Results for Each Group */}
+                                    {multipleResults.map((r, idx) => (
+                                        <div key={idx} className="border-t pt-6">
+                                            <h4 className="text-lg font-bold text-gray-800 mb-4">
+                                                Chi tiết: {r.scaleName} ({r.columns.join(', ')})
+                                            </h4>
+                                            <ResultsDisplay
+                                                analysisType="cronbach"
+                                                results={r.data}
+                                                columns={r.columns}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
 
                             {/* Action Buttons */}
                             <div className="flex gap-4 justify-center">
