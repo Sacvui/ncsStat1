@@ -43,7 +43,154 @@ export function ResultsDisplay({ analysisType, results, columns }: ResultsDispla
         return <DescriptiveResults results={results} columns={columns} />;
     }
 
+    if (analysisType === 'ttest') {
+        return <TTestResults results={results} columns={columns} />;
+    }
+
+    if (analysisType === 'anova') {
+        return <ANOVAResults results={results} columns={columns} />;
+    }
+
     return null;
+}
+
+// T-test Results Component
+function TTestResults({ results, columns }: { results: any; columns: string[] }) {
+    const pValue = results.pValue;
+    const significant = pValue < 0.05;
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white border-t-2 border-b-2 border-black p-4">
+                <h4 className="text-sm font-bold uppercase mb-4 tracking-wide text-gray-700">Independent Samples T-test Results</h4>
+                <table className="w-full text-sm">
+                    <tbody>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">Group 1 ({columns[0]})</td>
+                            <td className="py-2 text-right">Mean = {results.mean1?.toFixed(3)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">Group 2 ({columns[1]})</td>
+                            <td className="py-2 text-right">Mean = {results.mean2?.toFixed(3)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">Mean Difference</td>
+                            <td className="py-2 text-right font-bold">{results.meanDiff?.toFixed(3)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">t-statistic</td>
+                            <td className="py-2 text-right">{results.t?.toFixed(3)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">Degrees of Freedom (df)</td>
+                            <td className="py-2 text-right">{results.df?.toFixed(2)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">p-value (2-tailed)</td>
+                            <td className={`py-2 text-right font-bold ${significant ? 'text-green-600' : 'text-gray-600'}`}>
+                                {pValue?.toFixed(4)} {significant && '***'}
+                            </td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">95% CI</td>
+                            <td className="py-2 text-right">[{results.ci95Lower?.toFixed(3)}, {results.ci95Upper?.toFixed(3)}]</td>
+                        </tr>
+                        <tr>
+                            <td className="py-2 font-medium">Cohen&apos;s d (Effect Size)</td>
+                            <td className="py-2 text-right">{results.effectSize?.toFixed(3)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-sm">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800">
+                    {significant
+                        ? `Có sự khác biệt có ý nghĩa thống kê giữa ${columns[0]} và ${columns[1]} (p = ${pValue?.toFixed(4)} < 0.05). Cohen's d = ${results.effectSize?.toFixed(2)} cho thấy ${Math.abs(results.effectSize) > 0.8 ? 'hiệu ứng lớn' : Math.abs(results.effectSize) > 0.5 ? 'hiệu ứng trung bình' : 'hiệu ứng nhỏ'}.`
+                        : `Không có sự khác biệt có ý nghĩa thống kê giữa ${columns[0]} và ${columns[1]} (p = ${pValue?.toFixed(4)} >= 0.05).`
+                    }
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// ANOVA Results Component
+function ANOVAResults({ results, columns }: { results: any; columns: string[] }) {
+    const pValue = results.pValue;
+    const significant = pValue < 0.05;
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white border-t-2 border-b-2 border-black p-4">
+                <h4 className="text-sm font-bold uppercase mb-4 tracking-wide text-gray-700">ANOVA Table</h4>
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-gray-400">
+                            <th className="py-2 text-left font-semibold">Source</th>
+                            <th className="py-2 text-right font-semibold">df</th>
+                            <th className="py-2 text-right font-semibold">F</th>
+                            <th className="py-2 text-right font-semibold">Sig.</th>
+                            <th className="py-2 text-right font-semibold">η² (Eta Squared)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">Between Groups</td>
+                            <td className="py-2 text-right">{results.dfBetween?.toFixed(0)}</td>
+                            <td className="py-2 text-right font-bold">{results.F?.toFixed(3)}</td>
+                            <td className={`py-2 text-right font-bold ${significant ? 'text-green-600' : 'text-gray-600'}`}>
+                                {pValue?.toFixed(4)} {significant && '***'}
+                            </td>
+                            <td className="py-2 text-right">{results.etaSquared?.toFixed(3)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-200">
+                            <td className="py-2 font-medium">Within Groups</td>
+                            <td className="py-2 text-right">{results.dfWithin?.toFixed(0)}</td>
+                            <td className="py-2 text-right">-</td>
+                            <td className="py-2 text-right">-</td>
+                            <td className="py-2 text-right">-</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="bg-white border-t-2 border-b-2 border-black p-4">
+                <h4 className="text-sm font-bold uppercase mb-4 tracking-wide text-gray-700">Group Means</h4>
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-gray-400">
+                            <th className="py-2 text-left font-semibold">Group</th>
+                            <th className="py-2 text-right font-semibold">Mean</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {columns.map((col, idx) => (
+                            <tr key={idx} className="border-b border-gray-200">
+                                <td className="py-2 font-medium">{col}</td>
+                                <td className="py-2 text-right">{results.groupMeans?.[idx]?.toFixed(3)}</td>
+                            </tr>
+                        ))}
+                        <tr className="bg-gray-50">
+                            <td className="py-2 font-bold">Grand Mean</td>
+                            <td className="py-2 text-right font-bold">{results.grandMean?.toFixed(3)}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-sm">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800">
+                    {significant
+                        ? `Có sự khác biệt có ý nghĩa thống kê giữa các nhóm (F(${results.dfBetween?.toFixed(0)}, ${results.dfWithin?.toFixed(0)}) = ${results.F?.toFixed(3)}, p = ${pValue?.toFixed(4)} < 0.05). Eta-squared = ${results.etaSquared?.toFixed(3)} cho thấy ${results.etaSquared > 0.14 ? 'hiệu ứng lớn' : results.etaSquared > 0.06 ? 'hiệu ứng trung bình' : 'hiệu ứng nhỏ'}.`
+                        : `Không có sự khác biệt có ý nghĩa thống kê giữa các nhóm (F(${results.dfBetween?.toFixed(0)}, ${results.dfWithin?.toFixed(0)}) = ${results.F?.toFixed(3)}, p = ${pValue?.toFixed(4)} >= 0.05).`
+                    }
+                </p>
+            </div>
+        </div>
+    );
 }
 
 function CronbachResults({ results, columns }: { results: any; columns?: string[] }) {

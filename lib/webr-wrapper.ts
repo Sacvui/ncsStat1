@@ -3,6 +3,28 @@ import { WebR } from 'webr';
 
 let webRInstance: WebR | null = null;
 let isInitializing = false;
+let initProgress: string = '';
+let onProgressCallback: ((msg: string) => void) | null = null;
+
+// Get current WebR loading status
+export function getWebRStatus(): { isReady: boolean; isLoading: boolean; progress: string } {
+    return {
+        isReady: webRInstance !== null,
+        isLoading: isInitializing,
+        progress: initProgress
+    };
+}
+
+// Set callback for progress updates
+export function setProgressCallback(callback: (msg: string) => void) {
+    onProgressCallback = callback;
+}
+
+function updateProgress(msg: string) {
+    initProgress = msg;
+    console.log(`WebR: ${msg}`);
+    if (onProgressCallback) onProgressCallback(msg);
+}
 
 /**
  * Initialize WebR instance (singleton)
@@ -21,6 +43,7 @@ export async function initWebR(): Promise<WebR> {
     }
 
     isInitializing = true;
+    updateProgress('Đang khởi tạo WebR...');
 
     try {
         webRInstance = new WebR({
@@ -28,17 +51,19 @@ export async function initWebR(): Promise<WebR> {
             serviceWorkerUrl: '/webr-serviceworker.js'
         });
 
+        updateProgress('Đang tải R runtime...');
         await webRInstance.init();
 
         // Install required packages
-        console.log('Installing R packages...');
+        updateProgress('Đang cài đặt packages (psych, lavaan)...');
         await webRInstance.installPackages(['psych', 'lavaan', 'corrplot']);
-        console.log('R packages installed successfully');
 
+        updateProgress('Sẵn sàng!');
         isInitializing = false;
         return webRInstance;
     } catch (error) {
         isInitializing = false;
+        updateProgress('Lỗi khởi tạo!');
         throw new Error(`Failed to initialize WebR: ${error}`);
     }
 }
@@ -350,4 +375,195 @@ export async function runDescriptiveStats(data: number[][]): Promise<{
     console.log('DEBUG Processed result:', JSON.stringify(processed, null, 2));
 
     return processed;
+}
+
+/**
+ * Run Independent Samples T-test
+ */
+export async function runTTestIndependent(group1: number[], group2: number[]): Promise<{
+    t: number;
+    df: number;
+    pValue: number;
+    mean1: number;
+    mean2: number;
+    meanDiff: number;
+    ci95Lower: number;
+    ci95Upper: number;
+    effectSize: number; // Cohen's d
+}> {
+    const webR = await initWebR();
+
+    const rCode = `
+    group1 <- c(${group1.join(',')})
+    group2 <- c(${group2.join(',')})
+    
+    result <- t.test(group1, group2, var.equal = FALSE)
+    
+    # Cohen's d effect size
+    pooledSD <- sqrt(((length(group1)-1)*sd(group1)^2 + (length(group2)-1)*sd(group2)^2) / (length(group1)+length(group2)-2))
+    cohensD <- (mean(group1) - mean(group2)) / pooledSD
+    
+    list(
+      t = result$statistic,
+      df = result$parameter,
+      pValue = result$p.value,
+      mean1 = mean(group1),
+      mean2 = mean(group2),
+      meanDiff = mean(group1) - mean(group2),
+      ci95Lower = result$conf.int[1],
+      ci95Upper = result$conf.int[2],
+      cohensD = cohensD
+    )
+  `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+
+    const getValue = (name: string): number => {
+        if (!jsResult.names || !jsResult.values) return 0;
+        const idx = jsResult.names.indexOf(name);
+        if (idx === -1) return 0;
+        const item = jsResult.values[idx];
+        if (item && item.values) return item.values[0];
+        return 0;
+    };
+
+    return {
+        t: getValue('t'),
+        df: getValue('df'),
+        pValue: getValue('pValue'),
+        mean1: getValue('mean1'),
+        mean2: getValue('mean2'),
+        meanDiff: getValue('meanDiff'),
+        ci95Lower: getValue('ci95Lower'),
+        ci95Upper: getValue('ci95Upper'),
+        effectSize: getValue('cohensD')
+    };
+}
+
+/**
+ * Run Paired Samples T-test
+ */
+export async function runTTestPaired(before: number[], after: number[]): Promise<{
+    t: number;
+    df: number;
+    pValue: number;
+    meanBefore: number;
+    meanAfter: number;
+    meanDiff: number;
+    ci95Lower: number;
+    ci95Upper: number;
+}> {
+    const webR = await initWebR();
+
+    const rCode = `
+    before <- c(${before.join(',')})
+    after <- c(${after.join(',')})
+    
+    result <- t.test(before, after, paired = TRUE)
+    
+    list(
+      t = result$statistic,
+      df = result$parameter,
+      pValue = result$p.value,
+      meanBefore = mean(before),
+      meanAfter = mean(after),
+      meanDiff = mean(before - after),
+      ci95Lower = result$conf.int[1],
+      ci95Upper = result$conf.int[2]
+    )
+  `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+
+    const getValue = (name: string): number => {
+        if (!jsResult.names || !jsResult.values) return 0;
+        const idx = jsResult.names.indexOf(name);
+        if (idx === -1) return 0;
+        const item = jsResult.values[idx];
+        if (item && item.values) return item.values[0];
+        return 0;
+    };
+
+    return {
+        t: getValue('t'),
+        df: getValue('df'),
+        pValue: getValue('pValue'),
+        meanBefore: getValue('meanBefore'),
+        meanAfter: getValue('meanAfter'),
+        meanDiff: getValue('meanDiff'),
+        ci95Lower: getValue('ci95Lower'),
+        ci95Upper: getValue('ci95Upper')
+    };
+}
+
+/**
+ * Run One-Way ANOVA
+ */
+export async function runOneWayANOVA(groups: number[][]): Promise<{
+    F: number;
+    dfBetween: number;
+    dfWithin: number;
+    pValue: number;
+    groupMeans: number[];
+    grandMean: number;
+    etaSquared: number;
+}> {
+    const webR = await initWebR();
+
+    // Build group data for R
+    const groupData = groups.map((g, i) =>
+        g.map(v => `c(${v}, ${i + 1})`).join(',')
+    ).join(',');
+
+    const rCode = `
+    # Create data frame with values and group labels
+    values <- c(${groups.map(g => g.join(',')).join(',')})
+    groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
+    
+    # Run ANOVA
+    model <- aov(values ~ groups)
+    result <- summary(model)[[1]]
+    
+    # Calculate eta squared
+    ssb <- result[1, 2]  # Sum of squares between
+    sst <- ssb + result[2, 2]  # Total sum of squares
+    etaSquared <- ssb / sst
+    
+    # Group means
+    groupMeans <- tapply(values, groups, mean)
+    
+    list(
+      F = result[1, 4],
+      dfBetween = result[1, 1],
+      dfWithin = result[2, 1],
+      pValue = result[1, 5],
+      groupMeans = as.numeric(groupMeans),
+      grandMean = mean(values),
+      etaSquared = etaSquared
+    )
+  `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+
+    const getValue = (name: string): any => {
+        if (!jsResult.names || !jsResult.values) return null;
+        const idx = jsResult.names.indexOf(name);
+        if (idx === -1) return null;
+        const item = jsResult.values[idx];
+        if (item && item.values) return item.values;
+        return item;
+    };
+
+    return {
+        F: getValue('F')?.[0] || 0,
+        dfBetween: getValue('dfBetween')?.[0] || 0,
+        dfWithin: getValue('dfWithin')?.[0] || 0,
+        pValue: getValue('pValue')?.[0] || 0,
+        groupMeans: getValue('groupMeans') || [],
+        grandMean: getValue('grandMean')?.[0] || 0,
+        etaSquared: getValue('etaSquared')?.[0] || 0
+    };
 }

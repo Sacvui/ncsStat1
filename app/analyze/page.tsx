@@ -9,7 +9,7 @@ import { profileData, DataProfile } from '@/lib/data-profiler';
 import { runCronbachAlpha, runCorrelation, runDescriptiveStats } from '@/lib/webr-wrapper';
 import { BarChart3, Brain, FileText } from 'lucide-react';
 
-type AnalysisStep = 'upload' | 'profile' | 'analyze' | 'cronbach-select' | 'results';
+type AnalysisStep = 'upload' | 'profile' | 'analyze' | 'cronbach-select' | 'ttest-select' | 'anova-select' | 'results';
 
 export default function AnalyzePage() {
     const [step, setStep] = useState<AnalysisStep>('upload');
@@ -270,6 +270,32 @@ export default function AnalyzePage() {
                                 </button>
 
                                 <button
+                                    onClick={() => setStep('ttest-select')}
+                                    disabled={isAnalyzing}
+                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-green-500 text-left disabled:opacity-50"
+                                >
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                        T-test
+                                    </h3>
+                                    <p className="text-gray-600 text-sm">
+                                        So sánh trung bình 2 nhóm
+                                    </p>
+                                </button>
+
+                                <button
+                                    onClick={() => setStep('anova-select')}
+                                    disabled={isAnalyzing}
+                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-purple-500 text-left disabled:opacity-50"
+                                >
+                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
+                                        ANOVA
+                                    </h3>
+                                    <p className="text-gray-600 text-sm">
+                                        So sánh trung bình nhiều nhóm
+                                    </p>
+                                </button>
+
+                                <button
                                     disabled
                                     className="p-6 bg-gray-100 rounded-xl shadow text-left opacity-50 cursor-not-allowed"
                                 >
@@ -325,6 +351,143 @@ export default function AnalyzePage() {
                         </div>
                     )}
 
+                    {/* T-test Selection */}
+                    {step === 'ttest-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Independent Samples T-test
+                                </h2>
+                                <p className="text-gray-600">
+                                    So sánh trung bình giữa 2 nhóm độc lập
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Chọn 2 biến số để so sánh trung bình:
+                                </p>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 1</label>
+                                        <select
+                                            id="ttest-group1"
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            defaultValue=""
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 2</label>
+                                        <select
+                                            id="ttest-group2"
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            defaultValue=""
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        const g1 = (document.getElementById('ttest-group1') as HTMLSelectElement).value;
+                                        const g2 = (document.getElementById('ttest-group2') as HTMLSelectElement).value;
+                                        if (!g1 || !g2) { alert('Vui lòng chọn cả 2 biến'); return; }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('ttest');
+                                        try {
+                                            const { runTTestIndependent } = await import('@/lib/webr-wrapper');
+                                            const group1Data = data.map(row => Number(row[g1]) || 0);
+                                            const group2Data = data.map(row => Number(row[g2]) || 0);
+                                            const result = await runTTestIndependent(group1Data, group2Data);
+                                            setResults({ type: 'ttest', data: result, columns: [g1, g2] });
+                                            setStep('results');
+                                        } catch (err) { alert('Lỗi: ' + err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy T-test'}
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                            >
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ANOVA Selection */}
+                    {step === 'anova-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    One-Way ANOVA
+                                </h2>
+                                <p className="text-gray-600">
+                                    So sánh trung bình giữa nhiều nhóm (≥3)
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Chọn các biến để so sánh (mỗi biến là 1 nhóm):
+                                </p>
+                                <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
+                                    {getNumericColumns().map(col => (
+                                        <label key={col} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                                            <input
+                                                type="checkbox"
+                                                value={col}
+                                                className="anova-checkbox w-4 h-4 text-purple-600"
+                                            />
+                                            <span>{col}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        const checkboxes = document.querySelectorAll('.anova-checkbox:checked') as NodeListOf<HTMLInputElement>;
+                                        const selectedCols = Array.from(checkboxes).map(cb => cb.value);
+                                        if (selectedCols.length < 3) { alert('Cần chọn ít nhất 3 biến'); return; }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('anova');
+                                        try {
+                                            const { runOneWayANOVA } = await import('@/lib/webr-wrapper');
+                                            const groups = selectedCols.map(col => data.map(row => Number(row[col]) || 0));
+                                            const result = await runOneWayANOVA(groups);
+                                            setResults({ type: 'anova', data: result, columns: selectedCols });
+                                            setStep('results');
+                                        } catch (err) { alert('Lỗi: ' + err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy ANOVA'}
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                            >
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
                     {step === 'results' && (results || multipleResults.length > 0) && (
                         <div className="max-w-6xl mx-auto space-y-6" id="results-container">
                             <div className="text-center mb-8">
@@ -336,6 +499,8 @@ export default function AnalyzePage() {
                                     {analysisType === 'cronbach-batch' && `Cronbach's Alpha - ${multipleResults.length} thang đo`}
                                     {analysisType === 'correlation' && "Ma trận tương quan"}
                                     {analysisType === 'descriptive' && "Thống kê mô tả"}
+                                    {analysisType === 'ttest' && "Independent Samples T-test"}
+                                    {analysisType === 'anova' && "One-Way ANOVA"}
                                 </p>
                             </div>
 
