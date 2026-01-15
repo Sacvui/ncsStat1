@@ -60,9 +60,21 @@ function WebRStatus() {
     }
 
     return (
-        <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-            <RefreshCw className="w-4 h-4" />
-            <span>R Engine chưa khởi tạo</span>
+        <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                <RefreshCw className="w-4 h-4" />
+                <span>R Engine chưa khởi tạo</span>
+            </div>
+            <button
+                onClick={() => {
+                    // Force re-init logic if needed, but simple call is fine as wrapper handles idempotency
+                    // Ideally we should reset isInitializing flag in wrapper if stuck, but let's just try calling init
+                    window.location.reload(); // Simple retry for now
+                }}
+                className="text-xs text-blue-600 hover:underline"
+            >
+                (Tải lại trang)
+            </button>
         </div>
     );
 }

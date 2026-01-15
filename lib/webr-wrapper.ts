@@ -46,7 +46,6 @@ export async function initWebR(): Promise<WebR> {
 
     try {
         webRInstance = new WebR({
-            baseUrl: '/webr/',
             channelType: 1, // PostMessage channel
         });
 
