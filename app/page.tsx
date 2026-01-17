@@ -59,15 +59,15 @@ export default function Home() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               'Cronbach\'s Alpha',
-              'EFA',
-              'CFA',
-              'SEM',
-              'Correlation',
-              'T-test',
-              'ANOVA',
-              'Regression'
+              'EFA (Exploratory Factor)',
+              'Correlation (Tương quan)',
+              'T-test (Kiểm định T)',
+              'ANOVA (So sánh nhóm)',
+              'Regression (Hồi quy)',
+              'Chi-Square (Chi bình phương)',
+              'Mann-Whitney U'
             ].map(method => (
-              <div key={method} className="bg-white/20 rounded-lg px-4 py-2 text-center font-medium">
+              <div key={method} className="bg-white/20 rounded-lg px-4 py-2 text-center font-medium hover:bg-white/30 transition-colors cursor-default">
                 {method}
               </div>
             ))}
