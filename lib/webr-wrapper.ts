@@ -219,7 +219,7 @@ export async function runEFA(data: number[][], nfactors: number): Promise<{
     # EFA with varimax rotation
     efa_result <- fa(data, nfactors=${nfactors}, rotate="varimax", fm="ml")
     
-    // Convert loadings matrix to vector and get dimensions
+    # Convert loadings matrix to vector and get dimensions
     loadings_mat <- as.matrix(efa_result$loadings)
     
     list(

@@ -243,34 +243,22 @@ export default function AnalyzePage() {
     };
 
     // Handle PDF Export (fixed for batch)
+    // Handle PDF Export (Screenshot based for full compatibility)
     const handleExportPDF = async () => {
         try {
-            const { exportToPDF } = await import('@/lib/pdf-exporter');
+            const { exportWithCharts } = await import('@/lib/pdf-exporter');
+            const filename = `statviet_${analysisType}_${Date.now()}.pdf`;
 
-            if (analysisType === 'cronbach-batch' && multipleResults.length > 0) {
-                // Export first result for batch (or could loop through all)
-                for (const r of multipleResults) {
-                    await exportToPDF({
-                        title: `Cronbach's Alpha - ${r.scaleName}`,
-                        analysisType: 'cronbach',
-                        results: r.data,
-                        columns: r.columns,
-                        filename: `statviet_cronbach_${r.scaleName}_${Date.now()}.pdf`
-                    });
-                }
-                showToast(`Đã xuất ${multipleResults.length} file PDF`, 'success');
-            } else if (results) {
-                await exportToPDF({
-                    title: `Phân tích ${analysisType}`,
-                    analysisType,
-                    results: results.data,
-                    columns: results.columns,
-                    filename: `statviet_${analysisType}_${Date.now()}.pdf`
-                });
-                showToast('Đã xuất PDF thành công!', 'success');
-            }
+            showToast('Đang tạo PDF, vui lòng đợi...', 'info');
+
+            // Wait for charts to render completely
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await exportWithCharts('results-container', filename);
+            showToast('Đã xuất PDF thành công!', 'success');
         } catch (error) {
-            showToast(`Lỗi xuất PDF: ${error}`, 'error');
+            console.error(error);
+            showToast('Lỗi xuất PDF: Vui lòng thử lại', 'error');
         }
     };
 
@@ -761,9 +749,9 @@ export default function AnalyzePage() {
 
                             <button
                                 onClick={() => setStep('analyze')}
-                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                                className="w-full py-3 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold rounded-lg transition-colors"
                             >
-                                ← Quay lại
+                                ← Quay lại chọn phép tính
                             </button>
                         </div>
                     )}
