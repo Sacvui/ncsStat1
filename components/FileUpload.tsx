@@ -132,6 +132,46 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
                 </label>
             </div>
 
+            <div className="mt-6 text-center">
+                <button
+                    onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsProcessing(true);
+                        try {
+                            const response = await fetch('/sample_data.csv');
+                            if (!response.ok) throw new Error('Không tìm thấy file mẫu');
+                            const text = await response.text();
+
+                            Papa.parse(text, {
+                                header: true,
+                                skipEmptyLines: true,
+                                complete: (results) => {
+                                    if (results.data && results.data.length > 0) {
+                                        onDataLoaded(results.data, 'sample_data.csv');
+                                    } else {
+                                        setError('File mẫu bị lỗi');
+                                    }
+                                    setIsProcessing(false);
+                                },
+                                error: (err) => {
+                                    setError('Lỗi đọc file mẫu: ' + err.message);
+                                    setIsProcessing(false);
+                                }
+                            });
+                        } catch (err: any) {
+                            setError('Lỗi tải file mẫu: ' + (err.message || err));
+                            setIsProcessing(false);
+                        }
+                    }}
+                    disabled={isProcessing}
+                    className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
+                >
+                    Không có dữ liệu? Dùng thử dữ liệu mẫu
+                </button>
+            </div>
+
+
             {error && (
                 <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-red-700 text-sm">{error}</p>

@@ -1,0 +1,11 @@
+id,gender,age,edu,income,satisfaction,loyalty,SAT1,SAT2,SAT3,SAT4,LOY1,LOY2,LOY3
+1,Male,25,Bachelor,1500,4,5,4,5,4,5,5,5,5
+2,Female,30,Master,2000,5,4,5,4,5,4,4,4,5
+3,Male,22,HighSchool,800,3,3,3,3,4,3,3,2,3
+4,Female,28,Bachelor,1800,4,4,4,4,4,4,4,4,4
+5,Male,35,PhD,3000,5,5,5,5,5,5,5,5,5
+6,Female,24,Bachelor,1200,3,4,3,4,3,4,4,3,4
+7,Male,40,Master,2500,4,4,4,4,4,4,4,4,4
+8,Female,29,Bachelor,1900,5,5,5,5,5,5,5,5,5
+9,Male,26,HighSchool,1000,2,3,2,3,2,3,3,2,3
+10,Female,32,Master,2200,4,5,4,5,4,5,5,5,4
