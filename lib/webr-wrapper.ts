@@ -30,15 +30,28 @@ function updateProgress(msg: string) {
  */
 export async function initWebR(): Promise<WebR> {
     if (webRInstance) {
-        return webRInstance;
+        // Validate that the instance is actually usable
+        try {
+            if (typeof webRInstance.evalR === 'function') {
+                return webRInstance;
+            }
+        } catch (e) {
+            console.warn('WebR instance exists but is not usable, reinitializing...');
+            webRInstance = null;
+        }
     }
 
     if (isInitializing) {
         // Wait for initialization to complete
-        while (isInitializing) {
+        let attempts = 0;
+        while (isInitializing && attempts < 100) {
             await new Promise(resolve => setTimeout(resolve, 100));
+            attempts++;
         }
-        return webRInstance!;
+        if (webRInstance) {
+            return webRInstance;
+        }
+        throw new Error('WebR initialization timeout');
     }
 
     isInitializing = true;
@@ -52,16 +65,27 @@ export async function initWebR(): Promise<WebR> {
         updateProgress('Đang tải R runtime...');
         await webRInstance.init();
 
+        // Verify initialization
+        if (!webRInstance.evalR) {
+            throw new Error('WebR initialized but evalR is not available');
+        }
+
         // Install required packages
         updateProgress('Đang cài đặt packages (psych, lavaan)...');
-        await webRInstance.installPackages(['psych', 'lavaan', 'corrplot']);
+        try {
+            await webRInstance.installPackages(['psych', 'lavaan', 'corrplot']);
+        } catch (pkgError) {
+            console.warn('Package installation failed, continuing anyway:', pkgError);
+        }
 
         updateProgress('Sẵn sàng!');
         isInitializing = false;
         return webRInstance;
     } catch (error) {
         isInitializing = false;
+        webRInstance = null;
         updateProgress('Lỗi khởi tạo!');
+        console.error('WebR initialization error:', error);
         throw new Error(`Failed to initialize WebR: ${error}`);
     }
 }
