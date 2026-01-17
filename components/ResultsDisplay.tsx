@@ -1,6 +1,6 @@
 'use client';
 
-import { Bar, Line } from 'react-chartjs-2';
+import { Bar, Line, Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -57,6 +57,18 @@ export function ResultsDisplay({ analysisType, results, columns }: ResultsDispla
 
     if (analysisType === 'efa') {
         return <EFAResults results={results} columns={columns} />;
+    }
+
+    if (analysisType === 'regression') {
+        return <RegressionResults results={results} columns={columns} />;
+    }
+
+    if (analysisType === 'chisq') {
+        return <ChiSquareResults results={results} />;
+    }
+
+    if (analysisType === 'mannwhitney') {
+        return <MannWhitneyResults results={results} />;
     }
 
     return null;
@@ -323,23 +335,58 @@ function CorrelationResults({ results, columns }: { results: any; columns: strin
                 </thead>
                 <tbody>
                     {matrix.map((row: number[], rowIdx: number) => (
-                        <tr key={rowIdx} className="hover:bg-gray-50 border-b border-gray-200 last:border-b-2 last:border-black">
+                        <tr key={rowIdx} className="border-b border-gray-200 last:border-b-2 last:border-black">
                             <td className="py-3 px-4 font-medium border-r border-gray-200 bg-gray-50">
                                 {columns[rowIdx]}
                             </td>
-                            {row.map((value: number, colIdx: number) => (
-                                <td
-                                    key={colIdx}
-                                    className={`py-3 px-4 text-center ${rowIdx === colIdx ? 'font-bold text-black' : ''} ${Math.abs(value) > 0.5 && rowIdx !== colIdx ? 'text-blue-700 font-medium' : 'text-gray-600'}`}
-                                >
-                                    {value.toFixed(3)}
-                                </td>
-                            ))}
+                            {row.map((value: number, colIdx: number) => {
+                                const absVal = Math.abs(value);
+                                let bgColor = 'transparent';
+                                let textColor = 'text-gray-600';
+
+                                if (rowIdx !== colIdx) {
+                                    if (value > 0) {
+                                        // Blue scale
+                                        bgColor = `rgba(59, 130, 246, ${absVal * 0.8})`;
+                                        textColor = absVal > 0.5 ? 'text-white font-bold' : 'text-gray-800';
+                                    } else {
+                                        // Red scale
+                                        bgColor = `rgba(239, 68, 68, ${absVal * 0.8})`;
+                                        textColor = absVal > 0.5 ? 'text-white font-bold' : 'text-gray-800';
+                                    }
+                                } else {
+                                    return (
+                                        <td key={colIdx} className="py-3 px-4 text-center bg-gray-100 font-bold text-gray-400">
+                                            1.000
+                                        </td>
+                                    );
+                                }
+
+                                return (
+                                    <td
+                                        key={colIdx}
+                                        className={`py-3 px-4 text-center ${textColor}`}
+                                        style={{ backgroundColor: bgColor }}
+                                    >
+                                        {value.toFixed(3)}
+                                    </td>
+                                );
+                            })}
                         </tr>
                     ))}
                 </tbody>
             </table>
-            <p className="text-xs text-gray-500 italic mt-2">* Tương quan &gt; 0.5 được tô màu xanh.</p>
+            <div className="flex gap-4 items-center text-xs mt-3">
+                <div className="flex items-center gap-1">
+                    <span className="w-4 h-4 rounded bg-blue-500 opacity-80"></span>
+                    <span>Tương quan Dương (Mạnh)</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <span className="w-4 h-4 rounded bg-red-500 opacity-80"></span>
+                    <span>Tương quan Âm (Mạnh)</span>
+                </div>
+            </div>
+            <p className="text-xs text-gray-500 italic mt-1">* Màu sắc đậm nhạt thể hiện mức độ tương quan.</p>
         </div>
     );
 }
@@ -583,6 +630,310 @@ function EFAResults({ results, columns }: { results: any; columns: string[] }) {
                         </p>
                     )}
                 </div>
+            </div>
+        </div>
+    );
+}
+
+function RegressionResults({ results, columns }: { results: any, columns: string[] }) {
+    if (!results || !results.modelFit) return null;
+
+    const { modelFit, coefficients, equation } = results;
+
+    return (
+        <div className="space-y-8 font-sans">
+            {/* Equation */}
+            <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 rounded-lg text-white shadow-lg">
+                <h4 className="font-bold text-sm uppercase tracking-wider mb-2 opacity-80">Phương trình hồi quy tuyến tính</h4>
+                <div className="text-xl md:text-2xl font-mono font-bold break-all">
+                    {equation}
+                </div>
+            </div>
+
+            {/* Model Summary */}
+            <div className="bg-white border-t-2 border-b-2 border-black p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold uppercase tracking-widest border-b-2 border-black inline-block pb-1">Model Summary</h3>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+                    <div className="p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">R Square</div>
+                        <div className="text-2xl font-bold text-blue-700">{modelFit.rSquared.toFixed(3)}</div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">Adjusted R²</div>
+                        <div className="text-2xl font-bold text-blue-600">{modelFit.adjRSquared.toFixed(3)}</div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">F Statistic</div>
+                        <div className="text-xl font-bold text-gray-800">{modelFit.fStatistic.toFixed(2)}</div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">Sig. (ANOVA)</div>
+                        <div className={`text-xl font-bold ${modelFit.pValue < 0.05 ? 'text-green-600' : 'text-red-500'}`}>
+                            {modelFit.pValue < 0.001 ? '< .001' : modelFit.pValue.toFixed(3)}
+                        </div>
+                    </div>
+                </div>
+
+                <p className="text-xs text-gray-500 italic mt-4 text-center">
+                    Mô hình giải thích được <strong>{(modelFit.adjRSquared * 100).toFixed(1)}%</strong> biến thiên của biến phục thuộc.
+                </p>
+            </div>
+
+            {/* Coefficients */}
+            <div className="bg-white border-t-2 border-b-2 border-black p-6">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold uppercase tracking-widest border-b-2 border-black inline-block pb-1">Coefficients</h3>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b-2 border-gray-400 bg-gray-50">
+                                <th className="py-3 px-4 text-left font-bold uppercase text-xs tracking-wider">Model</th>
+                                <th className="py-3 px-4 text-right font-bold uppercase text-xs tracking-wider">Unstandardized B</th>
+                                <th className="py-3 px-4 text-right font-bold uppercase text-xs tracking-wider">Std. Error</th>
+                                <th className="py-3 px-4 text-right font-bold uppercase text-xs tracking-wider">t</th>
+                                <th className="py-3 px-4 text-right font-bold uppercase text-xs tracking-wider">Sig.</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {coefficients.map((coef: any, idx: number) => (
+                                <tr key={idx} className="border-b border-gray-100 hover:bg-blue-50 transition-colors">
+                                    <td className="py-3 px-4 font-bold text-gray-800">
+                                        {coef.term === '(Intercept)' ? '(Constant)' : coef.term.replace(/`/g, '')}
+                                    </td>
+                                    <td className="py-3 px-4 text-right font-mono font-medium">
+                                        {coef.estimate.toFixed(3)}
+                                    </td>
+                                    <td className="py-3 px-4 text-right text-gray-600">
+                                        {coef.stdError.toFixed(3)}
+                                    </td>
+                                    <td className="py-3 px-4 text-right text-gray-600">
+                                        {coef.tValue.toFixed(3)}
+                                    </td>
+                                    <td className={`py-3 px-4 text-right font-bold ${coef.pValue < 0.05 ? 'text-green-600' : 'text-gray-400'}`}>
+                                        {coef.pValue < 0.001 ? '< .001' : coef.pValue.toFixed(3)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Conclusion */}
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-sm">
+                <h4 className="font-bold mb-3 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <ul className="list-disc pl-5 space-y-2 text-sm text-gray-800">
+                    <li>
+                        Mô hình hồi quy <strong>{modelFit.pValue < 0.05 ? 'có ý nghĩa thống kê' : 'không có ý nghĩa thống kê'}</strong> (F = {modelFit.fStatistic.toFixed(2)}, p {modelFit.pValue < 0.001 ? '< .001' : `= ${modelFit.pValue.toFixed(3)}`}).
+                    </li>
+                    <li>
+                        Các biến độc lập tác động có ý nghĩa (p &lt; 0.05):{' '}
+                        {coefficients.filter((c: any) => c.term !== '(Intercept)' && c.pValue < 0.05).length > 0
+                            ? coefficients
+                                .filter((c: any) => c.term !== '(Intercept)' && c.pValue < 0.05)
+                                .map((c: any) => c.term.replace(/`/g, ''))
+                                .join(', ')
+                            : 'Không có biến nào.'
+                        }
+                    </li>
+                </ul>
+            </div>
+
+            {/* Charts: Actual vs Predicted */}
+            {results.chartData && (
+                <div className="bg-white border-t-2 border-b-2 border-black p-6 mt-8">
+                    <h3 className="text-lg font-bold uppercase tracking-widest border-b-2 border-black inline-block pb-1 mb-6">
+                        Actual vs Predicted
+                    </h3>
+                    <div className="h-80 w-full">
+                        <Scatter
+                            data={{
+                                datasets: [
+                                    {
+                                        label: 'Quan sát',
+                                        data: results.chartData.actual.map((val: number, i: number) => ({
+                                            x: results.chartData.fitted[i], // X = Predicted
+                                            y: val // Y = Actual
+                                        })),
+                                        backgroundColor: 'rgba(59, 130, 246, 0.6)',
+                                        borderColor: 'rgba(59, 130, 246, 1)',
+                                    }
+                                ]
+                            }}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    x: {
+                                        title: { display: true, text: 'Giá trị Dự báo (Predicted)' }
+                                    },
+                                    y: {
+                                        title: { display: true, text: 'Giá trị Thực tế (Actual)' }
+                                    }
+                                },
+                                plugins: {
+                                    tooltip: {
+                                        callbacks: {
+                                            label: (context) => {
+                                                const point = context.raw as { x: number, y: number };
+                                                return `Pred: ${point.x.toFixed(2)}, Act: ${point.y.toFixed(2)}`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
+                    <p className="text-xs text-gray-500 italic mt-2 text-center">
+                        Biểu đồ phân tán giữa giá trị dự báo và giá trị thực tế.
+                    </p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ChiSquareResults({ results }: { results: any }) {
+    if (!results) return null;
+
+    const { statistic, df, pValue, observed, expected } = results;
+
+    return (
+        <div className="space-y-8 font-sans">
+            <div className="bg-white border-t-2 border-b-2 border-teal-600 p-6">
+                <h3 className="text-lg font-bold uppercase tracking-widest border-b-2 border-teal-600 inline-block pb-1 mb-4 text-teal-800">
+                    Chi-Square Test Result
+                </h3>
+                <div className="grid grid-cols-3 gap-6 text-center">
+                    <div className="p-4 bg-teal-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">X-squared</div>
+                        <div className="text-2xl font-bold text-teal-700">{statistic.toFixed(3)}</div>
+                    </div>
+                    <div className="p-4 bg-teal-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">df</div>
+                        <div className="text-2xl font-bold text-teal-600">{df}</div>
+                    </div>
+                    <div className="p-4 bg-teal-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">p-value</div>
+                        <div className={`text-xl font-bold ${pValue < 0.05 ? 'text-green-600' : 'text-red-500'}`}>
+                            {pValue < 0.001 ? '< .001' : pValue.toFixed(4)}
+                        </div>
+                    </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-4 text-center italic">
+                    {pValue < 0.05
+                        ? 'Có mối liên hệ có ý nghĩa thống kê giữa hai biến (H0 bị bác bỏ).'
+                        : 'Không có mối liên hệ có ý nghĩa thống kê giữa hai biến (Chưa đủ bằng chứng bác bỏ H0).'}
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Observed Counts */}
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
+                    <h4 className="font-bold mb-3 text-teal-800 uppercase text-xs tracking-wider">Bảng Tần số Quan sát (Observed)</h4>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border-collapse">
+                            <thead>
+                                <tr className="bg-gray-100">
+                                    <th className="p-2 border"></th>
+                                    {observed.cols.map((c: string, i: number) => <th key={i} className="p-2 border font-semibold">{c}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {observed.rows.map((r: string, idx: number) => (
+                                    <tr key={idx}>
+                                        <td className="p-2 border font-semibold bg-gray-50">{r}</td>
+                                        {observed.data[idx].map((val: number, i: number) => (
+                                            <td key={i} className="p-2 border text-center">{val}</td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* Expected Counts */}
+                <div className="bg-white border border-gray-200 p-4 shadow-sm">
+                    <h4 className="font-bold mb-3 text-gray-600 uppercase text-xs tracking-wider">Bảng Tần số Kỳ vọng (Expected)</h4>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm border-collapse text-gray-500">
+                            <thead>
+                                <tr className="bg-gray-50">
+                                    <th className="p-2 border"></th>
+                                    {expected.cols.map((c: string, i: number) => <th key={i} className="p-2 border font-medium">{c}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {expected.rows.map((r: string, idx: number) => (
+                                    <tr key={idx}>
+                                        <td className="p-2 border font-medium bg-gray-50">{r}</td>
+                                        {expected.data[idx].map((val: number, i: number) => (
+                                            <td key={i} className="p-2 border text-center">{val.toFixed(1)}</td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function MannWhitneyResults({ results }: { results: any }) {
+    if (!results) return null;
+    const { statistic, pValue, method, groupStats } = results;
+
+    return (
+        <div className="space-y-8 font-sans">
+            <div className="bg-white border-t-2 border-b-2 border-cyan-600 p-6">
+                <h3 className="text-lg font-bold uppercase tracking-widest border-b-2 border-cyan-600 inline-block pb-1 mb-4 text-cyan-800">
+                    {method}
+                </h3>
+                <div className="grid grid-cols-2 gap-6 text-center max-w-2xl mx-auto">
+                    <div className="p-4 bg-cyan-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">Statistic (W)</div>
+                        <div className="text-2xl font-bold text-cyan-700">{statistic}</div>
+                    </div>
+                    <div className="p-4 bg-cyan-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">p-value</div>
+                        <div className={`text-xl font-bold ${pValue < 0.05 ? 'text-green-600' : 'text-red-500'}`}>
+                            {pValue < 0.001 ? '< .001' : pValue.toFixed(4)}
+                        </div>
+                    </div>
+                </div>
+                <p className="text-sm text-gray-600 mt-4 text-center italic">
+                    {pValue < 0.05
+                        ? 'Có sự khác biệt có ý nghĩa thống kê giữa hai nhóm (H0 bị bác bỏ).'
+                        : 'Không có sự khác biệt có ý nghĩa thống kê giữa hai nhóm (Chưa đủ bằng chứng bác bỏ H0).'}
+                </p>
+            </div>
+
+            <div className="bg-gray-50 p-6 border rounded-sm max-w-2xl mx-auto">
+                <h4 className="font-bold mb-3 text-cyan-800 uppercase text-xs tracking-wider">Median Comparison</h4>
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-gray-300">
+                            <th className="py-2 text-left">Group</th>
+                            <th className="py-2 text-right">Median</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {groupStats.groups.map((g: string, i: number) => (
+                            <tr key={i} className="border-b border-gray-100">
+                                <td className="py-2 font-medium">{g}</td>
+                                <td className="py-2 text-right font-bold text-gray-700">{groupStats.medians[i].toFixed(3)}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

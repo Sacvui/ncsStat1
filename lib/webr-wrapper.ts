@@ -67,6 +67,21 @@ export async function initWebR(): Promise<WebR> {
 }
 
 /**
+ * Helper to parse WebR evaluation result (list) into a getter function
+ */
+export function parseWebRResult(jsResult: any) {
+    return (name: string): any => {
+        if (!jsResult.names || !jsResult.values) return null;
+        const idx = jsResult.names.indexOf(name);
+        if (idx === -1) return null;
+        const item = jsResult.values[idx];
+        // Handle nested structure: WebR objects often have {type: ..., values: ...}
+        if (item && item.values) return item.values;
+        return item;
+    };
+}
+
+/**
  * Convert JS array to R matrix string
  */
 function arrayToRMatrix(data: number[][]): string {
@@ -119,14 +134,7 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
 
 
     // WebR list parsing helper
-    const getValue = (name: string): any => {
-        if (!jsResult.names || !jsResult.values) return null;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return null;
-        const item = jsResult.values[idx];
-        if (item && item.values) return item.values;
-        return item;
-    };
+    const getValue = parseWebRResult(jsResult);
 
     const rawAlpha = getValue('raw_alpha')?.[0] || 0;
     const stdAlpha = getValue('std_alpha')?.[0] || 0;
@@ -199,14 +207,7 @@ export async function runEFA(data: number[][], nfactors: number): Promise<{
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
-    const getValue = (name: string): any => {
-        if (!jsResult.names || !jsResult.values) return null;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return null;
-        const item = jsResult.values[idx];
-        if (item && item.values) return item.values;
-        return item;
-    };
+    const getValue = parseWebRResult(jsResult);
 
     return {
         kmo: getValue('kmo')?.[0] || 0,
@@ -264,14 +265,7 @@ export async function runCorrelation(data: number[][]): Promise<{
 
 
 
-    const getValue = (name: string): any => {
-        if (!jsResult.names || !jsResult.values) return null;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return null;
-        const item = jsResult.values[idx];
-        if (item && item.values) return item.values;
-        return item;
-    };
+    const getValue = parseWebRResult(jsResult);
 
     // Parse flat array to matrix
     const parseMatrix = (val: any, dim: number): number[][] => {
@@ -351,15 +345,7 @@ export async function runDescriptiveStats(data: number[][]): Promise<{
 
     // WebR returns {type:'list', names:[...], values:[{type:'double', values:[...]}, ...]}
     // We need to extract values by index based on names array
-    const getValue = (name: string): any => {
-        if (!jsResult.names || !jsResult.values) return null;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return null;
-        const item = jsResult.values[idx];
-        // Handle nested structure: {type: 'double', values: [...]}
-        if (item && item.values) return item.values;
-        return item;
-    };
+    const getValue = parseWebRResult(jsResult);
 
     const processed = {
         mean: getValue('mean') || [],
@@ -417,13 +403,10 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
+    const getValueFunc = parseWebRResult(jsResult);
     const getValue = (name: string): number => {
-        if (!jsResult.names || !jsResult.values) return 0;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return 0;
-        const item = jsResult.values[idx];
-        if (item && item.values) return item.values[0];
-        return 0;
+        const val = getValueFunc(name);
+        return (val && val[0]) ? val[0] : 0;
     };
 
     return {
@@ -475,13 +458,10 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
+    const getValueFunc = parseWebRResult(jsResult);
     const getValue = (name: string): number => {
-        if (!jsResult.names || !jsResult.values) return 0;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return 0;
-        const item = jsResult.values[idx];
-        if (item && item.values) return item.values[0];
-        return 0;
+        const val = getValueFunc(name);
+        return (val && val[0]) ? val[0] : 0;
     };
 
     return {
@@ -546,14 +526,7 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
-    const getValue = (name: string): any => {
-        if (!jsResult.names || !jsResult.values) return null;
-        const idx = jsResult.names.indexOf(name);
-        if (idx === -1) return null;
-        const item = jsResult.values[idx];
-        if (item && item.values) return item.values;
-        return item;
-    };
+    const getValue = parseWebRResult(jsResult);
 
     return {
         F: getValue('F')?.[0] || 0,
@@ -563,5 +536,303 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         groupMeans: getValue('groupMeans') || [],
         grandMean: getValue('grandMean')?.[0] || 0,
         etaSquared: getValue('etaSquared')?.[0] || 0
+    };
+}
+
+/**
+ * Run Multiple Linear Regression
+ * data: Matrix where first column is Dependent Variable (Y), others are Independent (X)
+ * names: Array of variable names corresponding to columns [Y, X1, X2...]
+ */
+export async function runLinearRegression(data: number[][], names: string[]): Promise<{
+    coefficients: {
+        term: string;
+        estimate: number;
+        stdError: number;
+        tValue: number;
+        pValue: number;
+    }[];
+    modelFit: {
+        rSquared: number;
+        adjRSquared: number;
+        fStatistic: number;
+        df: number; // Num df
+        dfResid: number; // Denom df
+        pValue: number;
+        residualStdError: number;
+    };
+    equation: string;
+    chartData: {
+        fitted: number[];
+        residuals: number[];
+        actual: number[];
+    };
+}> {
+    const webR = await initWebR();
+
+    // Sanitize names for R (remove spaces, special chars if needed) -> assume frontend handles or use simple mapping
+    // But R lm() works best with clean names.
+    const cleanNames = names.map(n => n.replace(/[^\w\d_]/g, '.')); // basic sanitization
+    // Actually, R formula with backticks handles spaces fine.
+
+    // Construct R command
+    const rCode = `
+    data_mat <- ${arrayToRMatrix(data)}
+    df <- as.data.frame(data_mat)
+    # Assign names
+    colnames(df) <- c(${names.map(n => `"${n}"`).join(',')})
+    
+    # Formula: First col ~ . (all others)
+    # We must quote names in formula if they have special chars
+    y_name <- colnames(df)[1]
+    f_str <- paste(sprintf("\`%s\`", y_name), "~ .")
+    f <- as.formula(f_str)
+    
+    model <- lm(f, data = df)
+    s <- summary(model)
+    
+    # Extract Coefficients
+    coefs <- coef(s)
+    
+    # Extract Model Fit
+    fstat <- s$fstatistic
+    
+    # Calculate p-value for F-statistic
+    if (is.null(fstat)) {
+       f_val <- 0
+       df_num <- 0
+       df_denom <- 0
+       f_p_value <- 1
+    } else {
+       f_val <- fstat[1]
+       df_num <- fstat[2]
+       df_denom <- fstat[3]
+       f_p_value <- pf(f_val, df_num, df_denom, lower.tail=FALSE)
+    }
+
+    list(
+      coef_names = rownames(coefs),
+      estimates = coefs[,1],
+      std_errors = coefs[,2],
+      t_values = coefs[,3],
+      p_values = coefs[,4],
+      
+      r_squared = s$r.squared,
+      adj_r_squared = s$adj.r.squared,
+      f_stat = f_val,
+      df_num = df_num,
+      df_denom = df_denom,
+      f_p_value = f_p_value,
+      sigma = s$sigma,
+      
+      fitted_values = fitted(model),
+      residuals = residuals(model),
+      actual_values = df[,1]
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+
+    const getValue = parseWebRResult(jsResult);
+
+    const coefNames = getValue('coef_names') || [];
+    const estimates = getValue('estimates') || [];
+    const stdErrors = getValue('std_errors') || [];
+    const tValues = getValue('t_values') || [];
+    const pValues = getValue('p_values') || [];
+
+    const coefficients = [];
+    const len = coefNames.length;
+    for (let i = 0; i < len; i++) {
+        coefficients.push({
+            term: coefNames[i],
+            estimate: estimates[i],
+            stdError: stdErrors[i],
+            tValue: tValues[i],
+            pValue: pValues[i]
+        });
+    }
+
+    const modelFit = {
+        rSquared: getValue('r_squared')?.[0] || 0,
+        adjRSquared: getValue('adj_r_squared')?.[0] || 0,
+        fStatistic: getValue('f_stat')?.[0] || 0,
+        df: getValue('df_num')?.[0] || 0,
+        dfResid: getValue('df_denom')?.[0] || 0,
+        pValue: getValue('f_p_value')?.[0] || 0,
+        residualStdError: getValue('sigma')?.[0] || 0
+    };
+
+    // Chart Data
+    const fittedValues = getValue('fitted_values') || [];
+    const residuals = getValue('residuals') || [];
+    const actualValues = getValue('actual_values') || [];
+
+    // Build Equation String
+    let equation = `${names[0]} = `;
+    const intercept = coefficients.find(c => c.term === '(Intercept)');
+    if (intercept) {
+        equation += `${intercept.estimate.toFixed(3)}`;
+    } else {
+        equation += `0`;
+    }
+
+    for (const coef of coefficients) {
+        if (coef.term === '(Intercept)') continue;
+        const val = coef.estimate;
+        const sign = val >= 0 ? ' + ' : ' - ';
+        const cleanTerm = coef.term.replace(/`/g, '');
+        equation += `${sign}${Math.abs(val).toFixed(3)}*${cleanTerm}`;
+    }
+
+    return {
+        coefficients,
+        modelFit,
+        equation,
+        chartData: {
+            fitted: fittedValues,
+            residuals: residuals,
+            actual: actualValues
+        }
+    };
+}
+
+/**
+ * Run Mann-Whitney U Test (Non-parametric Independent T-test)
+ * Data expects 2 columns: [Group, Value]
+ */
+export async function runMannWhitneyU(data: number[][]): Promise<{
+    statistic: number;
+    pValue: number;
+    method: string;
+    groupStats: any;
+}> {
+    const webR = await initWebR();
+    const rCode = `
+    data_mat <- ${arrayToRMatrix(data)}
+    df <- as.data.frame(data_mat)
+    colnames(df) <- c('group', 'value')
+    
+    # Ensure group is factor
+    df$group <- as.factor(df$group)
+    
+    # Check groups
+    if (length(levels(df$group)) != 2) {
+        stop("Mann-Whitney U requires exactly 2 groups")
+    }
+    
+    # Test
+    test <- wilcox.test(value ~ group, data = df)
+    
+    # Simple descriptive stats by group
+    means <- aggregate(value ~ group, data = df, median)
+    
+    list(
+        statistic = test$statistic,
+        p_value = test$p.value,
+        method = test$method,
+        groups = as.character(means[,1]),
+        medians = means[,2]
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    return {
+        statistic: getValue('statistic')?.[0] || 0,
+        pValue: getValue('p_value')?.[0] || 0,
+        method: getValue('method')?.[0] || 'Mann-Whitney U Test',
+        groupStats: {
+            groups: getValue('groups') || [],
+            medians: getValue('medians') || []
+        }
+    };
+}
+
+/**
+ * Run Chi-Square Test of Independence
+ * Data expects 2 columns: [Var1, Var2]
+ */
+export async function runChiSquare(data: number[][]): Promise<{
+    statistic: number;
+    df: number;
+    pValue: number;
+    observed: any;
+    expected: any;
+}> {
+    const webR = await initWebR();
+    const rCode = `
+    data_mat <- ${arrayToRMatrix(data)}
+    # Convert to table
+    tbl <- table(data_mat[,1], data_mat[,2])
+    
+    test <- chisq.test(tbl)
+    
+    list(
+        statistic = test$statistic,
+        parameter = test$parameter,
+        p_value = test$p.value,
+        
+        # Capture Observed and Expected matrices flattened or carefully structured
+        # For simplicity, let's keep them as R handles and parse carefully, 
+        # but flattening is safer for transfer
+        obs_vals = as.numeric(test$observed),
+        exp_vals = as.numeric(test$expected),
+        
+        row_names = rownames(tbl),
+        col_names = colnames(tbl),
+        
+        n_rows = nrow(tbl),
+        n_cols = ncol(tbl)
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    const nRows = getValue('n_rows')?.[0] || 0;
+    const nCols = getValue('n_cols')?.[0] || 0;
+    const obsVals = getValue('obs_vals') || [];
+    const expVals = getValue('exp_vals') || [];
+    const rowNames = getValue('row_names') || [];
+    const colNames = getValue('col_names') || [];
+
+    // Reconstruct matrices
+    // R fills by column by default when flattening, but here we used as.numeric on the table/matrix
+    // table objects are vector-like, column-major.
+    const observed = [];
+    const expected = [];
+
+    for (let r = 0; r < nRows; r++) {
+        const rowObs = [];
+        const rowExp = [];
+        for (let c = 0; c < nCols; c++) {
+            // Index for column-major: r + c * nRows
+            const idx = r + c * nRows;
+            rowObs.push(obsVals[idx]);
+            rowExp.push(expVals[idx]);
+        }
+        observed.push(rowObs);
+        expected.push(rowExp);
+    }
+
+    return {
+        statistic: getValue('statistic')?.[0] || 0,
+        df: getValue('parameter')?.[0] || 0,
+        pValue: getValue('p_value')?.[0] || 0,
+        observed: {
+            data: observed,
+            rows: rowNames,
+            cols: colNames
+        },
+        expected: {
+            data: expected,
+            rows: rowNames,
+            cols: colNames
+        }
     };
 }

@@ -1,94 +1,35 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { FileUpload } from '@/components/FileUpload';
 import { DataProfiler } from '@/components/DataProfiler';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { SmartGroupSelector, VariableSelector, AISettings } from '@/components/VariableSelector';
 import { profileData, DataProfile } from '@/lib/data-profiler';
-import { runCronbachAlpha, runCorrelation, runDescriptiveStats, runTTestIndependent, runTTestPaired, runOneWayANOVA, runEFA, initWebR, getWebRStatus, setProgressCallback } from '@/lib/webr-wrapper';
-import { BarChart3, Brain, FileText, Loader2, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
-
-type AnalysisStep = 'upload' | 'profile' | 'analyze' | 'cronbach-select' | 'ttest-select' | 'ttest-paired-select' | 'anova-select' | 'efa-select' | 'results';
-
-// Toast notification component
-function Toast({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) {
-    useEffect(() => {
-        const timer = setTimeout(onClose, 5000);
-        return () => clearTimeout(timer);
-    }, [onClose]);
-
-    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
-
-    return (
-        <div className={`fixed bottom-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg flex items-center gap-2 z-50 animate-slide-up`}>
-            {type === 'success' && <CheckCircle className="w-5 h-5" />}
-            {type === 'error' && <AlertCircle className="w-5 h-5" />}
-            {type === 'info' && <Loader2 className="w-5 h-5 animate-spin" />}
-            <span>{message}</span>
-            <button onClick={onClose} className="ml-2 hover:opacity-70">×</button>
-        </div>
-    );
-}
-
-// WebR Status Indicator
-function WebRStatus() {
-    const [status, setStatus] = useState({ isReady: false, isLoading: false, progress: '' });
-
-    useEffect(() => {
-        const checkStatus = () => setStatus(getWebRStatus());
-        const interval = setInterval(checkStatus, 500);
-        return () => clearInterval(interval);
-    }, []);
-
-    if (status.isReady) {
-        return (
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                <CheckCircle className="w-4 h-4" />
-                <span>R Engine sẵn sàng</span>
-            </div>
-        );
-    }
-
-    if (status.isLoading) {
-        return (
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{status.progress || 'Đang tải...'}</span>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                <RefreshCw className="w-4 h-4" />
-                <span>R Engine chưa khởi tạo</span>
-            </div>
-            <button
-                onClick={() => {
-                    // Force re-init logic if needed, but simple call is fine as wrapper handles idempotency
-                    // Ideally we should reset isInitializing flag in wrapper if stuck, but let's just try calling init
-                    window.location.reload(); // Simple retry for now
-                }}
-                className="text-xs text-blue-600 hover:underline"
-            >
-                (Tải lại trang)
-            </button>
-        </div>
-    );
-}
+import { runCronbachAlpha, runCorrelation, runDescriptiveStats, runTTestIndependent, runTTestPaired, runOneWayANOVA, runEFA, runLinearRegression, runChiSquare, runMannWhitneyU, initWebR, getWebRStatus, setProgressCallback } from '@/lib/webr-wrapper';
+import { BarChart3, FileText, Shield, Trash2, Eye, EyeOff } from 'lucide-react';
+import { Toast } from '@/components/ui/Toast';
+import { WebRStatus } from '@/components/WebRStatus';
+import { AnalysisSelector } from '@/components/AnalysisSelector';
+import { useAnalysisSession } from '@/hooks/useAnalysisSession';
+import { AnalysisStep } from '@/types/analysis';
 
 export default function AnalyzePage() {
-    const [step, setStep] = useState<AnalysisStep>('upload');
-    const [data, setData] = useState<any[]>([]);
-    const [filename, setFilename] = useState('');
-    const [profile, setProfile] = useState<DataProfile | null>(null);
-    const [analysisType, setAnalysisType] = useState<string>('');
-    const [results, setResults] = useState<any>(null);
-    const [multipleResults, setMultipleResults] = useState<any[]>([]);
+    // Session State Management
+    const {
+        isPrivateMode, setIsPrivateMode,
+        clearSession,
+        step, setStep,
+        data, setData,
+        filename, setFilename,
+        profile, setProfile,
+        analysisType, setAnalysisType,
+        results, setResults,
+        multipleResults, setMultipleResults,
+        scaleName, setScaleName,
+        regressionVars, setRegressionVars
+    } = useAnalysisSession();
+
+    // Local ephemeral state
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [scaleName, setScaleName] = useState('');
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
     // Preload WebR when entering analyze step
@@ -108,6 +49,22 @@ export default function AnalyzePage() {
 
     const showToast = (message: string, type: 'success' | 'error' | 'info') => {
         setToast({ message, type });
+    };
+
+    const handleAnalysisError = (err: any) => {
+        const msg = err.message || String(err);
+        console.error("Analysis Error:", err);
+
+        if (msg.includes('subscript out of bounds')) {
+            showToast('Lỗi: Không tìm thấy dữ liệu biến (Kiểm tra tên cột).', 'error');
+        } else if (msg.includes('singular matrix') || msg.includes('computational singular')) {
+            showToast('Lỗi: Ma trận đặc dị (Có đa cộng tuyến hoàn hảo hoặc biến hằng số).', 'error');
+        } else if (msg.includes('missing value') || msg.includes('NA/NaN')) {
+            showToast('Lỗi: Dữ liệu chứa giá trị trống (NA) hoặc lỗi. Vui lòng làm sạch dữ liệu.', 'error');
+        } else {
+            // Translate common R errors if possible
+            showToast(`Lỗi: ${msg.replace('Error in', '').substring(0, 100)}...`, 'error');
+        }
     };
 
     const handleDataLoaded = (loadedData: any[], fname: string) => {
@@ -162,7 +119,7 @@ export default function AnalyzePage() {
             setStep('results');
             showToast('Phân tích hoàn thành!', 'success');
         } catch (error) {
-            showToast(`Lỗi phân tích: ${error}`, 'error');
+            handleAnalysisError(error);
         } finally {
             setIsAnalyzing(false);
         }
@@ -200,7 +157,7 @@ export default function AnalyzePage() {
             setStep('results');
             showToast(`Phân tích ${allResults.length} thang đo hoàn thành!`, 'success');
         } catch (error) {
-            showToast(`Lỗi phân tích: ${error}`, 'error');
+            handleAnalysisError(error);
         } finally {
             setIsAnalyzing(false);
         }
@@ -232,6 +189,12 @@ export default function AnalyzePage() {
                 case 'descriptive':
                     analysisResults = await runDescriptiveStats(numericData);
                     break;
+                case 'chisq':
+                    analysisResults = await runChiSquare(numericData);
+                    break;
+                case 'mannwhitney':
+                    analysisResults = await runMannWhitneyU(numericData);
+                    break;
                 default:
                     throw new Error('Unknown analysis type');
             }
@@ -244,7 +207,7 @@ export default function AnalyzePage() {
             setStep('results');
             showToast('Phân tích hoàn thành!', 'success');
         } catch (error) {
-            showToast(`Lỗi phân tích: ${error}`, 'error');
+            handleAnalysisError(error);
         } finally {
             setIsAnalyzing(false);
         }
@@ -290,7 +253,7 @@ export default function AnalyzePage() {
             {/* Header */}
             <header className="bg-white shadow-sm border-b">
                 <div className="container mx-auto px-6 py-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                             <BarChart3 className="w-8 h-8 text-blue-600" />
                             <div>
@@ -298,16 +261,51 @@ export default function AnalyzePage() {
                                 <p className="text-sm text-gray-500">Phân tích thống kê cho NCS Việt Nam</p>
                             </div>
                         </div>
+
+                        {/* Privacy & Settings */}
                         <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+                                <button
+                                    onClick={() => setIsPrivateMode(!isPrivateMode)}
+                                    className={`flex items-center gap-1.5 text-xs font-medium transition-colors ${isPrivateMode ? 'text-gray-500' : 'text-blue-600'}`}
+                                    title={isPrivateMode ? "Đang bật chế độ riêng tư (Không lưu)" : "Đang lưu phiên làm việc"}
+                                >
+                                    {isPrivateMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                                    {isPrivateMode ? 'Riêng tư' : 'Đang lưu'}
+                                </button>
+                                <div className="w-px h-4 bg-gray-300 mx-1"></div>
+                                <button
+                                    onClick={() => {
+                                        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu phiên làm việc?')) {
+                                            clearSession();
+                                            showToast('Đã xóa dữ liệu phiên làm việc', 'info');
+                                        }
+                                    }}
+                                    className="text-red-500 hover:text-red-700"
+                                    title="Xóa phiên làm việc"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+
                             <WebRStatus />
                             {filename && (
-                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 bg-white border px-3 py-1 rounded-full">
                                     <FileText className="w-4 h-4" />
-                                    <span>{filename}</span>
+                                    <span className="truncate max-w-[150px]">{filename}</span>
                                 </div>
                             )}
                             <AISettings />
                         </div>
+                    </div>
+                </div>
+
+                {/* Privacy Disclaimer */}
+                <div className="bg-blue-50 border-b border-blue-100 py-1.5">
+                    <div className="container mx-auto px-6 flex items-center justify-center gap-2 text-xs text-blue-700">
+                        <Shield className="w-3 h-3" />
+                        <span className="font-medium">Bảo mật:</span>
+                        <span>Dữ liệu của bạn được xử lý 100% trên trình duyệt và không bao giờ được gửi đi đâu.</span>
                     </div>
                 </div>
             </header>
@@ -338,6 +336,7 @@ export default function AnalyzePage() {
 
                 {/* Content */}
                 <div className="py-8">
+
                     {step === 'upload' && (
                         <div className="space-y-6">
                             <div className="text-center mb-8">
@@ -377,98 +376,11 @@ export default function AnalyzePage() {
                                 </p>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                <button
-                                    onClick={() => runAnalysis('descriptive')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        Thống kê mô tả
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        Mean, SD, Min, Max, Median
-                                    </p>
-                                </button>
-
-                                <button
-                                    onClick={() => setStep('cronbach-select')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        Cronbach&apos;s Alpha
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        Kiểm tra độ tin cậy thang đo
-                                    </p>
-                                </button>
-
-                                <button
-                                    onClick={() => runAnalysis('correlation')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-blue-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        Ma trận tương quan
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        Phân tích mối quan hệ giữa các biến
-                                    </p>
-                                </button>
-
-                                <button
-                                    onClick={() => setStep('ttest-select')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-green-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        Independent T-test
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        So sánh 2 nhóm độc lập
-                                    </p>
-                                </button>
-
-                                <button
-                                    onClick={() => setStep('ttest-paired-select')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-green-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        Paired T-test
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        So sánh trước-sau (cặp đôi)
-                                    </p>
-                                </button>
-
-                                <button
-                                    onClick={() => setStep('anova-select')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-purple-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        ANOVA
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        So sánh trung bình nhiều nhóm
-                                    </p>
-                                </button>
-
-                                <button
-                                    onClick={() => setStep('efa-select')}
-                                    disabled={isAnalyzing}
-                                    className="p-6 bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border-2 border-transparent hover:border-orange-500 text-left disabled:opacity-50"
-                                >
-                                    <h3 className="text-xl font-bold text-gray-800 mb-2">
-                                        EFA
-                                    </h3>
-                                    <p className="text-gray-600 text-sm">
-                                        Phân tích nhân tố khám phá
-                                    </p>
-                                </button>
-                            </div>
+                            <AnalysisSelector
+                                onSelect={(s) => setStep(s as AnalysisStep)}
+                                onRunAnalysis={runAnalysis}
+                                isAnalyzing={isAnalyzing}
+                            />
 
                             {isAnalyzing && (
                                 <div className="text-center py-8">
@@ -817,6 +729,107 @@ export default function AnalyzePage() {
                         </div>
                     )}
 
+                    {/* Regression Selection */}
+                    {step === 'regression-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Hồi quy Tuyến tính Đa biến
+                                </h2>
+                                <p className="text-gray-600">
+                                    Chọn 1 biến phụ thuộc (Y) và các biến độc lập (X)
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="space-y-6">
+                                    {/* Dependent Variable (Y) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến phụ thuộc (Y) - Chọn 1
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={regressionVars.y}
+                                            onChange={(e) => setRegressionVars({ ...regressionVars, y: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={regressionVars.xs.includes(col)}>
+                                                    {col}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+
+                                    {/* Independent Variables (Xs) */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến độc lập (X) - Chọn nhiều
+                                        </label>
+                                        <div className="space-y-2 mb-4 max-h-48 overflow-y-auto border rounded-lg p-2">
+                                            {getNumericColumns().map(col => (
+                                                <label key={col} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        value={col}
+                                                        disabled={regressionVars.y === col}
+                                                        checked={regressionVars.xs.includes(col)}
+                                                        onChange={(e) => {
+                                                            const isChecked = e.target.checked;
+                                                            setRegressionVars(prev => ({
+                                                                ...prev,
+                                                                xs: isChecked
+                                                                    ? [...prev.xs, col]
+                                                                    : prev.xs.filter(x => x !== col)
+                                                            }));
+                                                        }}
+                                                        className="w-4 h-4 text-pink-600"
+                                                    />
+                                                    <span className={regressionVars.y === col ? 'text-gray-400' : ''}>{col}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (!regressionVars.y) { showToast('Vui lòng chọn biến phụ thuộc (Y)', 'error'); return; }
+                                        if (regressionVars.xs.length === 0) { showToast('Vui lòng chọn ít nhất 1 biến độc lập (X)', 'error'); return; }
+
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('regression');
+                                        try {
+                                            // Prepare Data Matrix [Y, X1, X2...]
+                                            const cols = [regressionVars.y, ...regressionVars.xs];
+                                            const regData = data.map(row =>
+                                                cols.map(c => Number(row[c]) || 0)
+                                            );
+
+                                            const result = await runLinearRegression(regData, cols);
+                                            setResults({ type: 'regression', data: result, columns: cols });
+                                            setStep('results');
+                                            showToast('Phân tích Hồi quy hoàn thành!', 'success');
+                                        } catch (err) { showToast('Lỗi: ' + err, 'error'); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="mt-6 w-full py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Hồi quy'}
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                            >
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
                     {step === 'results' && (results || multipleResults.length > 0) && (
                         <div className="max-w-6xl mx-auto space-y-6" id="results-container">
                             <div className="text-center mb-8">
@@ -832,6 +845,7 @@ export default function AnalyzePage() {
                                     {analysisType === 'ttest-paired' && "Paired Samples T-test"}
                                     {analysisType === 'anova' && "One-Way ANOVA"}
                                     {analysisType === 'efa' && "Exploratory Factor Analysis"}
+                                    {analysisType === 'regression' && "Multiple Linear Regression"}
                                 </p>
                             </div>
 

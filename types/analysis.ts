@@ -1,0 +1,1 @@
+export type AnalysisStep = 'upload' | 'profile' | 'analyze' | 'cronbach-select' | 'ttest-select' | 'ttest-paired-select' | 'anova-select' | 'efa-select' | 'regression-select' | 'chisq-select' | 'mannwhitney-select' | 'results';

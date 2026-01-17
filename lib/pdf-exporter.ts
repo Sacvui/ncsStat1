@@ -55,6 +55,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         'ttest': 'Independent Samples T-test',
         'anova': 'One-Way ANOVA',
         'efa': 'Exploratory Factor Analysis',
+        'regression': 'Multiple Linear Regression',
     };
     pdf.text(`Phương pháp: ${analysisTypeMap[analysisType] || analysisType}`, 20, yPosition);
     yPosition += 15;
@@ -253,6 +254,68 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             pdf.text(results.min[idx]?.toFixed(2) || '-', 125, yPosition);
             pdf.text(results.max[idx]?.toFixed(2) || '-', 150, yPosition);
             pdf.text(results.median[idx]?.toFixed(2) || '-', 175, yPosition);
+            yPosition += 6;
+        });
+
+    } else if (analysisType === 'regression') {
+        const { modelFit, coefficients, equation } = results;
+
+        // Equation
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Phương trình hồi quy:', 20, yPosition);
+        yPosition += 8;
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(11);
+
+        // Wrap equation if too long
+        const splitEq = pdf.splitTextToSize(equation, pageWidth - 40);
+        pdf.text(splitEq, 30, yPosition);
+        yPosition += (splitEq.length * 6) + 10;
+
+        // Model Summary
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Model Summary:', 20, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`R Square: ${modelFit.rSquared.toFixed(3)}`, 30, yPosition);
+        pdf.text(`Adjusted R²: ${modelFit.adjRSquared.toFixed(3)}`, 100, yPosition);
+        yPosition += 6;
+        pdf.text(`F-statistic: ${modelFit.fStatistic.toFixed(2)}`, 30, yPosition);
+        pdf.text(`Sig.: ${modelFit.pValue < 0.001 ? '< .001' : modelFit.pValue.toFixed(3)}`, 100, yPosition);
+        yPosition += 15;
+
+        // Coefficients Table
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Coefficients:', 20, yPosition);
+        yPosition += 10;
+
+        // Table Header
+        pdf.setFontSize(10);
+        pdf.text('Variable', 20, yPosition);
+        pdf.text('B', 70, yPosition);
+        pdf.text('Std. Error', 100, yPosition);
+        pdf.text('t', 130, yPosition);
+        pdf.text('Sig.', 160, yPosition);
+        yPosition += 6;
+
+        pdf.setFont('helvetica', 'normal');
+        coefficients.forEach((coef: any) => {
+            if (yPosition > pageHeight - 20) {
+                pdf.addPage();
+                yPosition = 20;
+            }
+            const term = coef.term === '(Intercept)' ? '(Constant)' : coef.term.replace(/`/g, '');
+            pdf.text(term.substring(0, 25), 20, yPosition);
+            pdf.text(coef.estimate.toFixed(3), 70, yPosition);
+            pdf.text(coef.stdError.toFixed(3), 100, yPosition);
+            pdf.text(coef.tValue.toFixed(3), 130, yPosition);
+            const pVal = coef.pValue < 0.001 ? '< .001' : coef.pValue.toFixed(3);
+            pdf.text(pVal, 160, yPosition);
             yPosition += 6;
         });
 
