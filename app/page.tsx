@@ -74,6 +74,22 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      {/* Footer */}
+      <footer className="mt-20 pt-8 border-t border-white/20 text-center text-blue-100 pb-8">
+        <p>
+          1 sản phẩm của hệ sinh thái hỗ trợ nghiên cứu khoa học từ{' '}
+          <a
+            href="https://ncskit.org"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-bold text-white hover:text-blue-200 transition-colors"
+          >
+            NCSKit.org
+          </a>
+        </p>
+      </footer>
     </div>
+  </div >
   );
 }

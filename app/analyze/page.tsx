@@ -936,6 +936,21 @@ export default function AnalyzePage() {
                 </div>
             </div>
 
+            {/* Footer */}
+            <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500">
+                <p>
+                    1 sản phẩm của hệ sinh thái hỗ trợ nghiên cứu khoa học từ{' '}
+                    <a
+                        href="https://ncskit.org"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-blue-600 hover:text-blue-800 transition-colors"
+                    >
+                        NCSKit.org
+                    </a>
+                </p>
+            </footer>
+
             {/* Custom styles for animations */}
             <style jsx>{`
                 @keyframes slide-up {
