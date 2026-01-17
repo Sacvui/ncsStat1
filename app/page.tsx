@@ -88,6 +88,9 @@ export default function Home() {
             NCSKit.org
           </a>
         </p>
+        <p className="mt-2 text-xs text-blue-200 opacity-70">
+          v1.1.0 (Mobile Ready)
+        </p>
       </footer>
     </div>
   );
