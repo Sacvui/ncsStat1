@@ -36,7 +36,23 @@ export default function AnalyzePage() {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-    // Preload WebR when entering analyze step
+    // Auto-initialize WebR on page load (eager loading)
+    useEffect(() => {
+        const status = getWebRStatus();
+        if (!status.isReady && !status.isLoading) {
+            console.log('[WebR] Starting auto-initialization...');
+            initWebR()
+                .then(() => {
+                    console.log('[WebR] Auto-initialization successful');
+                })
+                .catch(err => {
+                    console.error('[WebR] Auto-initialization failed:', err);
+                    // Don't show toast on initial fail - will retry when needed
+                });
+        }
+    }, []); // Run once on mount
+
+    // Additional check when entering analyze step
     useEffect(() => {
         if (step === 'analyze') {
             const status = getWebRStatus();
@@ -45,7 +61,7 @@ export default function AnalyzePage() {
                 initWebR().then(() => {
                     setToast({ message: 'R Engine sẵn sàng!', type: 'success' });
                 }).catch(err => {
-                    setToast({ message: `Lỗi khởi tạo: ${err}`, type: 'error' });
+                    setToast({ message: `Lỗi khởi tạo: ${err.message || err}`, type: 'error' });
                 });
             }
         }
