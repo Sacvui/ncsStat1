@@ -1024,3 +1024,126 @@ export async function runCFA(
         throw new Error("Lavaan Error: " + e.message);
     }
 }
+
+/**
+ * Run Structural Equation Modeling (SEM) using lavaan
+ */
+export async function runSEM(
+    data: number[][],
+    columns: string[],
+    modelSyntax: string
+): Promise<{
+    fitMeasures: {
+        cfi: number;
+        tli: number;
+        rmsea: number;
+        srmr: number;
+        chisq: number;
+        df: number;
+        pvalue: number;
+    };
+    estimates: {
+        lhs: string;
+        op: string;
+        rhs: string;
+        est: number;
+        std: number;
+        pvalue: number;
+        se: number;
+    }[];
+}> {
+    const webR = await initWebR();
+
+    // Check for lavaan
+    const rCode = `
+    if (!requireNamespace("lavaan", quietly = TRUE)) {
+      install.packages("lavaan", repos="https://repo.r-wasm.org/")
+    }
+    library(lavaan)
+    
+    # 1. Prepare Data
+    data_mat <- ${arrayToRMatrix(data)}
+    df <- as.data.frame(data_mat)
+    colnames(df) <- c(${columns.map(c => `"${c}"`).join(',')})
+    
+    # 2. Model Syntax
+    model <- "${modelSyntax}"
+    
+    # 3. Run SEM
+    # std.lv = TRUE fixes scale by setting factor variance to 1
+    # sem() function is used for structural models
+    fit <- sem(model, data=df, std.lv=TRUE)
+    
+    # 4. Extract Fit Measures
+    fits <- fitMeasures(fit, c("cfi", "tli", "rmsea", "srmr", "chisq", "df", "pvalue"))
+    
+    # 5. Extract Parameter Estimates
+    ests <- parameterEstimates(fit, standardized=TRUE)
+    
+    list(
+      cfi = as.numeric(fits["cfi"]),
+      tli = as.numeric(fits["tli"]),
+      rmsea = as.numeric(fits["rmsea"]),
+      srmr = as.numeric(fits["srmr"]),
+      chisq = as.numeric(fits["chisq"]),
+      df = as.numeric(fits["df"]),
+      pvalue = as.numeric(fits["pvalue"]),
+      
+      # Estimates vectors
+      lhs = ests$lhs,
+      op = ests$op,
+      rhs = ests$rhs,
+      est = ests$est,
+      std = ests$std.all,
+      se = ests$se,
+      p = ests$pvalue,
+      
+      n_ests = nrow(ests)
+    )
+    `;
+
+    try {
+        const result = await webR.evalR(rCode);
+        const jsResult = await result.toJs() as any;
+        const getValue = parseWebRResult(jsResult);
+
+        // Reuse parsing logic similar to CFA
+        const fitMeasures = {
+            cfi: getValue('cfi')?.[0] || 0,
+            tli: getValue('tli')?.[0] || 0,
+            rmsea: getValue('rmsea')?.[0] || 0,
+            srmr: getValue('srmr')?.[0] || 0,
+            chisq: getValue('chisq')?.[0] || 0,
+            df: getValue('df')?.[0] || 0,
+            pvalue: getValue('pvalue')?.[0] || 0,
+        };
+
+        const nEsts = getValue('n_ests')?.[0] || 0;
+        const estimates = [];
+
+        const lhs = getValue('lhs') || [];
+        const op = getValue('op') || [];
+        const rhs = getValue('rhs') || [];
+        const est = getValue('est') || [];
+        const std = getValue('std') || [];
+        const se = getValue('se') || [];
+        const p = getValue('p') || [];
+
+        for (let i = 0; i < nEsts; i++) {
+            estimates.push({
+                lhs: lhs[i],
+                op: op[i],
+                rhs: rhs[i],
+                est: est[i],
+                std: std[i],
+                se: se[i],
+                pvalue: p[i]
+            });
+        }
+
+        return { fitMeasures, estimates };
+
+    } catch (e: any) {
+        throw new Error("Lavaan SEM Error: " + e.message);
+    }
+}

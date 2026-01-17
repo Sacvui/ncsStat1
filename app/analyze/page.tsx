@@ -16,7 +16,8 @@ import { AnalysisStep } from '@/types/analysis';
 import { StepIndicator } from '@/components/ui/StepIndicator';
 import { Badge } from '@/components/ui/Badge';
 import CFASelection from '@/components/CFASelection';
-import { runCFA } from '@/lib/webr-wrapper';
+import SEMSelection from '@/components/SEMSelection';
+import { runCFA, runSEM } from '@/lib/webr-wrapper';
 
 export default function AnalyzePage() {
     // Session State Management
@@ -879,6 +880,34 @@ export default function AnalyzePage() {
                                     setResults({ type: 'cfa', data: result, columns: neededCols as string[] });
                                     setStep('results');
                                     showToast('Phân tích CFA thành công!', 'success');
+                                } catch (err) {
+                                    handleAnalysisError(err);
+                                } finally {
+                                    setIsAnalyzing(false);
+                                }
+                            }}
+                            isAnalyzing={isAnalyzing}
+                            onBack={() => setStep('analyze')}
+                        />
+                    )}
+
+                    {/* SEM Selection */}
+                    {step === 'sem-select' && (
+                        <SEMSelection
+                            columns={getNumericColumns()}
+                            onRunSEM={async (syntax, factors) => {
+                                setIsAnalyzing(true);
+                                setAnalysisType('sem');
+                                try {
+                                    // Extract unique columns needed from factors (step 1)
+                                    // Step 2 paths use factor names which are internal, not columns
+                                    const neededCols = Array.from(new Set(factors.flatMap((f: any) => f.indicators)));
+                                    const semData = data.map(row => (neededCols as string[]).map((c: string) => Number(row[c]) || 0));
+
+                                    const result = await runSEM(semData, neededCols as string[], syntax);
+                                    setResults({ type: 'sem', data: result, columns: neededCols as string[] });
+                                    setStep('results');
+                                    showToast('Phân tích SEM thành công!', 'success');
                                 } catch (err) {
                                     handleAnalysisError(err);
                                 } finally {

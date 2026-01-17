@@ -72,7 +72,7 @@ export function ResultsDisplay({ analysisType, results, columns }: ResultsDispla
         return <MannWhitneyResults results={results} />;
     }
 
-    if (analysisType === 'cfa') {
+    if (analysisType === 'cfa' || analysisType === 'sem') {
         return <CFAResults results={results} />;
     }
 
