@@ -7,125 +7,42 @@ interface AnalysisSelectorProps {
     isAnalyzing: boolean;
 }
 
-const analysisOptions = [
-    {
-        id: 'descriptive',
-        title: 'Thống kê mô tả',
-        description: 'Mean, SD, Min, Max, Median',
-        icon: BarChart2,
-        color: 'indigo',
-        action: 'run'
-    },
-    {
-        id: 'cronbach-select',
-        title: "Cronbach's Alpha",
-        description: 'Kiểm tra độ tin cậy thang đo',
-        icon: Shield,
-        color: 'blue',
-        action: 'select'
-    },
-    {
-        id: 'correlation',
-        title: 'Ma trận tương quan',
-        description: 'Phân tích mối quan hệ giữa các biến',
-        icon: Network,
-        color: 'purple',
-        action: 'run'
-    },
-    {
-        id: 'ttest-select',
-        title: 'Independent T-test',
-        description: 'So sánh 2 nhóm độc lập',
-        icon: GitCompare,
-        color: 'green',
-        action: 'select'
-    },
-    {
-        id: 'ttest-paired-select',
-        title: 'Paired T-test',
-        description: 'So sánh trước-sau (cặp đôi)',
-        icon: Users,
-        color: 'emerald',
-        action: 'select'
-    },
-    {
-        id: 'anova-select',
-        title: 'ANOVA',
-        description: 'So sánh trung bình nhiều nhóm',
-        icon: Layers,
-        color: 'violet',
-        action: 'select'
-    },
-    {
-        id: 'efa-select',
-        title: 'EFA',
-        description: 'Phân tích nhân tố khám phá',
-        icon: Grid3x3,
-        color: 'orange',
-        action: 'select'
-    },
-    {
-        id: 'regression-select',
-        title: 'Hồi quy Tuyến tính',
-        description: 'Multiple Linear Regression',
-        icon: TrendingUp,
-        color: 'pink',
-        action: 'select'
-    },
-    {
-        id: 'chisq-select',
-        title: 'Chi-Square Test',
-        description: 'Kiểm định độc lập (Biến định danh)',
-        icon: Grid3x3,
-        color: 'teal',
-        action: 'select'
-    },
-    {
-        id: 'mannwhitney-select',
-        title: 'Mann-Whitney U',
-        description: 'So sánh 2 nhóm (Phi tham số)',
-        icon: Activity,
-        color: 'cyan',
-        action: 'select'
-    }
-];
-
 export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: AnalysisSelectorProps) {
+    const options = [
+        { id: 'descriptive', title: 'Thống kê mô tả', desc: 'Mean, SD, Min, Max, Median', icon: BarChart2, action: 'run', colors: 'hover:border-indigo-500 hover:bg-indigo-50/30' },
+        { id: 'cronbach-select', title: "Cronbach's Alpha", desc: 'Kiểm tra độ tin cậy thang đo', icon: Shield, action: 'select', colors: 'hover:border-blue-500 hover:bg-blue-50/30' },
+        { id: 'correlation', title: 'Ma trận tương quan', desc: 'Phân tích mối quan hệ giữa các biến', icon: Network, action: 'run', colors: 'hover:border-purple-500 hover:bg-purple-50/30' },
+        { id: 'ttest-select', title: 'Independent T-test', desc: 'So sánh 2 nhóm độc lập', icon: GitCompare, action: 'select', colors: 'hover:border-green-500 hover:bg-green-50/30' },
+        { id: 'ttest-paired-select', title: 'Paired T-test', desc: 'So sánh trước-sau (cặp đôi)', icon: Users, action: 'select', colors: 'hover:border-emerald-500 hover:bg-emerald-50/30' },
+        { id: 'anova-select', title: 'ANOVA', desc: 'So sánh trung bình nhiều nhóm', icon: Layers, action: 'select', colors: 'hover:border-violet-500 hover:bg-violet-50/30' },
+        { id: 'efa-select', title: 'EFA', desc: 'Phân tích nhân tố khám phá', icon: Grid3x3, action: 'select', colors: 'hover:border-orange-500 hover:bg-orange-50/30' },
+        { id: 'regression-select', title: 'Hồi quy Tuyến tính', desc: 'Multiple Linear Regression', icon: TrendingUp, action: 'select', colors: 'hover:border-pink-500 hover:bg-pink-50/30' },
+        { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Kiểm định độc lập (Biến định danh)', icon: Grid3x3, action: 'select', colors: 'hover:border-teal-500 hover:bg-teal-50/30' },
+        { id: 'mannwhitney-select', title: 'Mann-Whitney U', desc: 'So sánh 2 nhóm (Phi tham số)', icon: Activity, action: 'select', colors: 'hover:border-cyan-500 hover:bg-cyan-50/30' }
+    ];
+
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {analysisOptions.map((option) => {
-                const Icon = option.icon;
-                const handleClick = () => {
-                    if (option.action === 'run') {
-                        onRunAnalysis(option.id);
-                    } else {
-                        onSelect(option.id);
-                    }
-                };
-
+            {options.map((opt) => {
+                const Icon = opt.icon;
                 return (
                     <button
-                        key={option.id}
-                        onClick={handleClick}
+                        key={opt.id}
+                        onClick={() => opt.action === 'run' ? onRunAnalysis(opt.id) : onSelect(opt.id)}
                         disabled={isAnalyzing}
-                        className={`group relative p-6 bg-white rounded-xl border-2 border-slate-200 hover:border-${option.color}-500 hover:shadow-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed overflow-hidden`}
+                        className={`group p-6 bg-white rounded-xl border-2 border-slate-200 ${opt.colors} hover:shadow-lg transition-all text-left disabled:opacity-50 disabled:cursor-not-allowed`}
                     >
-                        {/* Gradient background on hover */}
-                        <div className={`absolute inset-0 bg-gradient-to-br from-${option.color}-50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity`} />
-
-                        <div className="relative z-10">
-                            <div className="flex items-start justify-between mb-3">
-                                <div className={`p-2.5 rounded-lg bg-${option.color}-100 text-${option.color}-600 group-hover:scale-110 transition-transform`}>
-                                    <Icon className="w-5 h-5" />
-                                </div>
+                        <div className="flex items-center gap-3 mb-3">
+                            <div className="p-2 rounded-lg bg-slate-100 text-slate-600 group-hover:scale-110 transition-transform">
+                                <Icon className="w-6 h-6" />
                             </div>
-                            <h3 className="text-lg font-semibold text-slate-800 mb-1 group-hover:text-slate-900">
-                                {option.title}
-                            </h3>
-                            <p className="text-sm text-slate-600">
-                                {option.description}
-                            </p>
                         </div>
+                        <h3 className="text-lg font-semibold text-slate-800 mb-1">
+                            {opt.title}
+                        </h3>
+                        <p className="text-sm text-slate-600">
+                            {opt.desc}
+                        </p>
                     </button>
                 );
             })}
