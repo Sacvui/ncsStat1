@@ -12,6 +12,7 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 
 ChartJS.register(
     CategoryScale,
@@ -81,49 +82,53 @@ function TTestResults({ results, columns }: { results: any; columns: string[] })
 
     return (
         <div className="space-y-6">
-            <div className="bg-white border-t-2 border-b-2 border-black p-4">
-                <h4 className="text-sm font-bold uppercase mb-4 tracking-wide text-gray-700">Independent Samples T-test Results</h4>
-                <table className="w-full text-sm">
-                    <tbody>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">Group 1 ({columns[0]})</td>
-                            <td className="py-2 text-right">Mean = {results.mean1?.toFixed(3)}</td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">Group 2 ({columns[1]})</td>
-                            <td className="py-2 text-right">Mean = {results.mean2?.toFixed(3)}</td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">Mean Difference</td>
-                            <td className="py-2 text-right font-bold">{results.meanDiff?.toFixed(3)}</td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">t-statistic</td>
-                            <td className="py-2 text-right">{results.t?.toFixed(3)}</td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">Degrees of Freedom (df)</td>
-                            <td className="py-2 text-right">{results.df?.toFixed(2)}</td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">p-value (2-tailed)</td>
-                            <td className={`py-2 text-right font-bold ${significant ? 'text-green-600' : 'text-gray-600'}`}>
-                                {pValue?.toFixed(4)} {significant && '***'}
-                            </td>
-                        </tr>
-                        <tr className="border-b border-gray-200">
-                            <td className="py-2 font-medium">95% CI</td>
-                            <td className="py-2 text-right">[{results.ci95Lower?.toFixed(3)}, {results.ci95Upper?.toFixed(3)}]</td>
-                        </tr>
-                        <tr>
-                            <td className="py-2 font-medium">Cohen&apos;s d (Effect Size)</td>
-                            <td className="py-2 text-right">{results.effectSize?.toFixed(3)}</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Independent Samples T-test Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <table className="w-full text-sm">
+                        <tbody>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">Group 1 ({columns[0]})</td>
+                                <td className="py-2 text-right">Mean = {results.mean1?.toFixed(3)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">Group 2 ({columns[1]})</td>
+                                <td className="py-2 text-right">Mean = {results.mean2?.toFixed(3)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">Mean Difference</td>
+                                <td className="py-2 text-right font-bold">{results.meanDiff?.toFixed(3)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">t-statistic</td>
+                                <td className="py-2 text-right">{results.t?.toFixed(3)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">Degrees of Freedom (df)</td>
+                                <td className="py-2 text-right">{results.df?.toFixed(2)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">p-value (2-tailed)</td>
+                                <td className={`py-2 text-right font-bold ${significant ? 'text-green-600' : 'text-gray-600'}`}>
+                                    {pValue?.toFixed(4)} {significant && '***'}
+                                </td>
+                            </tr>
+                            <tr className="border-b border-gray-200">
+                                <td className="py-2 font-medium">95% CI</td>
+                                <td className="py-2 text-right">[{results.ci95Lower?.toFixed(3)}, {results.ci95Upper?.toFixed(3)}]</td>
+                            </tr>
+                            <tr>
+                                <td className="py-2 font-medium">Cohen&apos;s d (Effect Size)</td>
+                                <td className="py-2 text-right">{results.effectSize?.toFixed(3)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </CardContent>
+            </Card>
 
-            <div className="bg-gray-50 border border-gray-200 p-6 rounded-sm">
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
                 <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
                 <p className="text-sm text-gray-800">
                     {significant
@@ -394,60 +399,83 @@ function CorrelationResults({ results, columns }: { results: any; columns: strin
 function DescriptiveResults({ results, columns }: { results: any; columns: string[] }) {
     return (
         <div className="space-y-8">
-            <div>
-                <h4 className="text-sm font-bold uppercase mb-2 tracking-wide text-gray-700">Descriptive Statistics</h4>
-                <div className="bg-white border-t-2 border-b-2 border-black overflow-x-auto">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Descriptive Statistics</CardTitle>
+                </CardHeader>
+                <CardContent className="overflow-x-auto">
                     <table className="w-full text-left text-sm whitespace-nowrap">
                         <thead>
-                            <tr className="border-b border-gray-600">
-                                <th className="py-2 px-4 font-semibold"></th>
-                                <th className="py-2 px-4 font-semibold text-right">N</th>
-                                <th className="py-2 px-4 font-semibold text-right">Minimum</th>
-                                <th className="py-2 px-4 font-semibold text-right">Maximum</th>
-                                <th className="py-2 px-4 font-semibold text-right">Mean</th>
-                                <th className="py-2 px-4 font-semibold text-right">Std. Deviation</th>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                                <th className="py-3 px-4 font-semibold text-gray-700">Variable</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">N</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">Min</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">Max</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">Mean</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">SD</th>
                             </tr>
                         </thead>
                         <tbody>
                             {columns.map((col, idx) => (
-                                <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                                    <td className="py-2 px-4 font-medium text-gray-900">{col}</td>
-                                    <td className="py-2 px-4 text-right text-gray-600">{results.N || 'N/A'}</td>
-                                    <td className="py-2 px-4 text-right text-gray-600">{(results.min && results.min[idx] !== undefined) ? results.min[idx].toFixed(3) : '-'}</td>
-                                    <td className="py-2 px-4 text-right text-gray-600">{(results.max && results.max[idx] !== undefined) ? results.max[idx].toFixed(3) : '-'}</td>
-                                    <td className="py-2 px-4 text-right text-gray-900 font-medium">{(results.mean && results.mean[idx] !== undefined) ? results.mean[idx].toFixed(3) : '-'}</td>
-                                    <td className="py-2 px-4 text-right text-gray-600">{(results.sd && results.sd[idx] !== undefined) ? results.sd[idx].toFixed(3) : '-'}</td>
+                                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                                    <td className="py-3 px-4 font-medium text-gray-900">{col}</td>
+                                    <td className="py-3 px-4 text-right text-gray-600">{results.N || 'N/A'}</td>
+                                    <td className="py-3 px-4 text-right text-gray-600">{(results.min && results.min[idx] !== undefined) ? results.min[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-3 px-4 text-right text-gray-600">{(results.max && results.max[idx] !== undefined) ? results.max[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-3 px-4 text-right text-gray-900 font-bold">{(results.mean && results.mean[idx] !== undefined) ? results.mean[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-3 px-4 text-right text-gray-600">{(results.sd && results.sd[idx] !== undefined) ? results.sd[idx].toFixed(3) : '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                </div>
-            </div>
+                </CardContent>
+            </Card>
 
-            {/* Chart is still useful for quick visual check */}
-            <div className="mt-8 p-6 bg-white border border-gray-200 shadow-sm rounded-sm">
-                <h4 className="text-sm font-bold uppercase mb-4 tracking-wide text-gray-700 text-center">Mean Value Comparison</h4>
-                <Bar
-                    data={{
-                        labels: columns,
-                        datasets: [{
-                            label: 'Mean',
-                            data: results.mean,
-                            backgroundColor: 'rgba(15, 76, 129, 0.7)', // Deep Blue
-                            borderColor: 'rgba(15, 76, 129, 1)',
-                            borderWidth: 1
-                        }]
-                    }}
-                    options={{
-                        responsive: true,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, grid: { color: '#f3f4f6' } },
-                            x: { grid: { display: false } }
-                        }
-                    }}
-                />
-            </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Mean Value Comparison</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-80 w-full">
+                        <Bar
+                            data={{
+                                labels: columns,
+                                datasets: [{
+                                    label: 'Mean',
+                                    data: results.mean,
+                                    backgroundColor: 'rgba(79, 70, 229, 0.7)', // Indigo-600 with opacity
+                                    borderColor: 'rgba(79, 70, 229, 1)',
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                }]
+                            }}
+                            options={{
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: { display: false },
+                                    tooltip: {
+                                        backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                                        padding: 12,
+                                        cornerRadius: 8,
+                                    }
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        grid: { color: '#f3f4f6' },
+                                        ticks: { font: { size: 11 } }
+                                    },
+                                    x: {
+                                        grid: { display: false },
+                                        ticks: { font: { size: 11 } }
+                                    }
+                                }
+                            }}
+                        />
+                    </div>
+                </CardContent>
+            </Card>
         </div>
     );
 }
