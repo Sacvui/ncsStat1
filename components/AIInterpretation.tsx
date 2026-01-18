@@ -1,6 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Sparkles, Bot, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import CryptoJS from 'crypto-js';
+
+// Encryption helpers
+const ENCRYPTION_KEY = 'ncsStat-secure-key-2026'; // In production, use env variable
+
+function encryptData(data: string): string {
+    return CryptoJS.AES.encrypt(data, ENCRYPTION_KEY).toString();
+}
+
+function decryptData(encryptedData: string): string {
+    try {
+        const bytes = CryptoJS.AES.decrypt(encryptedData, ENCRYPTION_KEY);
+        return bytes.toString(CryptoJS.enc.Utf8);
+    } catch {
+        return '';
+    }
+}
 
 interface AIInterpretationProps {
     analysisType: string;
@@ -15,16 +32,20 @@ export function AIInterpretation({ analysisType, results }: AIInterpretationProp
     const [cache, setCache] = useState<Map<string, string>>(new Map());
     const [lastCallTime, setLastCallTime] = useState(0);
 
-    // Load API key from sessionStorage (more secure than localStorage)
+    // Load API key from sessionStorage (encrypted)
     useEffect(() => {
-        const storedKey = sessionStorage.getItem('gemini_api_key');
-        if (storedKey) setApiKey(storedKey);
+        const storedKey = sessionStorage.getItem('gemini_api_key_enc');
+        if (storedKey) {
+            const decrypted = decryptData(storedKey);
+            if (decrypted) setApiKey(decrypted);
+        }
     }, []);
 
-    // Save to sessionStorage when changed
+    // Save to sessionStorage (encrypted)
     useEffect(() => {
         if (apiKey) {
-            sessionStorage.setItem('gemini_api_key', apiKey);
+            const encrypted = encryptData(apiKey);
+            sessionStorage.setItem('gemini_api_key_enc', encrypted);
         }
     }, [apiKey]);
 

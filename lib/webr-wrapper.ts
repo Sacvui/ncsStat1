@@ -27,9 +27,9 @@ function updateProgress(msg: string) {
 }
 
 /**
- * Initialize WebR instance (singleton with promise caching)
+ * Initialize WebR instance (singleton with promise caching and retry logic)
  */
-export async function initWebR(): Promise<WebR> {
+export async function initWebR(maxRetries: number = 3): Promise<WebR> {
     // Return existing instance
     if (webRInstance) {
         try {
@@ -63,52 +63,73 @@ export async function initWebR(): Promise<WebR> {
     isInitializing = true;
     updateProgress('Đang khởi tạo WebR...');
 
-    initPromise = (async () => {
-        try {
-            const webR = new WebR({
-                channelType: 1, // PostMessage channel
-            });
-
-            updateProgress('Đang tải R runtime...');
-            await webR.init();
-
-            // Verify initialization
-            if (!webR.evalR) {
-                throw new Error('WebR initialized but evalR is not available');
-            }
-
-            // Install required packages
-            updateProgress('Đang cài đặt packages (psych, lavaan)...');
+    // Retry logic wrapper
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        initPromise = (async () => {
             try {
-                await webR.installPackages(['psych', 'lavaan', 'corrplot', 'GPArotation']);
+                const webR = new WebR({
+                    channelType: 1, // PostMessage channel
+                });
 
-                // Load packages in parallel for faster init
-                updateProgress('Đang load packages...');
-                await Promise.all([
-                    webR.evalR('library(psych)'),
-                    webR.evalR('library(lavaan)'),
-                    webR.evalR('library(GPArotation)')
-                ]);
-            } catch (pkgError) {
-                console.warn('Package installation failed, continuing anyway:', pkgError);
+                updateProgress('Đang tải R runtime...');
+                await webR.init();
+
+                // Verify initialization
+                if (!webR.evalR) {
+                    throw new Error('WebR initialized but evalR is not available');
+                }
+
+                // Install required packages
+                updateProgress('Đang cài đặt packages (psych, lavaan)...');
+                try {
+                    await webR.installPackages(['psych', 'lavaan', 'corrplot', 'GPArotation']);
+
+                    // Load packages in parallel for faster init
+                    updateProgress('Đang load packages...');
+                    await Promise.all([
+                        webR.evalR('library(psych)'),
+                        webR.evalR('library(lavaan)'),
+                        webR.evalR('library(GPArotation)')
+                    ]);
+                } catch (pkgError) {
+                    console.warn('Package installation failed, continuing anyway:', pkgError);
+                }
+
+                updateProgress('Sẵn sàng!');
+                webRInstance = webR;
+                isInitializing = false;
+                initPromise = null;
+                return webR;
+            } catch (error) {
+                // If not last attempt, retry
+                if (attempt < maxRetries - 1) {
+                    console.warn(`WebR init attempt ${attempt + 1} failed, retrying...`);
+                    updateProgress(`Thử lại lần ${attempt + 2}...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+                    throw error; // Throw to trigger retry
+                }
+
+                // Last attempt failed
+                isInitializing = false;
+                webRInstance = null;
+                initPromise = null;
+                updateProgress('Lỗi khởi tạo!');
+                console.error('WebR initialization error:', error);
+                throw new Error(`Failed to initialize WebR after ${maxRetries} attempts: ${error}`);
             }
+        })();
 
-            updateProgress('Sẵn sàng!');
-            webRInstance = webR;
-            isInitializing = false;
-            initPromise = null;
-            return webR;
+        try {
+            return await initPromise;
         } catch (error) {
-            isInitializing = false;
-            webRInstance = null;
-            initPromise = null;
-            updateProgress('Lỗi khởi tạo!');
-            console.error('WebR initialization error:', error);
-            throw new Error(`Failed to initialize WebR: ${error}`);
+            if (attempt === maxRetries - 1) {
+                throw error;
+            }
+            // Continue to next retry
         }
-    })();
+    }
 
-    return initPromise;
+    throw new Error('WebR initialization failed');
 }
 /**
  * Helper to parse WebR evaluation result (list) into a getter function

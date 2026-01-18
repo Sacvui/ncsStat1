@@ -10,8 +10,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@types/crypto-js": "^4.2.2",
     "@types/papaparse": "^5.5.2",
     "chart.js": "^4.5.1",
+    "crypto-js": "^4.2.0",
     "framer-motion": "^12.26.2",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.0.0",

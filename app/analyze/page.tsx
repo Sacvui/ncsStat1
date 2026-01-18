@@ -322,6 +322,37 @@ export default function AnalyzePage() {
         }
     };
 
+    // Keyboard shortcuts
+    useEffect(() => {
+        const handleKeyPress = (e: KeyboardEvent) => {
+            // Ctrl+S: Export PDF
+            if (e.ctrlKey && e.key === 's' && step === 'results' && results) {
+                e.preventDefault();
+                handleExportPDF();
+                showToast('Đang xuất PDF... (Ctrl+S)', 'info');
+            }
+
+            // Ctrl+E: Export Excel (future feature)
+            if (e.ctrlKey && e.key === 'e' && step === 'results' && results) {
+                e.preventDefault();
+                showToast('Excel export sẽ có trong phiên bản tiếp theo (Ctrl+E)', 'info');
+            }
+
+            // Ctrl+N: New analysis
+            if (e.ctrlKey && e.key === 'n') {
+                e.preventDefault();
+                setStep('upload');
+                setData([]);
+                setProfile(null);
+                setResults(null);
+                showToast('Bắt đầu phân tích mới (Ctrl+N)', 'success');
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyPress);
+        return () => window.removeEventListener('keydown', handleKeyPress);
+    }, [step, results]);
+
     // Handle PDF Export (Text-based for stability)
     const handleExportPDF = async () => {
         try {
