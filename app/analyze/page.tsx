@@ -978,6 +978,9 @@ export default function AnalyzePage() {
                                     analysisType={analysisType}
                                     results={results.data}
                                     columns={results.columns}
+                                    onProceedToEFA={handleProceedToEFA}
+                                    onProceedToCFA={handleProceedToCFA}
+                                    onProceedToSEM={handleProceedToSEM}
                                 />
                             )}
 

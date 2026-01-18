@@ -1067,12 +1067,25 @@ function MannWhitneyResults({ results }: { results: any }) {
     );
 }
 
-function CFAResults({ results }: { results: any }) {
+function CFAResults({ results, onProceedToSEM }: { results: any; onProceedToSEM?: (factors: { name: string; indicators: string[] }[]) => void }) {
     if (!results) return null;
     const { fitMeasures, estimates } = results;
 
     const loadings = estimates.filter((e: any) => e.op === '=~');
     const covariances = estimates.filter((e: any) => e.op === '~~' && e.lhs !== e.rhs);
+
+    // Extract factor structure for SEM
+    const extractFactors = () => {
+        const factorMap: Record<string, string[]> = {};
+        loadings.forEach((est: any) => {
+            if (!factorMap[est.lhs]) factorMap[est.lhs] = [];
+            factorMap[est.lhs].push(est.rhs);
+        });
+        return Object.entries(factorMap).map(([name, indicators]) => ({ name, indicators }));
+    };
+
+    const factors = extractFactors();
+    const fitGood = fitMeasures.cfi >= 0.9 && fitMeasures.rmsea <= 0.08;
 
     // Helper to color fit indices
     const getFitColor = (val: number, type: 'high' | 'low') => {
@@ -1197,6 +1210,31 @@ function CFAResults({ results }: { results: any }) {
                         </div>
                     </CardContent>
                 </Card>
+            )}
+
+            {/* Workflow: Next Step Button */}
+            {factors.length > 0 && onProceedToSEM && fitGood && (
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 p-6 rounded-xl shadow-sm">
+                    <div className="flex items-start gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center text-white text-2xl">
+                            🎯
+                        </div>
+                        <div className="flex-1">
+                            <h4 className="font-bold text-purple-900 mb-2 text-lg">Bước tiếp theo được đề xuất</h4>
+                            <p className="text-sm text-purple-700 mb-4">
+                                Mô hình CFA đã được xác nhận với <strong>fit tốt</strong> (CFI ≥ 0.9, RMSEA ≤ 0.08).
+                                Tiếp tục với <strong>SEM (Structural Equation Modeling)</strong> để kiểm định mối quan hệ nhân quả giữa các nhân tố?
+                            </p>
+                            <button
+                                onClick={() => onProceedToSEM(factors)}
+                                className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+                            >
+                                <span>Xây dựng SEM với {factors.length} factors</span>
+                                <span className="text-xl">→</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
