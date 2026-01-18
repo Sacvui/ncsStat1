@@ -514,6 +514,31 @@ function DescriptiveResults({ results, columns }: { results: any; columns: strin
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Workflow: Proceed to EFA */}
+            {onProceedToEFA && goodItems.length >= 3 && (
+                <Card className="border-2 border-green-500 bg-green-50">
+                    <CardContent className="p-6">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h3 className="text-lg font-bold text-green-800 mb-2">
+                                    🎯 Workflow Mode: Tiếp tục sang EFA
+                                </h3>
+                                <p className="text-sm text-green-700">
+                                    Phát hiện <strong>{goodItems.length} items tốt</strong> (r {'>'} 0.3).
+                                    Bạn có thể tiếp tục sang Exploratory Factor Analysis (EFA) để khám phá cấu trúc nhân tố.
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => onProceedToEFA(goodItems)}
+                                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-bold rounded-lg shadow-lg transition-all hover:scale-105"
+                            >
+                                Proceed to EFA →
+                            </button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }
