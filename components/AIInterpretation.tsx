@@ -43,8 +43,8 @@ export function AIInterpretation({ analysisType, results }: AIInterpretationProp
                 prompt += `Dữ liệu kết quả: (Không thể serialize)`;
             }
 
-            // Call Gemini API (Using gemini-1.5-flash for better availability/speed)
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+            // Call Gemini API (Using gemini-3-flash - Latest Gemini 3.0, Dec 2025)
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
