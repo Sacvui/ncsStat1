@@ -1,5 +1,6 @@
 'use client';
 
+import React, { useMemo } from 'react';
 import { Bar, Line, Scatter } from 'react-chartjs-2';
 import {
     Chart as ChartJS,
@@ -218,10 +219,13 @@ function CronbachResults({ results, columns, onProceedToEFA }: { results: any; c
     const nItems = results.nItems || 'N/A';
     const itemTotalStats = results.itemTotalStats || [];
 
-    // Extract good items for workflow
-    const goodItems = itemTotalStats
-        .filter((item: any) => item.correctedItemTotalCorrelation >= 0.3)
-        .map((item: any, idx: number) => columns?.[idx] || item.itemName);
+    // Extract good items for workflow (memoized)
+    const goodItems = useMemo(() =>
+        itemTotalStats
+            .filter((item: any) => item.correctedItemTotalCorrelation >= 0.3)
+            .map((item: any, idx: number) => columns?.[idx] || item.itemName),
+        [itemTotalStats, columns]
+    );
 
     // SPSS Style Table Component
     const SPSSTable = ({ title, children }: { title: string, children: React.ReactNode }) => (
@@ -583,8 +587,8 @@ function EFAResults({ results, columns, onProceedToCFA }: { results: any; column
     const kmoAcceptable = kmo >= 0.6;
     const bartlettSignificant = bartlettP < 0.05;
 
-    // Extract factor structure for workflow
-    const extractFactors = () => {
+    // Extract factor structure for workflow (memoized)
+    const suggestedFactors = useMemo(() => {
         if (!results.loadings || !Array.isArray(results.loadings[0])) return [];
 
         const factors = [];
@@ -602,9 +606,7 @@ function EFAResults({ results, columns, onProceedToCFA }: { results: any; column
             }
         }
         return factors;
-    };
-
-    const suggestedFactors = extractFactors();
+    }, [results.loadings, columns]);
 
     return (
         <div className="space-y-6">
@@ -1074,18 +1076,20 @@ function CFAResults({ results, onProceedToSEM }: { results: any; onProceedToSEM?
     const loadings = estimates.filter((e: any) => e.op === '=~');
     const covariances = estimates.filter((e: any) => e.op === '~~' && e.lhs !== e.rhs);
 
-    // Extract factor structure for SEM
-    const extractFactors = () => {
+    // Extract factor structure for SEM (memoized)
+    const factors = useMemo(() => {
         const factorMap: Record<string, string[]> = {};
         loadings.forEach((est: any) => {
             if (!factorMap[est.lhs]) factorMap[est.lhs] = [];
             factorMap[est.lhs].push(est.rhs);
         });
         return Object.entries(factorMap).map(([name, indicators]) => ({ name, indicators }));
-    };
+    }, [loadings]);
 
-    const factors = extractFactors();
-    const fitGood = fitMeasures.cfi >= 0.9 && fitMeasures.rmsea <= 0.08;
+    const fitGood = useMemo(() =>
+        fitMeasures.cfi >= 0.9 && fitMeasures.rmsea <= 0.08,
+        [fitMeasures.cfi, fitMeasures.rmsea]
+    );
 
     // Helper to color fit indices
     const getFitColor = (val: number, type: 'high' | 'low') => {

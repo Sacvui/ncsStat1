@@ -603,6 +603,11 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
 
     return {
         F: getValue('F')?.[0] || 0,
+        dfBetween: getValue('dfBetween')?.[0] || 0,
+        dfWithin: getValue('dfWithin')?.[0] || 0,
+        pValue: getValue('pValue')?.[0] || 0,
+        groupMeans: getValue('groupMeans') || [],
+        grandMean: getValue('grandMean')?.[0] || 0,
         etaSquared: getValue('etaSquared')?.[0] || 0
     };
 }

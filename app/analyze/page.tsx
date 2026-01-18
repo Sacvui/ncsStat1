@@ -165,12 +165,26 @@ export default function AnalyzePage() {
     const handleDataLoaded = (loadedData: any[], fname: string) => {
         // Validation: check file size
         if (loadedData.length > 50000) {
-            showToast('Cảnh báo: File lớn (>50000 dòng) có thể gây chậm', 'info');
+            showToast('File quá lớn (>50,000 rows). Vui lòng giảm kích thước file.', 'error');
+            return;
         }
-        setData(loadedData);
+
+        // Large data sampling (10k-50k rows)
+        let processedData = loadedData;
+        if (loadedData.length > 10000) {
+            showToast(`Dữ liệu lớn (${loadedData.length} rows). Đang lấy mẫu ngẫu nhiên 10,000 rows...`, 'info');
+            // Random sampling
+            const shuffled = [...loadedData].sort(() => 0.5 - Math.random());
+            processedData = shuffled.slice(0, 10000);
+            showToast('Đã lấy mẫu 10,000 rows. Kết quả đại diện cho toàn bộ dữ liệu.', 'success');
+        }
+
+        setData(processedData);
         setFilename(fname);
-        const dataProfile = profileData(loadedData);
-        setProfile(dataProfile);
+
+        // Profile the data
+        const prof = profileData(processedData);
+        setProfile(prof);
         setStep('profile');
     };
 
