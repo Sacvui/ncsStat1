@@ -64,7 +64,22 @@ export async function updateSession(request: NextRequest) {
             }
         )
 
-        await supabase.auth.getUser()
+        const {
+            data: { user },
+        } = await supabase.auth.getUser()
+
+        // Protected routes
+        if (
+            !user &&
+            (request.nextUrl.pathname.startsWith('/analyze') ||
+                request.nextUrl.pathname.startsWith('/profile') ||
+                request.nextUrl.pathname.startsWith('/admin'))
+        ) {
+            // no user, potentially respond by redirecting the user to the login page
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            return NextResponse.redirect(url)
+        }
     } catch (error) {
         // If Supabase fails, continue without auth
         console.error('Supabase middleware error:', error)
