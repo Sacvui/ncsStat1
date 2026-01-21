@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
+import { redirect } from 'next/navigation'
 
 export async function GET(request: Request) {
     const { searchParams, origin } = new URL(request.url)
@@ -11,10 +12,10 @@ export async function GET(request: Request) {
         const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            return NextResponse.redirect(`${origin}${next}`)
+            redirect(`${origin}${next}`)
         }
     }
 
     // return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
+    redirect(`${origin}/login?error=auth-code-error`)
 }
