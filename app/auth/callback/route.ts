@@ -18,9 +18,8 @@ export async function GET(request: NextRequest) {
             : request.nextUrl.origin
 
     if (code) {
-        // Create the redirect response first - this is key for cookie setting
-        const redirectUrl = `${origin}${next}`
-        const response = NextResponse.redirect(redirectUrl)
+        // Collect cookies during the exchange
+        const cookiesToSet: { name: string; value: string; options: any }[] = []
 
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,16 +27,12 @@ export async function GET(request: NextRequest) {
             {
                 cookies: {
                     getAll() {
-                        const cookies = request.cookies.getAll()
-                        console.log('[Auth Callback] getAll called, returning', cookies.length, 'cookies')
-                        return cookies
+                        return request.cookies.getAll()
                     },
-                    setAll(cookiesToSet) {
-                        console.log('[Auth Callback] setAll called with', cookiesToSet.length, 'cookies')
-                        cookiesToSet.forEach(({ name, value, options }) => {
-                            console.log('[Auth Callback] Setting cookie:', name, 'domain:', options?.domain, 'path:', options?.path)
-                            // Use Supabase's default options - DO NOT OVERRIDE
-                            response.cookies.set(name, value, options)
+                    setAll(cookies) {
+                        console.log('[Auth Callback] setAll called with', cookies.length, 'cookies')
+                        cookies.forEach(({ name, value, options }) => {
+                            cookiesToSet.push({ name, value, options })
                         })
                     },
                 },
@@ -50,7 +45,53 @@ export async function GET(request: NextRequest) {
         console.log('[Auth Callback] Exchange result - error:', error?.message || 'none')
 
         if (!error) {
-            console.log('[Auth Callback] Success! Redirecting to:', redirectUrl)
+            // SUCCESS: Create HTML response with client-side redirect
+            // This ensures cookies are set on a 200 OK response, avoiding 3xx redirect cookie blocking
+            const redirectUrl = `${origin}${next}`
+
+            const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="0;url=${redirectUrl}">
+    <title>Logging in...</title>
+    <script>window.location.href = "${redirectUrl}";</script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f9fafb; color: #111827; }
+        .container { text-align: center; }
+        .spinner { border: 4px solid #e5e7eb; border-top: 4px solid #2563eb; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <p>Completing login...</p>
+        <p style="font-size: 0.875rem; color: #6b7280;">If not redirected automatically, <a href="${redirectUrl}" style="color: #2563eb; text-decoration: none;">click here</a>.</p>
+    </div>
+</body>
+</html>
+            `.trim()
+
+            const response = new NextResponse(html, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0',
+                },
+            })
+
+            // Apply collected cookies to the response
+            // We use the exact options provided by Supabase
+            cookiesToSet.forEach(({ name, value, options }) => {
+                console.log('[Auth Callback] Setting cookie:', name)
+                response.cookies.set(name, value, options)
+            })
+
+            console.log('[Auth Callback] Success! Returning HTML with redirect to:', redirectUrl)
             return response
         } else {
             console.log('[Auth Callback] Error during exchange:', error)
