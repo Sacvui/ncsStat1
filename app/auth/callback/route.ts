@@ -11,17 +11,22 @@ export async function GET(request: Request) {
     if (code) {
         const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
-        const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
-        const isLocalEnv = process.env.NODE_ENV === 'development'
 
-        if (isLocalEnv) {
-            // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-            redirect(`${origin}${next}`)
-        } else if (forwardedHost) {
-            redirect(`https://${forwardedHost}${next}`)
-        } else {
-            redirect(`${origin}${next}`)
+        if (!error) {
+            const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+            const isLocalEnv = process.env.NODE_ENV === 'development'
+
+            if (isLocalEnv) {
+                // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+                redirect(`${origin}${next}`)
+            } else if (forwardedHost) {
+                redirect(`https://${forwardedHost}${next}`)
+            } else {
+                redirect(`${origin}${next}`)
+            }
         }
-        // return the user to an error page with instructions
-        redirect(`${origin}/login?error=auth-code-error`)
     }
+
+    // return the user to an error page with instructions
+    redirect(`${origin}/login?error=auth-code-error`)
+}
