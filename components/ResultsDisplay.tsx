@@ -34,6 +34,7 @@ interface ResultsDisplayProps {
     onProceedToEFA?: (goodItems: string[]) => void;
     onProceedToCFA?: (factors: { name: string; indicators: string[] }[]) => void;
     onProceedToSEM?: (factors: { name: string; indicators: string[] }[]) => void;
+    columns?: string[];
 }
 
 

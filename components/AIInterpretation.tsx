@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Sparkles, Bot, AlertCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import CryptoJS from 'crypto-js';
+import { AIInterpretationFeedback } from './feedback/AIInterpretationFeedback';
 
 // Encryption helpers
 const ENCRYPTION_KEY = 'ncsStat-secure-key-2026'; // In production, use env variable
@@ -171,6 +172,9 @@ export function AIInterpretation({ analysisType, results }: AIInterpretationProp
                             Tạo lại phân tích khác
                         </button>
                     </div>
+
+                    {/* Feedback Part 2 */}
+                    <AIInterpretationFeedback analysisType={analysisType} />
                 </div>
             )}
         </div>

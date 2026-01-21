@@ -20,6 +20,9 @@ import CFASelection from '@/components/CFASelection';
 import SEMSelection from '@/components/SEMSelection';
 import { runCFA, runSEM } from '@/lib/webr-wrapper';
 import type { PreviousAnalysisData } from '@/types/analysis';
+import { DemographicSurvey } from '@/components/feedback/DemographicSurvey';
+import { ApplicabilitySurvey } from '@/components/feedback/ApplicabilitySurvey';
+import { FeedbackService } from '@/lib/feedback-service';
 
 export default function AnalyzePage() {
     // Session State Management
@@ -40,6 +43,10 @@ export default function AnalyzePage() {
     // Local ephemeral state
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+    // Feedback State
+    const [showDemographics, setShowDemographics] = useState(false);
+    const [showApplicability, setShowApplicability] = useState(false);
 
     // Workflow Mode State
     const [previousAnalysis, setPreviousAnalysis] = useState<PreviousAnalysisData | null>(null);
@@ -102,7 +109,18 @@ export default function AnalyzePage() {
                     // Don't show toast on initial fail - will retry when needed
                 });
         }
-    }, []); // Run once on mount
+    }); // Run once on mount
+
+    // Check for Demographics Survey (Part 1)
+    useEffect(() => {
+        // Delay slightly to let page load
+        const timer = setTimeout(() => {
+            if (!FeedbackService.hasCompletedDemographics()) {
+                setShowDemographics(true);
+            }
+        }, 1500);
+        return () => clearTimeout(timer);
+    }, []);
 
     // Additional check when entering analyze step
     useEffect(() => {
@@ -392,8 +410,8 @@ export default function AnalyzePage() {
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [step, results]);
 
-    // Handle PDF Export (Text-based for stability)
-    const handleExportPDF = async () => {
+    // Handle PDF Export (Actual Logic)
+    const runExportPDF = async () => {
         try {
             const { exportToPDF } = await import('@/lib/pdf-exporter');
 
@@ -426,6 +444,23 @@ export default function AnalyzePage() {
             console.error(error);
             showToast('Lỗi xuất PDF: Vui lòng thử lại', 'error');
         }
+    };
+
+    // Trigger Export Flow (Check for Part 3)
+    const handleExportPDF = () => {
+        // Always show survey if not done? Or just export?
+        // User requested: Part 3 appears when User clicks Export.
+        // We'll show it if not done yet.
+        /*
+        // UNCOMMENT TO FORCE SURVEY EVERY TIME:
+        setShowApplicability(true);
+        */
+
+        // Logic: Check if survey done. If not, show survey. If yes, just export.
+        // But user might want to give feedback on THIS specific manuscript (Q8).
+        // So we should probably show it, but maybe allow skipping?
+        // For now, consistent with prompt "Part 3 appears..." -> We show it.
+        setShowApplicability(true);
     };
 
     // Map steps for StepIndicator
@@ -1253,6 +1288,30 @@ export default function AnalyzePage() {
                     animation: slide-up 0.3s ease-out;
                 }
             `}</style>
-        </div>
+            {/* Feedback Part 1: Demographics Survey */}
+            <DemographicSurvey
+                isOpen={showDemographics}
+                onComplete={() => {
+                    setShowDemographics(false);
+                    showToast('Cảm ơn bạn đã cung cấp thông tin!', 'success');
+                }}
+            />
+
+            {/* Feedback Part 3: Applicability Survey */}
+            <ApplicabilitySurvey
+                isOpen={showApplicability}
+                onComplete={() => {
+                    setShowApplicability(false);
+                    runExportPDF(); // Proceed to export
+                }}
+                onCancel={() => {
+                    setShowApplicability(false);
+                    // Just close, do not export? Or allow export without feedback?
+                    // Typically "Cancel" means cancel the action.
+                    // If they want to export without feedback, they should probably have a "Skip" option inside (not implemented yet),
+                    // or we assume completing Q8 is mandatory for the "Value" (Export).
+                }}
+            />
+        </div >
     );
 }
