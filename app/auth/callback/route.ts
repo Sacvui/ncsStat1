@@ -6,6 +6,9 @@ export async function GET(request: NextRequest) {
     const code = searchParams.get('code')
     const next = searchParams.get('next') ?? '/analyze'
 
+    console.log('[Auth Callback] Starting with code:', code ? 'present' : 'missing')
+    console.log('[Auth Callback] Next param:', next)
+
     // Determine the correct redirect URL based on environment
     const forwardedHost = request.headers.get('x-forwarded-host')
     const isLocalEnv = process.env.NODE_ENV === 'development'
@@ -14,6 +17,8 @@ export async function GET(request: NextRequest) {
         : forwardedHost
             ? `https://${forwardedHost}`
             : request.nextUrl.origin
+
+    console.log('[Auth Callback] Origin:', origin, 'ForwardedHost:', forwardedHost)
 
     if (code) {
         // Collect cookies that need to be set
@@ -25,26 +30,35 @@ export async function GET(request: NextRequest) {
             {
                 cookies: {
                     get(name: string) {
-                        return request.cookies.get(name)?.value
+                        const value = request.cookies.get(name)?.value
+                        console.log('[Auth Callback] Cookie GET:', name, value ? 'found' : 'not found')
+                        return value
                     },
                     set(name: string, value: string, options: CookieOptions) {
-                        // Collect cookies to set later
+                        console.log('[Auth Callback] Cookie SET:', name, 'value length:', value?.length || 0)
                         cookiesToSet.push({ name, value, options })
                     },
                     remove(name: string, options: CookieOptions) {
+                        console.log('[Auth Callback] Cookie REMOVE:', name)
                         cookiesToSet.push({ name, value: '', options })
                     },
                 },
             }
         )
 
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        console.log('[Auth Callback] Calling exchangeCodeForSession...')
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+        console.log('[Auth Callback] Exchange result - error:', error?.message || 'none')
+        console.log('[Auth Callback] Exchange result - session:', data?.session ? 'present' : 'none')
+        console.log('[Auth Callback] Cookies to set count:', cookiesToSet.length)
 
         if (!error) {
             // Create response and apply all collected cookies
             const response = NextResponse.redirect(`${origin}${next}`)
 
             for (const cookie of cookiesToSet) {
+                console.log('[Auth Callback] Applying cookie to response:', cookie.name)
                 response.cookies.set({
                     name: cookie.name,
                     value: cookie.value,
@@ -52,10 +66,14 @@ export async function GET(request: NextRequest) {
                 })
             }
 
+            console.log('[Auth Callback] Redirecting to:', `${origin}${next}`)
             return response
+        } else {
+            console.log('[Auth Callback] Exchange error:', error)
         }
     }
 
     // Return the user to an error page
+    console.log('[Auth Callback] Redirecting to error page')
     return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
 }
