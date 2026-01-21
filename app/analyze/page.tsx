@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { FileUpload } from '@/components/FileUpload';
 import { DataProfiler } from '@/components/DataProfiler';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
@@ -27,17 +28,26 @@ import { createClient } from '@/utils/supabase/client';
 import UserMenu from '@/components/UserMenu';
 
 export default function AnalyzePage() {
+    const router = useRouter()
+
     // Auth State
     const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const supabase = createClient()
-        const getUser = async () => {
+        const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
-            setUser(user)
+
+            if (!user) {
+                router.push('/login?next=/analyze')
+            } else {
+                setUser(user)
+            }
+            setLoading(false)
         }
-        getUser()
-    }, [])
+        checkUser()
+    }, [router])
     // Session State Management
     const {
         isPrivateMode, setIsPrivateMode,

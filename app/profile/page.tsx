@@ -1,7 +1,8 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { User, Mail, Shield, Share2, Copy, BarChart3, Database, Star } from 'lucide-react'
+import { User, Share2, Copy, BarChart3, Database, Star } from 'lucide-react'
 import Link from 'next/link'
+import ProfileHeader from '@/components/profile/ProfileHeader'
 
 export const dynamic = 'force-dynamic'
 
@@ -54,42 +55,22 @@ export default async function ProfilePage() {
                     {/* Left Column: User Info */}
                     <div className="lg:col-span-1 space-y-6">
                         {/* Profile Card */}
-                        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-                            <div className="flex flex-col items-center">
-                                {profile?.avatar_url ? (
-                                    <img src={profile.avatar_url} alt="Avatar" className="w-24 h-24 rounded-full mb-4 ring-4 ring-blue-50" />
-                                ) : (
-                                    <div className="w-24 h-24 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-3xl font-bold mb-4 ring-4 ring-blue-50">
-                                        {profile?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                                    </div>
-                                )}
+                        <ProfileHeader user={user} profile={profile} />
 
-                                <h2 className="text-xl font-bold text-slate-900 text-center">{profile?.full_name || 'Người dùng'}</h2>
-                                <div className="flex items-center gap-2 mt-2 text-slate-500 text-sm bg-slate-100 px-3 py-1 rounded-full">
-                                    <Mail className="w-3 h-3" />
-                                    {profile?.email || user.email}
+                        <div className="mt-8 space-y-4">
+                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+                                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Mã giới thiệu của bạn</label>
+                                <div className="flex items-center gap-2">
+                                    <code className="flex-1 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg font-mono text-lg font-bold text-center tracking-widest text-slate-800">
+                                        {profile?.referral_code || '---'}
+                                    </code>
+                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sao chép">
+                                        <Copy className="w-5 h-5" />
+                                    </button>
                                 </div>
-
-                                <div className={`mt-4 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border flex items-center gap-1.5
-                  ${profile?.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}
-                `}>
-                                    <Shield className="w-3 h-3" />
-                                    {profile?.role === 'admin' ? 'Administrator' : 'Researcher'}
-                                </div>
-                            </div>
-
-                            <div className="mt-8 space-y-4">
-                                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                                    <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Mã giới thiệu của bạn</label>
-                                    <div className="flex items-center gap-2">
-                                        <code className="flex-1 bg-white border border-slate-200 px-3 py-2 rounded-lg font-mono text-lg font-bold text-center tracking-widest text-slate-800">
-                                            {profile?.referral_code || '---'}
-                                        </code>
-                                    </div>
-                                    <p className="text-xs text-slate-400 mt-2 text-center">
-                                        Chia sẻ mã này để mời bạn bè tham gia
-                                    </p>
-                                </div>
+                                <p className="text-xs text-slate-400 mt-2 text-center">
+                                    Chia sẻ mã này để mời bạn bè tham gia
+                                </p>
                             </div>
                         </div>
                     </div>

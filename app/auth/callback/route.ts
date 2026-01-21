@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
                 path: '/',
                 sameSite: 'lax' as const,
                 secure: !isLocalEnv,
-                httpOnly: true,
+                httpOnly: false, // Allow client-side JS to read cookies for Supabase SDK
                 maxAge: 60 * 60 * 24 * 7, // 1 week
             }
 

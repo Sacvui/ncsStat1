@@ -18,11 +18,6 @@ export async function updateSession(request: NextRequest) {
     }
 
     try {
-        // Debug: log all cookies on request
-        const allCookies = request.cookies.getAll()
-        console.log('[Middleware] Path:', request.nextUrl.pathname)
-        console.log('[Middleware] Cookies received:', allCookies.map(c => c.name).join(', ') || 'none')
-
         const supabase = createServerClient(
             supabaseUrl,
             supabaseAnonKey,
@@ -50,8 +45,6 @@ export async function updateSession(request: NextRequest) {
             data: { user },
         } = await supabase.auth.getUser()
 
-        console.log('[Middleware] User:', user ? user.email : 'none')
-
         // Protected routes
         if (
             !user &&
@@ -59,16 +52,13 @@ export async function updateSession(request: NextRequest) {
                 request.nextUrl.pathname.startsWith('/profile') ||
                 request.nextUrl.pathname.startsWith('/admin'))
         ) {
-            // no user, potentially respond by redirecting the user to the login page
-            console.log('[Middleware] No user, redirecting to login')
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             url.searchParams.set('next', request.nextUrl.pathname)
             return NextResponse.redirect(url)
         }
     } catch (error) {
-        // If Supabase fails, continue without auth
-        console.error('[Middleware] Supabase error:', error)
+        // If Supabase fails, continue without auth or log error appropriately
     }
 
     return response
