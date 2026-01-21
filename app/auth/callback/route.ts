@@ -19,9 +19,36 @@ export async function GET(request: NextRequest) {
     if (code) {
         const redirectUrl = `${origin}${next}`
 
-        // Pre-construct the Success Response so we can write cookies to it directly
-        // HTML with 3 second delay for robustness
-        const html = `
+        // 1. Collection Array
+        let cookiesToSet: { name: string; value: string; options: any }[] = []
+
+        const supabase = createServerClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+            {
+                cookies: {
+                    getAll() {
+                        return request.cookies.getAll()
+                    },
+                    setAll(cookies) {
+                        console.log('[Auth Callback] setAll TRIGGERED with', cookies.length, 'cookies')
+                        cookies.forEach((c) => {
+                            // Push to collection
+                            cookiesToSet.push(c)
+                        })
+                    },
+                },
+            }
+        )
+
+        console.log('[Auth Callback] Calling exchangeCodeForSession...')
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (!error) {
+            console.log(`[Auth Callback] Exchange success. Collected ${cookiesToSet.length} cookies.`)
+
+            // HTML Response
+            const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -43,66 +70,46 @@ export async function GET(request: NextRequest) {
 <body>
     <div class="spinner"></div>
     <h2>Authenticating...</h2>
-    <p>Please wait while we log you in (Probe v3).</p>
-    <p class="debug">Redirecting to ${next} in 3 seconds...</p>
+    <p>Session confirmed. Redirecting...</p>
+    <p class="debug">Target: ${next}</p>
     <noscript>
         <p>If you are not redirected, <a href="${redirectUrl}">click here</a>.</p>
     </noscript>
 </body>
 </html>
-        `.trim()
+            `.trim()
 
-        const response = new NextResponse(html, {
-            status: 200,
-            headers: {
-                'Content-Type': 'text/html; charset=utf-8',
-                'Cache-Control': 'no-store, max-age=0',
-            },
-        })
-
-        // Common "Safe" Options
-        const safeOptions = {
-            path: '/',
-            sameSite: 'lax' as const,
-            secure: !isLocalEnv, // true in production
-            httpOnly: true,
-            maxAge: 60 * 60 * 24 * 7, // 1 week
-        }
-
-        const supabase = createServerClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-            {
-                cookies: {
-                    getAll() {
-                        return request.cookies.getAll()
-                    },
-                    setAll(cookies) {
-                        console.log('[Auth Callback] setAll TRIGGERED with', cookies.length, 'cookies')
-                        cookies.forEach(({ name, value }) => {
-                            console.log(`[Cookies Direct] Setting: ${name} | Size: ${value.length}`)
-                            // Direct write to the pending response
-                            response.cookies.set(name, value, safeOptions)
-                        })
-                    },
+            const response = new NextResponse(html, {
+                status: 200,
+                headers: {
+                    'Content-Type': 'text/html; charset=utf-8',
+                    'Cache-Control': 'no-store, max-age=0',
                 },
+            })
+
+            // Common "Safe" Options
+            const safeOptions = {
+                path: '/',
+                sameSite: 'lax' as const,
+                secure: !isLocalEnv,
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 7, // 1 week
             }
-        )
 
-        console.log('[Auth Callback] Calling exchangeCodeForSession...')
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+            // 2. Apply Collected Cookies
+            cookiesToSet.forEach(({ name, value }) => {
+                console.log(`[Auth Callback] Applying cookie: ${name} (len: ${value.length})`)
+                response.cookies.set(name, value, safeOptions)
+            })
 
-        if (!error) {
-            // Check verification
-            const finalCookies = response.cookies.getAll()
-            console.log('[Auth Callback] Final Response Cookies Count:', finalCookies.length)
-            finalCookies.forEach(c => console.log(`[Final Cookie] ${c.name}`))
-
-            // Add Probe again just to be sure
-            response.cookies.set('test-probe-cookie-v3', 'direct-write-verification', {
+            // 3. Add Probe
+            response.cookies.set('test-probe-cookie-v4', 'collection-pattern-verification', {
                 ...safeOptions,
                 httpOnly: false,
             })
+
+            // 4. Verify
+            console.log('[Auth Callback] Final Cookie Count:', response.cookies.getAll().length)
 
             return response
         } else {
