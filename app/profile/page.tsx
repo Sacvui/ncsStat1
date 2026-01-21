@@ -3,6 +3,8 @@ import { redirect } from 'next/navigation'
 import { User, Mail, Shield, Share2, Copy, BarChart3, Database, Star } from 'lucide-react'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function ProfilePage() {
     const supabase = await createClient()
 

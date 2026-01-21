@@ -19,8 +19,11 @@ import {
 import { createClient } from "@/utils/supabase/server"
 import UserMenu from "@/components/UserMenu"
 
+export const dynamic = 'force-dynamic'
+
 export default async function LandingPage() {
   const supabase = await createClient()
+
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
