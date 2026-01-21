@@ -16,8 +16,8 @@ export async function GET(request: NextRequest) {
             : request.nextUrl.origin
 
     if (code) {
-        // Create a response that we can modify with cookies
-        const response = NextResponse.redirect(`${origin}${next}`)
+        // Collect cookies that need to be set
+        const cookiesToSet: { name: string; value: string; options: CookieOptions }[] = []
 
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -28,19 +28,11 @@ export async function GET(request: NextRequest) {
                         return request.cookies.get(name)?.value
                     },
                     set(name: string, value: string, options: CookieOptions) {
-                        // Set cookie on the response
-                        response.cookies.set({
-                            name,
-                            value,
-                            ...options,
-                        })
+                        // Collect cookies to set later
+                        cookiesToSet.push({ name, value, options })
                     },
                     remove(name: string, options: CookieOptions) {
-                        response.cookies.set({
-                            name,
-                            value: '',
-                            ...options,
-                        })
+                        cookiesToSet.push({ name, value: '', options })
                     },
                 },
             }
@@ -49,6 +41,17 @@ export async function GET(request: NextRequest) {
         const { error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
+            // Create response and apply all collected cookies
+            const response = NextResponse.redirect(`${origin}${next}`)
+
+            for (const cookie of cookiesToSet) {
+                response.cookies.set({
+                    name: cookie.name,
+                    value: cookie.value,
+                    ...cookie.options,
+                })
+            }
+
             return response
         }
     }
