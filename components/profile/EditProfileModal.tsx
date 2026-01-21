@@ -1,5 +1,7 @@
+'use client'
+
 // ... imports
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { X, Save, Calendar, GraduationCap, Building2, Phone, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'

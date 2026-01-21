@@ -1,4 +1,5 @@
-// ... imports
+'use client'
+
 import { useState } from 'react'
 import { Mail, Shield, Edit2, GraduationCap, Building2, BookOpen } from 'lucide-react'
 import EditProfileModal from './EditProfileModal'
