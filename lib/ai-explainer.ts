@@ -20,12 +20,16 @@ export interface ExplanationResponse {
 export async function explainResults(
     analysisType: string,
     results: any,
-    context: string = ''
+    context: string = '',
+    apiKey: string
 ): Promise<ExplanationResponse> {
     try {
         const response = await fetch('/api/ai-explain', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-gemini-api-key': apiKey
+            },
             body: JSON.stringify({
                 analysisType,
                 results,
@@ -34,7 +38,8 @@ export async function explainResults(
         });
 
         if (!response.ok) {
-            throw new Error(`API error: ${response.statusText}`);
+            const error = await response.json();
+            throw new Error(error.error || `API error: ${response.statusText}`);
         }
 
         const data = await response.json();
@@ -50,7 +55,8 @@ export async function explainResults(
  */
 export async function suggestAnalysisMethod(
     researchDescription: string,
-    dataDescription: string
+    dataDescription: string,
+    apiKey: string
 ): Promise<{
     suggestedMethod: string;
     reasoning: string;
@@ -59,7 +65,10 @@ export async function suggestAnalysisMethod(
     try {
         const response = await fetch('/api/ai-suggest', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-gemini-api-key': apiKey
+            },
             body: JSON.stringify({
                 researchDescription,
                 dataDescription
@@ -67,7 +76,8 @@ export async function suggestAnalysisMethod(
         });
 
         if (!response.ok) {
-            throw new Error(`API error: ${response.statusText}`);
+            const error = await response.json();
+            throw new Error(error.error || `API error: ${response.statusText}`);
         }
 
         const data = await response.json();

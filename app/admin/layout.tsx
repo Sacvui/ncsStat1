@@ -22,6 +22,7 @@ export default async function AdminLayout({
     // Note: We need to select the role. 
     // If the profile doesn't exist yet (race condition on signup), this might fail or return null.
     // Ideally, middleware handles protection, but layout is a good second layer.
+    // Check user role
     const { data: profile } = await supabase
         .from('profiles')
         .select('role')
@@ -32,6 +33,8 @@ export default async function AdminLayout({
         // Redirect to home or 403 page
         redirect('/')
     }
+
+
 
     return (
         <div className="min-h-screen bg-slate-50 flex">

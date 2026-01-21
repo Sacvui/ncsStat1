@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { Download, Search, Star, MessageSquare } from 'lucide-react'
 import { redirect } from 'next/navigation'
+import ExportButton from './export-button'
 
 export default async function AdminFeedbackPage() {
     const supabase = await createClient()
@@ -25,7 +26,7 @@ export default async function AdminFeedbackPage() {
 
     // Calculate average rating
     const averageRating = feedbacks?.length
-        ? (feedbacks.reduce((acc, curr) => acc + (curr.rating || 0), 0) / feedbacks.length).toFixed(1)
+        ? (feedbacks!.reduce((acc, curr) => acc + (curr.rating || 0), 0) / feedbacks!.length).toFixed(1)
         : '0.0'
 
     return (
@@ -38,8 +39,6 @@ export default async function AdminFeedbackPage() {
                 </div>
 
                 {/* Export Button (Client Component Wrapper or simple link if implemented) */}
-                {/* For now, we'll implement a simple Client Component for export inside this page later or here directly if we make this client. 
-            But this is a server component. We'll add a minimal Client Component for the button. */}
                 <ExportButton feedbacks={feedbacks || []} />
             </div>
 
@@ -123,6 +122,3 @@ export default async function AdminFeedbackPage() {
         </div>
     )
 }
-
-// Simple Client Component for Export
-import ExportButton from './export-button'

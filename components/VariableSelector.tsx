@@ -145,8 +145,8 @@ export function SmartGroupSelector({ columns, onAnalyzeGroup, onAnalyzeAllGroups
                     <div
                         key={group.name}
                         className={`border rounded-lg p-3 transition-colors ${singleMode
-                                ? selectedSingleGroup === group.name ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                                : group.selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                            ? selectedSingleGroup === group.name ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                            : group.selected ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
                             }`}
                     >
                         <div className="flex items-center justify-between mb-2">
@@ -344,12 +344,14 @@ export function AISettings() {
     const handleSave = () => {
         localStorage.setItem('gemini_api_key', apiKey);
         setIsSaved(true);
+        window.dispatchEvent(new Event('gemini-key-updated'));
         setTimeout(() => setIsSaved(false), 2000);
     };
 
     const handleClear = () => {
         localStorage.removeItem('gemini_api_key');
         setApiKey('');
+        window.dispatchEvent(new Event('gemini-key-updated'));
     };
 
     return (

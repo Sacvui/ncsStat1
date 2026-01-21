@@ -32,6 +32,7 @@ export default function AnalyzePage() {
 
     // Auth State
     const [user, setUser] = useState<any>(null);
+    const [userProfile, setUserProfile] = useState<any>(null); // New User Profile State
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -43,6 +44,13 @@ export default function AnalyzePage() {
                 router.push('/login?next=/analyze')
             } else {
                 setUser(user)
+                // Fetch User Profile for AI Context
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single()
+                if (profile) setUserProfile(profile)
             }
             setLoading(false)
         }
@@ -1197,6 +1205,7 @@ export default function AnalyzePage() {
                                     onProceedToEFA={handleProceedToEFA}
                                     onProceedToCFA={handleProceedToCFA}
                                     onProceedToSEM={handleProceedToSEM}
+                                    userProfile={userProfile}
                                 />
                             )}
 
@@ -1253,6 +1262,7 @@ export default function AnalyzePage() {
                                                 analysisType="cronbach"
                                                 results={r.data}
                                                 columns={r.columns}
+                                                userProfile={userProfile}
                                             />
                                         </div>
                                     ))}

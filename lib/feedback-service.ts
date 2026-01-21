@@ -74,6 +74,52 @@ export const FeedbackService = {
         return uid;
     },
 
+
+
+    // Helper to send to Supabase
+    saveToSupabase: async (type: string, data: any) => {
+        try {
+            const { createClient } = await import('@/utils/supabase/client');
+            const supabase = createClient();
+
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (!user) {
+                console.warn('[Feedback] No authenticated user found for Supabase sync');
+                return;
+            }
+
+            let content = '';
+            let rating = null;
+
+            // Map fields based on type
+            if (type === 'demographics') {
+                content = `Role: ${data.role}, Exp: ${data.experience}`;
+            } else if (type === 'ai_feedback') {
+                content = `Type: ${data.testType}, Accuracy: ${data.accuracy}`;
+                rating = data.formatting; // Assuming formatting is 1-5
+            } else if (type === 'applicability') {
+                content = data.openFeedback || data.manuscriptUtility;
+            }
+
+            const { error } = await supabase.from('feedback').insert({
+                user_id: user.id,
+                type,
+                content: content.substring(0, 500), // Truncate if needed
+                rating,
+                details: data
+            });
+
+            if (error) {
+                console.error('[Feedback] Supabase Insert Error:', error);
+            } else {
+                console.log('[Feedback] Saved to Supabase');
+            }
+        } catch (err) {
+            console.error('[Feedback] Supabase Sync Unexpected Error:', err);
+        }
+    },
+
     // Part 1: Demographics
     hasCompletedDemographics: (): boolean => {
         if (typeof window === 'undefined') return false;
@@ -82,7 +128,7 @@ export const FeedbackService = {
 
     saveDemographics: (data: DemographicData) => {
         const payload = {
-            userId: FeedbackService.getUserId(),
+            userId: FeedbackService.getUserId(), // Local anonymous ID
             timestamp: new Date().toISOString(),
             ...data
         };
@@ -97,8 +143,8 @@ export const FeedbackService = {
 
         // Sync to Cloud
         FeedbackService.sendToGoogleSheets(payload);
+        FeedbackService.saveToSupabase('demographics', data);
 
-        // In a real app, you would send this to an API
         console.log('[Feedback] Saved Demographics:', payload);
     },
 
@@ -118,6 +164,7 @@ export const FeedbackService = {
 
         // Sync to Cloud
         FeedbackService.sendToGoogleSheets(payload);
+        FeedbackService.saveToSupabase('ai_feedback', data);
 
         console.log('[Feedback] Saved AI Feedback:', payload);
     },
@@ -138,6 +185,7 @@ export const FeedbackService = {
 
         // Sync to Cloud
         FeedbackService.sendToGoogleSheets(payload);
+        FeedbackService.saveToSupabase('applicability', data);
 
         console.log('[Feedback] Saved Applicability Feedback:', payload);
     },

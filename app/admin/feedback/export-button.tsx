@@ -7,15 +7,17 @@ export default function ExportButton({ feedbacks }: { feedbacks: any[] }) {
         if (!feedbacks || feedbacks.length === 0) return
 
         // Create CSV content
-        const headers = ['User Email', 'Full Name', 'Rating', 'Content', 'Created At']
+        const headers = ['User Email', 'Full Name', 'Type', 'Rating', 'Content', 'Details (JSON)', 'Created At']
         const csvContent = [
             headers.join(','),
             ...feedbacks.map(item => {
                 const row = [
                     item.profiles?.email || '',
-                    `"${item.profiles?.full_name || ''}"`, // Quote strings
-                    item.rating,
-                    `"${item.content?.replace(/"/g, '""') || ''}"`, // Escape quotes
+                    `"${item.profiles?.full_name || ''}"`,
+                    item.type || 'general',
+                    item.rating || '',
+                    `"${item.content?.replace(/"/g, '""') || ''}"`,
+                    `"${JSON.stringify(item.details || {}).replace(/"/g, '""')}"`,
                     new Date(item.created_at).toISOString()
                 ]
                 return row.join(',')

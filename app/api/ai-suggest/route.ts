@@ -1,14 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/utils/rate-limit';
+import { sanitizeInput } from '@/utils/security';
 
 export async function POST(req: NextRequest) {
     try {
+        // 1. Rate Limiting Protection
+        const ip = req.headers.get('x-forwarded-for') || 'unknown';
+        if (!checkRateLimit(ip, 20, 60000)) { // 20 reqs/min per IP
+            return NextResponse.json(
+                { error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.' },
+                { status: 429 }
+            );
+        }
+
+        const apiKey = req.headers.get('x-gemini-api-key');
+
+        if (!apiKey) {
+            return NextResponse.json(
+                { error: 'Yêu cầu nhập API Key cá nhân trong phần Cài đặt AI (Sidebar).' },
+                { status: 401 }
+            );
+        }
+
         const { researchDescription, dataDescription } = await req.json();
+
+        // 2. Input Sanitization
+        const safeResearch = sanitizeInput(researchDescription);
+        const safeData = sanitizeInput(dataDescription);
 
         const prompt = `
 Bạn là chuyên gia phương pháp nghiên cứu, hãy gợi ý phương pháp phân tích thống kê phù hợp.
 
-Mô tả nghiên cứu: ${researchDescription}
-Mô tả dữ liệu: ${dataDescription}
+Mô tả nghiên cứu: ${safeResearch}
+Mô tả dữ liệu: ${safeData}
 
 Hãy trả lời theo cấu trúc JSON sau:
 {
@@ -23,7 +47,7 @@ Chỉ trả về JSON, không thêm text khác.
 `;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

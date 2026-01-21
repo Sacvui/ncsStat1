@@ -1,15 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { checkRateLimit } from '@/utils/rate-limit';
+import { sanitizeInput } from '@/utils/security';
 
 export async function POST(req: NextRequest) {
     try {
+        // 1. Rate Limiting Protection
+        const ip = req.headers.get('x-forwarded-for') || 'unknown';
+        if (!checkRateLimit(ip, 20, 60000)) { // 20 reqs/min per IP
+            return NextResponse.json(
+                { error: 'Quá nhiều yêu cầu. Vui lòng thử lại sau 1 phút.' },
+                { status: 429 }
+            );
+        }
+
+        const apiKey = req.headers.get('x-gemini-api-key');
+
+        if (!apiKey) {
+            return NextResponse.json(
+                { error: 'Yêu cầu nhập API Key cá nhân trong phần Cài đặt AI (Sidebar).' },
+                { status: 401 }
+            );
+        }
+
         const { analysisType, results, context } = await req.json();
+
+        // 2. Input Sanitization
+        const safeContext = sanitizeInput(context || '');
 
         const prompt = `
 Bạn là chuyên gia thống kê, giải thích kết quả phân tích cho NCS Việt Nam.
 
 Loại phân tích: ${analysisType}
 Kết quả: ${JSON.stringify(results, null, 2)}
-Bối cảnh: ${context || 'Không có'}
+Bối cảnh: ${safeContext || 'Không có'}
 
 Hãy giải thích theo cấu trúc sau:
 
@@ -29,7 +52,7 @@ Viết bằng tiếng Việt, ngắn gọn, chính xác.
 `;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${process.env.GEMINI_API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

@@ -35,6 +35,7 @@ interface ResultsDisplayProps {
     onProceedToCFA?: (factors: { name: string; indicators: string[] }[]) => void;
     onProceedToSEM?: (factors: { name: string; indicators: string[] }[]) => void;
     columns?: string[];
+    userProfile?: any;
 }
 
 
@@ -43,10 +44,12 @@ export function ResultsDisplay({
     analysisType,
     onProceedToEFA,
     onProceedToCFA,
-    onProceedToSEM
+    onProceedToSEM,
+    userProfile
 }: ResultsDisplayProps) {
 
     const display = useMemo(() => {
+        // ... (switch case remains same)
         if (!results) return null;
 
         switch (analysisType) {
@@ -99,7 +102,7 @@ export function ResultsDisplay({
                 <RSyntaxViewer code={results.rCode} />
             )}
 
-            <AIInterpretation analysisType={analysisType} results={results} />
+            <AIInterpretation analysisType={analysisType} results={results} userProfile={userProfile} />
         </div>
     );
 }

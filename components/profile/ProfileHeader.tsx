@@ -1,7 +1,6 @@
-'use client'
-
+// ... imports
 import { useState } from 'react'
-import { Mail, Shield, Edit2 } from 'lucide-react'
+import { Mail, Shield, Edit2, GraduationCap, Building2, BookOpen } from 'lucide-react'
 import EditProfileModal from './EditProfileModal'
 
 type Profile = {
@@ -11,6 +10,11 @@ type Profile = {
     role?: string
     referral_code?: string
     email?: string
+    phone_number?: string | null
+    date_of_birth?: string | null
+    academic_level?: string | null
+    research_field?: string | null
+    organization?: string | null
 }
 
 export default function ProfileHeader({ user, profile }: { user: any, profile: Profile | null }) {
@@ -49,16 +53,43 @@ export default function ProfileHeader({ user, profile }: { user: any, profile: P
                     {profile?.full_name || 'Người dùng'}
                 </h2>
 
-                <div className="flex items-center gap-2 mt-2 text-slate-500 text-sm bg-slate-100 px-3 py-1 rounded-full">
+                {/* Organization & Academic Level */}
+                <div className="mt-2 text-center space-y-1">
+                    {profile?.academic_level && (
+                        <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-slate-800">
+                            <GraduationCap className="w-4 h-4 text-slate-500" />
+                            {profile.academic_level}
+                        </div>
+                    )}
+
+                    {profile?.organization && (
+                        <div className="flex items-center justify-center gap-1.5 text-xs text-slate-600">
+                            <Building2 className="w-3 h-3" />
+                            {profile.organization}
+                        </div>
+                    )}
+                </div>
+
+                {/* Contact Info */}
+                <div className="flex items-center gap-2 mt-3 text-slate-500 text-xs bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
                     <Mail className="w-3 h-3" />
                     {profile?.email || user.email}
                 </div>
 
-                <div className={`mt-4 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wide border flex items-center gap-1.5
-                    ${profile?.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-blue-50 text-blue-700 border-blue-200'}
+                {/* Research Field Badge */}
+                {profile?.research_field && (
+                    <div className="mt-2 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-100 flex items-center gap-1.5">
+                        <BookOpen className="w-3 h-3" />
+                        {profile.research_field}
+                    </div>
+                )}
+
+                {/* Role Badge */}
+                <div className={`mt-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border flex items-center gap-1.5
+                    ${profile?.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' : 'bg-slate-100 text-slate-600 border-slate-200'}
                 `}>
                     <Shield className="w-3 h-3" />
-                    {profile?.role === 'admin' ? 'Administrator' : 'Researcher'}
+                    {profile?.role === 'admin' ? 'System Admin' : 'Thành viên'}
                 </div>
             </div>
 

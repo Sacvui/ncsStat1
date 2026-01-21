@@ -1,8 +1,7 @@
-'use client'
-
+// ... imports
 import { useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { X, Save, Key } from 'lucide-react'
+import { X, Save, Calendar, GraduationCap, Building2, Phone, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
 type Profile = {
@@ -10,6 +9,11 @@ type Profile = {
     full_name: string | null
     avatar_url: string | null
     role?: string
+    phone_number?: string | null
+    date_of_birth?: string | null
+    academic_level?: string | null
+    research_field?: string | null
+    organization?: string | null
 }
 
 export default function EditProfileModal({
@@ -26,9 +30,16 @@ export default function EditProfileModal({
     const supabase = createClient()
     const router = useRouter()
     const [loading, setLoading] = useState(false)
+    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)
+
+    // Form States
     const [fullName, setFullName] = useState(profile?.full_name || user?.user_metadata?.full_name || '')
     const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '')
-    const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)
+    const [phoneNumber, setPhoneNumber] = useState(profile?.phone_number || '')
+    const [dateOfBirth, setDateOfBirth] = useState(profile?.date_of_birth || '')
+    const [academicLevel, setAcademicLevel] = useState(profile?.academic_level || '')
+    const [researchField, setResearchField] = useState(profile?.research_field || '')
+    const [organization, setOrganization] = useState(profile?.organization || '')
 
     if (!isOpen) return null
 
@@ -42,6 +53,11 @@ export default function EditProfileModal({
                 id: user.id,
                 full_name: fullName,
                 avatar_url: avatarUrl,
+                phone_number: phoneNumber,
+                date_of_birth: dateOfBirth || null,
+                academic_level: academicLevel,
+                research_field: researchField,
+                organization: organization,
                 updated_at: new Date().toISOString(),
             }
 
@@ -52,13 +68,12 @@ export default function EditProfileModal({
             if (error) throw error
 
             setMessage({ text: 'Cập nhật hồ sơ thành công!', type: 'success' })
-            router.refresh() // Refresh server data
+            router.refresh()
 
-            // Close after specific time or let user close
             setTimeout(() => {
                 onClose()
                 setMessage(null)
-            }, 1500)
+            }, 1000)
         } catch (error: any) {
             setMessage({ text: 'Lỗi: ' + error.message, type: 'error' })
         } finally {
@@ -67,10 +82,10 @@ export default function EditProfileModal({
     }
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-8">
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <h3 className="font-bold text-slate-900">Chỉnh sửa hồ sơ</h3>
+                    <h3 className="font-bold text-slate-900 text-lg">Cập nhật thông tin cá nhân</h3>
                     <button
                         onClick={onClose}
                         className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100"
@@ -79,55 +94,140 @@ export default function EditProfileModal({
                     </button>
                 </div>
 
-                <form onSubmit={handleUpdate} className="p-6 space-y-4">
+                <form onSubmit={handleUpdate} className="p-6 space-y-6">
                     {message && (
                         <div className={`p-3 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                             {message.text}
                         </div>
                     )}
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Họ và tên</label>
-                        <input
-                            type="text"
-                            value={fullName}
-                            onChange={(e) => setFullName(e.target.value)}
-                            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
-                            placeholder="Nhập họ tên của bạn"
-                        />
-                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* Basic Info */}
+                        <div className="space-y-4">
+                            <h4 className="font-semibold text-slate-800 border-b pb-2">Thông tin cơ bản</h4>
 
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-slate-700">Avatar URL</label>
-                        <div className="flex gap-2">
-                            <input
-                                type="text"
-                                value={avatarUrl}
-                                onChange={(e) => setAvatarUrl(e.target.value)}
-                                className="flex-1 px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono text-slate-600"
-                                placeholder="https://..."
-                            />
-                            {avatarUrl && (
-                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-slate-100 shrink-0">
-                                    <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" />
-                                </div>
-                            )}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">Họ và tên</label>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-medium"
+                                    placeholder="Nhập họ tên đầy đủ"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700">Avatar URL</label>
+                                <input
+                                    type="text"
+                                    value={avatarUrl}
+                                    onChange={(e) => setAvatarUrl(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono text-slate-600"
+                                    placeholder="https://..."
+                                />
+                                {avatarUrl && (
+                                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-100 mt-2">
+                                        <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" />
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <Phone className="w-4 h-4 text-slate-400" /> Số điện thoại
+                                </label>
+                                <input
+                                    type="tel"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    placeholder="0912..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-slate-400" /> Ngày sinh
+                                </label>
+                                <input
+                                    type="date"
+                                    value={dateOfBirth}
+                                    onChange={(e) => setDateOfBirth(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-600"
+                                />
+                            </div>
                         </div>
-                        <p className="text-xs text-slate-400">Dán link ảnh (JPG, PNG) để làm ảnh đại diện.</p>
+
+                        {/* Academic Info */}
+                        <div className="space-y-4">
+                            <h4 className="font-semibold text-slate-800 border-b pb-2">Thông tin học thuật</h4>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <GraduationCap className="w-4 h-4 text-slate-400" /> Trình độ / Học vị
+                                </label>
+                                <select
+                                    value={academicLevel}
+                                    onChange={(e) => setAcademicLevel(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-slate-700 bg-white"
+                                >
+                                    <option value="">-- Chọn trình độ --</option>
+                                    <option value="Sinh viên">Sinh viên</option>
+                                    <option value="Học viên cao học">Học viên Cao học</option>
+                                    <option value="Nghiên cứu sinh">Nghiên cứu sinh (PhD Candidate)</option>
+                                    <option value="Giảng viên">Giảng viên</option>
+                                    <option value="Nghiên cứu viên">Nghiên cứu viên</option>
+                                    <option value="Khác">Khác</option>
+                                </select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <BookOpen className="w-4 h-4 text-slate-400" /> Lĩnh vực nghiên cứu
+                                </label>
+                                <input
+                                    type="text"
+                                    value={researchField}
+                                    onChange={(e) => setResearchField(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    placeholder="VD: Y tế công cộng, Kinh tế học..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                                    <Building2 className="w-4 h-4 text-slate-400" /> Đơn vị công tác
+                                </label>
+                                <input
+                                    type="text"
+                                    value={organization}
+                                    onChange={(e) => setOrganization(e.target.value)}
+                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    placeholder="Tên trường ĐH, Viện..."
+                                />
+                            </div>
+
+                            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-4">
+                                <p className="text-xs text-blue-700 leading-relaxed">
+                                    💡 <strong>Mẹo:</strong> Cập nhật đầy đủ thông tin học thuật giúp AI đưa ra các gợi ý và giải thích phù hợp hơn với chuyên ngành của bạn.
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div className="pt-2 flex items-center gap-3">
+                    <div className="pt-4 flex items-center gap-3 border-t border-slate-100">
                         <button
                             type="button"
                             onClick={onClose}
-                            className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
+                            className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-slate-600 font-medium hover:bg-slate-50 transition-colors"
                         >
-                            Hủy
+                            Hủy bỏ
                         </button>
                         <button
                             type="submit"
                             disabled={loading}
-                            className="flex-[2] px-4 py-2.5 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="flex-[2] px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <div className="flex items-center gap-2">
@@ -137,7 +237,7 @@ export default function EditProfileModal({
                             ) : (
                                 <>
                                     <Save className="w-4 h-4" />
-                                    Lưu thay đổi
+                                    Lưu hồ sơ
                                 </>
                             )}
                         </button>
