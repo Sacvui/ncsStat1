@@ -1,6 +1,6 @@
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import { User, Share2, Copy, BarChart3, Database, Star } from 'lucide-react'
+import { User, Share2, Copy, BarChart3, Database, Star, Shield } from 'lucide-react'
 import Link from 'next/link'
 import ProfileHeader from '@/components/profile/ProfileHeader'
 import ReferralCard from '@/components/profile/ReferralCard'
@@ -55,6 +55,28 @@ export default async function ProfilePage() {
 
                         <div className="mt-8 space-y-4">
                             <ReferralCard referralCode={profile?.referral_code} />
+
+                            {profile?.role === 'admin' && (
+                                <Link
+                                    href="/admin"
+                                    className="block p-4 rounded-xl bg-slate-900 text-white shadow-lg shadow-slate-200 hover:shadow-xl transition-all"
+                                >
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <div className="p-1.5 bg-white/10 rounded-lg">
+                                                <Shield className="w-5 h-5 text-purple-300" />
+                                            </div>
+                                            <span className="font-bold">Quản trị Hệ thống</span>
+                                        </div>
+                                        <div className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500 text-white uppercase tracking-wider">
+                                            Admin
+                                        </div>
+                                    </div>
+                                    <p className="text-slate-400 text-sm pl-9">
+                                        Truy cập dashboard quản lý phản hồi và cấu hình.
+                                    </p>
+                                </Link>
+                            )}
                         </div>
                     </div>
 
