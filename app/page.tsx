@@ -25,12 +25,7 @@ export default function Home() {
         {/* Navigation */}
         <nav className="container mx-auto px-6 py-6 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 border-b border-slate-200 z-50">
           <div className="flex items-center gap-3">
-            <div className="bg-indigo-600 p-2 rounded-lg shadow-md">
-              <BarChart3 className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold text-slate-800 tracking-tight">
-              ncsStat
-            </span>
+            <img src="/logo.svg" alt="ncsStat Logo" className="h-10 w-auto" />
           </div>
           <Link
             href="/analyze"

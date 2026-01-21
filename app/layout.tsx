@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: "ncsStat - Phân tích thống kê cho NCS Việt Nam",
   description: "Công cụ phân tích dữ liệu miễn phí với AI giải thích bằng tiếng Việt",
   icons: {
-    icon: '/favicon.png',
+    icon: '/favicon.svg',
   },
 };
 
