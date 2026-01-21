@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
@@ -18,47 +18,29 @@ export async function updateSession(request: NextRequest) {
     }
 
     try {
+        // Debug: log all cookies on request
+        const allCookies = request.cookies.getAll()
+        console.log('[Middleware] Path:', request.nextUrl.pathname)
+        console.log('[Middleware] Cookies received:', allCookies.map(c => c.name).join(', ') || 'none')
+
         const supabase = createServerClient(
             supabaseUrl,
             supabaseAnonKey,
             {
                 cookies: {
-                    get(name: string) {
-                        return request.cookies.get(name)?.value
+                    getAll() {
+                        return request.cookies.getAll()
                     },
-                    set(name: string, value: string, options: CookieOptions) {
-                        request.cookies.set({
-                            name,
-                            value,
-                            ...options,
-                        })
+                    setAll(cookiesToSet) {
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            request.cookies.set(name, value)
+                        )
                         response = NextResponse.next({
-                            request: {
-                                headers: request.headers,
-                            },
+                            request,
                         })
-                        response.cookies.set({
-                            name,
-                            value,
-                            ...options,
-                        })
-                    },
-                    remove(name: string, options: CookieOptions) {
-                        request.cookies.set({
-                            name,
-                            value: '',
-                            ...options,
-                        })
-                        response = NextResponse.next({
-                            request: {
-                                headers: request.headers,
-                            },
-                        })
-                        response.cookies.set({
-                            name,
-                            value: '',
-                            ...options,
-                        })
+                        cookiesToSet.forEach(({ name, value, options }) =>
+                            response.cookies.set(name, value, options)
+                        )
                     },
                 },
             }
@@ -68,6 +50,8 @@ export async function updateSession(request: NextRequest) {
             data: { user },
         } = await supabase.auth.getUser()
 
+        console.log('[Middleware] User:', user ? user.email : 'none')
+
         // Protected routes
         if (
             !user &&
@@ -76,6 +60,7 @@ export async function updateSession(request: NextRequest) {
                 request.nextUrl.pathname.startsWith('/admin'))
         ) {
             // no user, potentially respond by redirecting the user to the login page
+            console.log('[Middleware] No user, redirecting to login')
             const url = request.nextUrl.clone()
             url.pathname = '/login'
             url.searchParams.set('next', request.nextUrl.pathname)
@@ -83,7 +68,7 @@ export async function updateSession(request: NextRequest) {
         }
     } catch (error) {
         // If Supabase fails, continue without auth
-        console.error('Supabase middleware error:', error)
+        console.error('[Middleware] Supabase error:', error)
     }
 
     return response
