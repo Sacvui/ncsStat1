@@ -93,7 +93,7 @@ export const FeedbackService = {
         localStorage.setItem(STORAGE_KEYS.DEMOGRAPHICS, JSON.stringify(existing));
 
         // Mark as done
-
+        localStorage.setItem(STORAGE_KEYS.DEMOGRAPHICS_DONE, 'true');
 
         // Sync to Cloud
         FeedbackService.sendToGoogleSheets(payload);

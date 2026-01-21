@@ -23,8 +23,21 @@ import type { PreviousAnalysisData } from '@/types/analysis';
 import { DemographicSurvey } from '@/components/feedback/DemographicSurvey';
 import { ApplicabilitySurvey } from '@/components/feedback/ApplicabilitySurvey';
 import { FeedbackService } from '@/lib/feedback-service';
+import { createClient } from '@/utils/supabase/client';
+import UserMenu from '@/components/UserMenu';
 
 export default function AnalyzePage() {
+    // Auth State
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const supabase = createClient()
+        const getUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            setUser(user)
+        }
+        getUser()
+    }, [])
     // Session State Management
     const {
         isPrivateMode, setIsPrivateMode,
@@ -515,15 +528,20 @@ export default function AnalyzePage() {
                 <div className="container mx-auto px-6 py-4">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
-                            <BarChart3 className="w-8 h-8 text-indigo-600" />
-                            <div>
-                                <h1 className="text-2xl font-bold text-slate-800">ncsStat</h1>
-                                <p className="text-sm text-slate-600">Phân tích thống kê cho NCS Việt Nam</p>
+                            <img src="/logo.svg" alt="ncsStat Logo" className="h-10 w-auto" />
+                            <div className="hidden md:block">
+                                <h1 className="text-xl font-bold text-slate-800">ncsStat</h1>
+                                <p className="text-xs text-slate-500">Phân tích thống kê cho NCS Việt Nam</p>
                             </div>
                         </div>
 
-                        {/* Privacy & Settings */}
+                        {/* Privacy & Settings & User */}
                         <div className="flex items-center gap-3">
+                            {/* User Menu */}
+                            {user && <UserMenu user={user} />}
+
+                            <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block"></div>
+
                             <div className="flex items-center gap-2">
                                 <Badge variant={isPrivateMode ? 'default' : 'info'} className="cursor-pointer" onClick={() => setIsPrivateMode(!isPrivateMode)}>
                                     {isPrivateMode ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
