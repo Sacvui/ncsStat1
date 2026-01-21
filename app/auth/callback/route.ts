@@ -31,17 +31,22 @@ export async function GET(request: NextRequest) {
             {
                 cookies: {
                     getAll() {
-                        // Return all cookies from the request
                         const cookies = request.cookies.getAll()
                         console.log('[Auth Callback] getAll called, returning', cookies.length, 'cookies')
                         return cookies
                     },
                     setAll(cookiesToSet) {
-                        // Set all cookies on the response
                         console.log('[Auth Callback] setAll called with', cookiesToSet.length, 'cookies')
                         cookiesToSet.forEach(({ name, value, options }) => {
-                            console.log('[Auth Callback] Setting cookie:', name)
-                            response.cookies.set(name, value, options)
+                            console.log('[Auth Callback] Setting cookie:', name, 'options:', JSON.stringify(options))
+                            // Explicitly set cookie options for cross-origin compatibility
+                            response.cookies.set(name, value, {
+                                ...options,
+                                path: '/',
+                                sameSite: 'lax',
+                                secure: !isLocalEnv, // Only secure in production
+                                httpOnly: true,
+                            })
                         })
                     },
                 },
@@ -55,6 +60,9 @@ export async function GET(request: NextRequest) {
         console.log('[Auth Callback] Exchange result - session:', data?.session ? 'present' : 'none')
 
         if (!error) {
+            // Log response headers before returning
+            const setCookieHeaders = response.headers.getSetCookie()
+            console.log('[Auth Callback] Response Set-Cookie headers count:', setCookieHeaders.length)
             console.log('[Auth Callback] Success! Redirecting to:', `${origin}${next}`)
             return response
         } else {
