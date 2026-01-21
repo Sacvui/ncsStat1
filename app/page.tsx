@@ -8,13 +8,23 @@ import {
   TrendingUp,
   Layers,
   Activity,
-  Network
+  Network,
+  PieChart,
+  Users,
+  ArrowRight,
+  CheckCircle2,
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
+import { createClient } from "@/utils/supabase/server"
+import UserMenu from "@/components/UserMenu"
 
-export default function Home() {
+export default async function LandingPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
   return (
-    // LIGHT THEME: Clean, Academic, Professional
-    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans selection:bg-indigo-100 selection:text-indigo-900">
+    <div className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900">
 
       {/* Subtle Background Pattern */}
       <div className="fixed inset-0 z-0 opacity-40 pointer-events-none"
@@ -28,18 +38,31 @@ export default function Home() {
             <img src="/logo.svg" alt="ncsStat Logo" className="h-10 w-auto" />
           </div>
           <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="hidden md:block px-5 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
-            >
-              Đăng nhập
-            </Link>
+            {user ? (
+              <UserMenu user={user} />
+            ) : (
+              <Link
+                href="/login"
+                className="hidden md:block px-5 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
+              >
+                Đăng nhập
+              </Link>
+            )}
             <Link
               href="/analyze"
               className="hidden md:block px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors text-sm font-medium shadow-sm"
+              style={{ display: user ? 'none' : 'block' }}
             >
               Vào trang phân tích
             </Link>
+            {user && (
+              <Link
+                href="/analyze"
+                className="hidden md:block px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors text-sm font-medium shadow-sm"
+              >
+                Vào trang phân tích
+              </Link>
+            )}
           </div>
         </nav>
 
