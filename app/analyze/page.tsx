@@ -542,18 +542,21 @@ export default function AnalyzePage() {
                 </div>
             )}
 
-            {/* Header */}
-            <Header user={user} />
-
-            {/* Analysis Toolbar */}
-            <AnalysisToolbar
-                isPrivateMode={isPrivateMode}
-                setIsPrivateMode={setIsPrivateMode}
-                clearSession={() => {
-                    clearSession();
-                    showToast('Đã xóa dữ liệu phiên làm việc', 'info');
-                }}
-                filename={filename}
+            {/* Header with Integrated Toolbar */}
+            <Header
+                user={user}
+                hideNav={true}
+                centerContent={
+                    <AnalysisToolbar
+                        isPrivateMode={isPrivateMode}
+                        setIsPrivateMode={setIsPrivateMode}
+                        clearSession={() => {
+                            clearSession();
+                            showToast('Đã xóa dữ liệu phiên làm việc', 'info');
+                        }}
+                        filename={filename}
+                    />
+                }
             />
 
             <div className="bg-blue-50/50 border-b border-blue-100 py-1">

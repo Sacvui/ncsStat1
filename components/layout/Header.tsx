@@ -21,7 +21,6 @@ export default function Header({ user, centerContent, rightActions, hideNav = fa
                 <div className="flex items-center gap-8">
                     <Link href="/" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
                         <img src="/logo.svg" alt="ncsStat" className="h-9 w-auto" />
-                        <span className="font-bold text-lg text-slate-800 hidden sm:block">ncsStat</span>
                     </Link>
 
                     {/* Desktop Nav */}
@@ -75,8 +74,8 @@ function NavLink({ href, active, children }: { href: string, active?: boolean, c
         <Link
             href={href}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${active
-                    ? 'bg-blue-50 text-blue-700'
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                ? 'bg-blue-50 text-blue-700'
+                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                 }`}
         >
             {children}

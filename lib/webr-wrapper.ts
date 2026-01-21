@@ -74,29 +74,48 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 updateProgress('Đang tải R runtime...');
                 await webR.init();
 
+                // Step 1: Set correct WASM Repo
+                await webR.evalR('options(repos = c(R_WASM = "https://repo.r-wasm.org/"))');
+
                 // Verify initialization
                 if (!webR.evalR) {
                     throw new Error('WebR initialized but evalR is not available');
                 }
 
-                // Install required packages
-                // Batch install is more efficient for dependency resolution
-                updateProgress('Đang tải thư viện thống kê (psych, lavaan)...');
+                // Step 2: Install required packages & dependencies
+                // Added explicit dependencies for lavaan: numDeriv, pbivnorm, quadprog
+                updateProgress('Đang tải thư viện thống kê (lavaan dependencies)...');
+                try {
+                    await webR.installPackages(['numDeriv', 'pbivnorm', 'quadprog']);
+                } catch (depError) {
+                    console.warn('Dependency install warning:', depError);
+                }
+
+                updateProgress('Đang tải thư viện chính (psych, lavaan)...');
                 try {
                     await webR.installPackages(['psych', 'lavaan', 'corrplot', 'GPArotation']);
                 } catch (pkgError) {
                     console.warn('Package install warning:', pkgError);
-                    // Continue, maybe they are already installed or will fail later
                 }
 
-                // Load packages
+                // Step 3 & 4: Load packages and integrity check (Lazy Loading fix)
                 updateProgress('Đang kích hoạt R environment...');
-                // Parallel load is usually safe strictly for library() calls
-                await Promise.all([
-                    webR.evalR('library(psych)').catch(e => console.warn('Faield to load psych', e)),
-                    webR.evalR('library(lavaan)').catch(e => console.warn('Failed to load lavaan', e)),
-                    webR.evalR('library(GPArotation)').catch(e => console.warn('Failed to load GPArotation', e))
-                ]);
+
+                await webR.evalR('library(psych)');
+                await webR.evalR('library(GPArotation)');
+
+                // Special handling for lavaan loading
+                updateProgress('Đang nạp Lavaan SEM Engine...');
+                await webR.evalR(`
+                    library(lavaan)
+                    # Force lazy loading initialization
+                    tryCatch({
+                         lavVersion()
+                         print("Lavaan initialized successfully")
+                    }, error = function(e) {
+                         print(paste("Lavaan init warning:", e$message))
+                    })
+                `);
 
                 updateProgress('Sẵn sàng!');
                 webRInstance = webR;
