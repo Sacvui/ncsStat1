@@ -45,18 +45,18 @@ export async function GET(request: NextRequest) {
         if (!error) {
             const redirectUrl = `${origin}${next}`
 
-            // HTML with 2 second delay to ensure cookies settle and we can see the page
+            // HTML with 3 second delay for robustness
             const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="refresh" content="2;url=${redirectUrl}">
+    <meta http-equiv="refresh" content="3;url=${redirectUrl}">
     <title>Logging in...</title>
     <script>
         setTimeout(function() {
             window.location.href = "${redirectUrl}";
-        }, 2000);
+        }, 3000);
     </script>
     <style>
         body { font-family: system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f9fafb; color: #111827; }
@@ -68,8 +68,8 @@ export async function GET(request: NextRequest) {
 <body>
     <div class="spinner"></div>
     <h2>Authenticating...</h2>
-    <p>Please wait while we log you in.</p>
-    <p class="debug">Redirecting to ${next} in 2 seconds...</p>
+    <p>Please wait while we log you in (Probe v2).</p>
+    <p class="debug">Redirecting to ${next} in 3 seconds...</p>
     <noscript>
         <p>If you are not redirected, <a href="${redirectUrl}">click here</a>.</p>
     </noscript>
@@ -85,21 +85,28 @@ export async function GET(request: NextRequest) {
                 },
             })
 
-            // Apply collected cookies with EXPLICIT SAFE OPTIONS
+            // Common "Safe" Options
+            const safeOptions = {
+                path: '/',
+                sameSite: 'lax' as const,
+                secure: !isLocalEnv, // true in production
+                httpOnly: true,
+                maxAge: 60 * 60 * 24 * 7, // 1 week
+            }
+
+            // 1. Set the Auth Cookies
             cookiesToSet.forEach(({ name, value }) => {
-                // Ignore the options from Supabase and force safe defaults
-                const safeOptions = {
-                    path: '/',
-                    sameSite: 'lax' as const,
-                    secure: !isLocalEnv, // true in production
-                    httpOnly: true,
-                    maxAge: 60 * 60 * 24 * 7, // 1 week
-                }
-
-                console.log(`[Auth Callback] FORCE SETTING cookie: ${name} | Path:/ | SameSite:Lax | Secure:${!isLocalEnv} | HttpOnly:true`)
-
+                console.log(`[Cookies] Setting: ${name} | Size: ${value.length} chars`)
                 response.cookies.set(name, value, safeOptions)
             })
+
+            // 2. Set a Debug Probe Cookie (Small, Simple)
+            // This tells us if *any* cookies are being accepted
+            response.cookies.set('test-probe-cookie', 'hello-world-' + Date.now(), {
+                ...safeOptions,
+                httpOnly: false, // Let JS see it so we can verify easily
+            })
+            console.log('[Cookies] Set test-probe-cookie')
 
             return response
         } else {
