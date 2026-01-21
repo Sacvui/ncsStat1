@@ -479,10 +479,10 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
     const webR = await initWebR();
 
     const rCode = `
-    before < - c(${before.join(',')})
-    after < - c(${after.join(',')})
+    before <- c(${before.join(',')})
+    after <- c(${after.join(',')})
 
-    result < - t.test(before, after, paired = TRUE)
+    result <- t.test(before, after, paired = TRUE)
 
     list(
         t = result$statistic,
@@ -540,30 +540,30 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
 
     const rCode = `
     # Create data frame with values and group labels
-values < - c(${groups.map(g => g.join(',')).join(',')})
-groups < - factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
+    values <- c(${groups.map(g => g.join(',')).join(',')})
+    groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
     
     # Run ANOVA
-model < - aov(values ~groups)
-result < - summary(model)[[1]]
+    model <- aov(values ~ groups)
+    result <- summary(model)[[1]]
     
     # Calculate eta squared
-ssb < - result[1, 2]  # Sum of squares between
-sst < - ssb + result[2, 2]  # Total sum of squares
-etaSquared < - ssb / sst
+    ssb <- result[1, 2]  # Sum of squares between
+    sst <- ssb + result[2, 2]  # Total sum of squares
+    etaSquared <- ssb / sst
     
     # Group means
-groupMeans < - tapply(values, groups, mean)
+    groupMeans <- tapply(values, groups, mean)
 
-list(
-    F = result[1, 4],
-    dfBetween = result[1, 1],
-    dfWithin = result[2, 1],
-    pValue = result[1, 5],
-    groupMeans = as.numeric(groupMeans),
-    grandMean = mean(values),
-    etaSquared = etaSquared
-)
+    list(
+        F = result[1, 4],
+        dfBetween = result[1, 1],
+        dfWithin = result[2, 1],
+        pValue = result[1, 5],
+        groupMeans = as.numeric(groupMeans),
+        grandMean = mean(values),
+        etaSquared = etaSquared
+    )
     `;
 
     const result = await webR.evalR(rCode);
@@ -601,15 +601,16 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
     library(psych)
 
     # Convert JS array of arrays to R matrix
-data_mat < - matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
+    # Convert JS array of arrays to R matrix
+    data_mat <- matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
     
     # KMO and Bartlett's Test
-kmo_result < - KMO(data_mat)
-bartlett_result < - cortest.bartlett(cor(data_mat), n = ${data.length})
+    kmo_result <- KMO(data_mat)
+    bartlett_result <- cortest.bartlett(cor(data_mat), n = ${data.length})
     
     # Perform EFA using principal axis factoring (fa = "pa") with varimax rotation
     # nfactors is the number of factors to extract
-efa_result < - fa(data_mat, nfactors = ${nFactors}, rotate = "varimax", fm = "pa")
+    efa_result <- fa(data_mat, nfactors = ${nFactors}, rotate = "varimax", fm = "pa")
 
 list(
     kmo = kmo_result$MSA[1], # Overall MSA
@@ -706,107 +707,83 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
 
     // Construct R command
     const rCode = `
-data_mat < - ${arrayToRMatrix(data)}
-df < - as.data.frame(data_mat)
+    data_mat <- ${arrayToRMatrix(data)}
+    df <- as.data.frame(data_mat)
     # Assign names
-colnames(df) < - c(${names.map(n => `"${n}"`).join(',')})
+    colnames(df) <- c(${names.map(n => `"${n}"`).join(',')})
     
     # Formula: First col ~ . (all others)
-    # We must quote names in formula if they have special chars
-y_name < - colnames(df)[1]
-f_str < - paste(sprintf("\`%s\`", y_name), "~ .")
-f < - as.formula(f_str)
+    y_name <- colnames(df)[1]
+    f_str <- paste(sprintf("\`%s\`", y_name), "~ .")
+    f <- as.formula(f_str)
 
-model < - lm(f, data = df)
-s < - summary(model)
+    model <- lm(f, data = df)
+    s <- summary(model)
     
     # Extract Coefficients
-coefs < - coef(s)
+    coefs <- coef(s)
     
     # Extract Model Fit
-fstat < - s$fstatistic
+    fstat <- s$fstatistic
     
-    # Calculate p - value for F - statistic
+    # Calculate p-value for F-statistic
     if (is.null(fstat)) {
-        f_val < - 0
-        df_num < - 0
-        df_denom < - 0
-        f_p_value < - 1
+        f_val <- 0
+        df_num <- 0
+        df_denom <- 0
+        f_p_value <- 1
     } else {
-        f_val < - fstat[1]
-        df_num < - fstat[2]
-        df_denom < - fstat[3]
-        f_p_value < - pf(f_val, df_num, df_denom, lower.tail = FALSE)
+        f_val <- fstat[1]
+        df_num <- fstat[2]
+        df_denom <- fstat[3]
+        f_p_value <- pf(f_val, df_num, df_denom, lower.tail = FALSE)
     }
 
-list(
-    coef_names = rownames(coefs),
-    estimates = coefs[, 1],
-    std_errors = coefs[, 2],
-    t_values = coefs[, 3],
-    p_values = coefs[, 4],
-
-    r_squared = s$r.squared,
-    adj_r_squared = s$adj.r.squared,
-    f_stat = f_val,
-    df_num = df_num,
-    df_denom = df_denom,
-    f_p_value = f_p_value,
-    sigma = s$sigma,
-
-    fitted_values = fitted(model),
-    residuals = residuals(model),
-    actual_values = df[, 1]
-)
-    
-    # CALCULATE VIF(Manual method as car pkg might be missing)
-    # VIF_i = 1 / (1 - R_i ^ 2)
-vif_vals < - tryCatch({
-    x_data<- df[, -1, drop = FALSE] # Exclude dependent variable(col 1)
-       p < - ncol(x_data)
-       vifs < - numeric(p)
-       names(vifs) < - colnames(x_data)
+    # CALCULATE VIF (Manual method)
+    vif_vals <- tryCatch({
+       x_data <- df[, -1, drop = FALSE] # Exclude dependent variable
+       p <- ncol(x_data)
+       vifs <- numeric(p)
+       names(vifs) <- colnames(x_data)
        
        if (p > 1) {
-    for (i in 1:p) {
+         for (i in 1:p) {
              # Regress x[i] on other xs
-        r_model < - lm(x_data[, i] ~ ., data = x_data[, -i, drop = FALSE])
-        r2 < - summary(r_model)$r.squared
-        if (r2 >= 0.9999) {
-            vifs[i] < - 999.99 # Infinite / High
-        } else {
-            vifs[i] < - 1 / (1 - r2)
-        }
-    }
-} else {
-    vifs[1] < - 1.0
-}
-vifs
+             r_model <- lm(x_data[, i] ~ ., data = x_data[, -i, drop = FALSE])
+             r2 <- summary(r_model)$r.squared
+             if (r2 >= 0.9999) {
+                 vifs[i] <- 999.99 
+             } else {
+                 vifs[i] <- 1 / (1 - r2)
+             }
+         }
+       } else {
+         vifs[1] <- 1.0
+       }
+       vifs
     }, error = function (e) { return (numeric(0)) })
+
+    list(
+        coef_names = rownames(coefs),
+        estimates = coefs[, 1],
+        std_errors = coefs[, 2],
+        t_values = coefs[, 3],
+        p_values = coefs[, 4],
     
-    # Append VIF to list
-res_list < - list(
-    coef_names = rownames(coefs),
-    estimates = coefs[, 1],
-    std_errors = coefs[, 2],
-    t_values = coefs[, 3],
-    p_values = coefs[, 4],
-
-    r_squared = s$r.squared,
-    adj_r_squared = s$adj.r.squared,
-    f_stat = f_val,
-    df_num = df_num,
-    df_denom = df_denom,
-    f_p_value = f_p_value,
-    sigma = s$sigma,
-
-    fitted_values = fitted(model),
-    residuals = residuals(model),
-    actual_values = df[, 1],
-
-    vifs = vif_vals
-)
-res_list
+        r_squared = s$r.squared,
+        adj_r_squared = s$adj.r.squared,
+        f_stat = f_val,
+        df_num = df_num,
+        df_denom = df_denom,
+        f_p_value = f_p_value,
+        sigma = s$sigma,
+    
+        fitted_values = fitted(model),
+        residuals = residuals(model),
+        actual_values = df[, 1],
+    
+        vifs = vif_vals
+    )
     `;
 
     const result = await webR.evalR(rCode);
@@ -858,7 +835,7 @@ res_list
     }
 
     // Build Equation
-    let equationStr = `${interceptVal.toFixed(3)}`;
+    let equationStr = `${interceptVal.toFixed(3)} `;
 
     for (const coef of coefficients) {
         if (coef.term === '(Intercept)') continue;
@@ -1066,7 +1043,8 @@ export async function runCFA(
 
     const rCode = `
     if (!requireNamespace("lavaan", quietly = TRUE)) {
-      install.packages("lavaan", repos="https://repo.r-wasm.org/")
+      # install.packages is not reliable here, should be done in initWebR
+      stop("Lavaan package is not installed. Please refresh to try again.")
     }
     library(lavaan)
     
@@ -1194,7 +1172,7 @@ export async function runSEM(
     // Check for lavaan
     const rCode = `
     if (!requireNamespace("lavaan", quietly = TRUE)) {
-      install.packages("lavaan", repos="https://repo.r-wasm.org/")
+        stop("Lavaan package is not installed. Please refresh to try again.")
     }
     library(lavaan)
     

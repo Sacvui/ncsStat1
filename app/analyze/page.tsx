@@ -25,7 +25,8 @@ import { DemographicSurvey } from '@/components/feedback/DemographicSurvey';
 import { ApplicabilitySurvey } from '@/components/feedback/ApplicabilitySurvey';
 import { FeedbackService } from '@/lib/feedback-service';
 import { createClient } from '@/utils/supabase/client';
-import UserMenu from '@/components/UserMenu';
+import Header from '@/components/layout/Header'
+import AnalysisToolbar from '@/components/analyze/AnalysisToolbar';
 
 export default function AnalyzePage() {
     const router = useRouter()
@@ -542,64 +543,26 @@ export default function AnalyzePage() {
             )}
 
             {/* Header */}
-            <header className="bg-white shadow-sm border-b border-slate-200">
-                <div className="container mx-auto px-6 py-4">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                            <img src="/logo.svg" alt="ncsStat Logo" className="h-10 w-auto" />
-                            <div className="hidden md:block">
-                                <h1 className="text-xl font-bold text-slate-800">ncsStat</h1>
-                                <p className="text-xs text-slate-500">Phân tích thống kê cho NCS Việt Nam</p>
-                            </div>
-                        </div>
+            <Header user={user} />
 
-                        {/* Privacy & Settings & User */}
-                        <div className="flex items-center gap-3">
-                            {/* User Menu */}
-                            {user && <UserMenu user={user} />}
+            {/* Analysis Toolbar */}
+            <AnalysisToolbar
+                isPrivateMode={isPrivateMode}
+                setIsPrivateMode={setIsPrivateMode}
+                clearSession={() => {
+                    clearSession();
+                    showToast('Đã xóa dữ liệu phiên làm việc', 'info');
+                }}
+                filename={filename}
+            />
 
-                            <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block"></div>
-
-                            <div className="flex items-center gap-2">
-                                <Badge variant={isPrivateMode ? 'default' : 'info'} className="cursor-pointer" onClick={() => setIsPrivateMode(!isPrivateMode)}>
-                                    {isPrivateMode ? <EyeOff className="w-3 h-3 mr-1" /> : <Eye className="w-3 h-3 mr-1" />}
-                                    {isPrivateMode ? 'Riêng tư' : 'Đang lưu'}
-                                </Badge>
-                                <button
-                                    onClick={() => {
-                                        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu phiên làm việc?')) {
-                                            clearSession();
-                                            showToast('Đã xóa dữ liệu phiên làm việc', 'info');
-                                        }
-                                    }}
-                                    className="text-slate-400 hover:text-red-600 transition-colors"
-                                    title="Xóa phiên làm việc"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                </button>
-                            </div>
-
-                            <WebRStatus />
-                            {filename && (
-                                <div className="flex items-center gap-2 text-sm text-gray-600 bg-white border px-3 py-1 rounded-full">
-                                    <FileText className="w-4 h-4" />
-                                    <span className="truncate max-w-[150px]">{filename}</span>
-                                </div>
-                            )}
-                            <AISettings />
-                        </div>
-                    </div>
+            <div className="bg-blue-50/50 border-b border-blue-100 py-1">
+                <div className="container mx-auto px-6 flex items-center justify-center gap-2 text-[11px] text-blue-600/80">
+                    <Shield className="w-3 h-3" />
+                    <span className="font-semibold">Bảo mật:</span>
+                    <span>Dữ liệu xử lý cục bộ 100% (Client-side), an toàn tuyệt đối.</span>
                 </div>
-
-                {/* Privacy Disclaimer */}
-                <div className="bg-blue-50 border-b border-blue-100 py-1.5">
-                    <div className="container mx-auto px-6 flex items-center justify-center gap-2 text-xs text-blue-700">
-                        <Shield className="w-3 h-3" />
-                        <span className="font-medium">Bảo mật:</span>
-                        <span>Dữ liệu của bạn được xử lý 100% trên trình duyệt và không bao giờ được gửi đi đâu.</span>
-                    </div>
-                </div>
-            </header>
+            </div>
 
             {/* Progress Steps */}
             <div className="container mx-auto px-6 py-8">

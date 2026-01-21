@@ -4,6 +4,7 @@ import { User, Share2, Copy, BarChart3, Database, Star, Shield } from 'lucide-re
 import Link from 'next/link'
 import ProfileHeader from '@/components/profile/ProfileHeader'
 import ReferralCard from '@/components/profile/ReferralCard'
+import Header from '@/components/layout/Header'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,13 +39,11 @@ export default async function ProfilePage() {
         .eq('referred_by_code', profile?.referral_code)
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12">
-            <div className="container mx-auto px-4 max-w-5xl">
+        <div className="min-h-screen bg-slate-50">
+            <Header user={user} />
+            <div className="py-12 container mx-auto px-4 max-w-5xl">
                 <div className="mb-8 flex items-center justify-between">
                     <h1 className="text-3xl font-bold text-slate-900">Hồ sơ cá nhân</h1>
-                    <Link href="/" className="text-blue-600 hover:underline">
-                        &larr; Quay lại trang chủ
-                    </Link>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

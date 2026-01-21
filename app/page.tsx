@@ -18,56 +18,21 @@ import {
 } from 'lucide-react';
 import { createClient } from "@/utils/supabase/server"
 import UserMenu from "@/components/UserMenu"
-
-export const dynamic = 'force-dynamic'
+import Header from '@/components/layout/Header'
+// ... (keep other imports)
 
 export default async function LandingPage() {
   const supabase = await createClient()
-
   const { data: { user } } = await supabase.auth.getUser()
 
   return (
     <div className="min-h-screen bg-white font-sans selection:bg-blue-100 selection:text-blue-900">
-
-      {/* Subtle Background Pattern */}
-      <div className="fixed inset-0 z-0 opacity-40 pointer-events-none"
-        style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '32px 32px' }}>
-      </div>
+      <div className="fixed inset-0 z-0 opacity-40 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '32px 32px' }}></div>
 
       <div className="relative z-10">
-        {/* Navigation */}
-        <nav className="container mx-auto px-6 py-6 flex justify-between items-center bg-white/80 backdrop-blur-md sticky top-0 border-b border-slate-200 z-50">
-          <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="ncsStat Logo" className="h-10 w-auto" />
-          </div>
-          <div className="flex items-center gap-3">
-            {user ? (
-              <UserMenu user={user} />
-            ) : (
-              <Link
-                href="/login"
-                className="hidden md:block px-5 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
-              >
-                Đăng nhập
-              </Link>
-            )}
-            <Link
-              href="/analyze"
-              className="hidden md:block px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors text-sm font-medium shadow-sm"
-              style={{ display: user ? 'none' : 'block' }}
-            >
-              Vào trang phân tích
-            </Link>
-            {user && (
-              <Link
-                href="/analyze"
-                className="hidden md:block px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors text-sm font-medium shadow-sm"
-              >
-                Vào trang phân tích
-              </Link>
-            )}
-          </div>
-        </nav>
+        <Header user={user} />
+
+        {/* Hero Section */}
 
         {/* Hero Section */}
         <div className="container mx-auto px-6 py-24 text-center">
