@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { User, Share2, Copy, BarChart3, Database, Star } from 'lucide-react'
 import Link from 'next/link'
 import ProfileHeader from '@/components/profile/ProfileHeader'
+import ReferralCard from '@/components/profile/ReferralCard'
 
 export const dynamic = 'force-dynamic'
 
@@ -30,12 +31,7 @@ export default async function ProfilePage() {
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.id)
 
-    // Fetch referrals count (people referred by this user)
-    // Note: We need to count profiles where referred_by_code == my_referral_code
-    // But wait, setup_db referenced referred_by (uuid), I need to check schema.
-    // setup_db_full.sql: referred_by_code text
-    // Let's assume referred_by_code stores the code.
-
+    // Fetch referrals count
     const { count: referralsCount } = await supabase
         .from('profiles')
         .select('*', { count: 'exact', head: true })
@@ -58,20 +54,7 @@ export default async function ProfilePage() {
                         <ProfileHeader user={user} profile={profile} />
 
                         <div className="mt-8 space-y-4">
-                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                                <label className="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Mã giới thiệu của bạn</label>
-                                <div className="flex items-center gap-2">
-                                    <code className="flex-1 bg-slate-50 border border-slate-200 px-3 py-2 rounded-lg font-mono text-lg font-bold text-center tracking-widest text-slate-800">
-                                        {profile?.referral_code || '---'}
-                                    </code>
-                                    <button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Sao chép">
-                                        <Copy className="w-5 h-5" />
-                                    </button>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-2 text-center">
-                                    Chia sẻ mã này để mời bạn bè tham gia
-                                </p>
-                            </div>
+                            <ReferralCard referralCode={profile?.referral_code} />
                         </div>
                     </div>
 
