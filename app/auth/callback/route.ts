@@ -22,9 +22,6 @@ export async function GET(request: Request) {
         } else {
             redirect(`${origin}${next}`)
         }
+        // return the user to an error page with instructions
+        redirect(`${origin}/login?error=auth-code-error`)
     }
-}
-
-// return the user to an error page with instructions
-redirect(`${origin}/login?error=auth-code-error`)
-}
