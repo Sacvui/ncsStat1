@@ -22,7 +22,7 @@ function LoginForm() {
         const supabase = createClient()
 
         const redirectTo = next
-            ? `${window.location.origin}/auth/callback?next=${next}`
+            ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
             : `${window.location.origin}/auth/callback`
 
         const { error } = await supabase.auth.signInWithOAuth({
