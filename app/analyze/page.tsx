@@ -109,7 +109,7 @@ export default function AnalyzePage() {
                     // Don't show toast on initial fail - will retry when needed
                 });
         }
-    }); // Run once on mount
+    }, []); // Run once on mount
 
     // Check for Demographics Survey (Part 1)
     useEffect(() => {
