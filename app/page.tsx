@@ -27,12 +27,20 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="ncsStat Logo" className="h-10 w-auto" />
           </div>
-          <Link
-            href="/analyze"
-            className="hidden md:block px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors text-sm font-medium shadow-sm"
-          >
-            Vào trang phân tích
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/login"
+              className="hidden md:block px-5 py-2 rounded-lg border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors text-sm font-medium"
+            >
+              Đăng nhập
+            </Link>
+            <Link
+              href="/analyze"
+              className="hidden md:block px-5 py-2 rounded-lg bg-slate-800 text-white hover:bg-slate-700 transition-colors text-sm font-medium shadow-sm"
+            >
+              Vào trang phân tích
+            </Link>
+          </div>
         </nav>
 
         {/* Hero Section */}
