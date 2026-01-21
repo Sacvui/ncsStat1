@@ -68,6 +68,7 @@ export async function updateSession(request: NextRequest) {
             data: { user },
         } = await supabase.auth.getUser()
 
+        /*
         // Protected routes
         if (
             !user &&
@@ -81,6 +82,7 @@ export async function updateSession(request: NextRequest) {
             url.searchParams.set('next', request.nextUrl.pathname)
             return NextResponse.redirect(url)
         }
+        */
     } catch (error) {
         // If Supabase fails, continue without auth
         console.error('Supabase middleware error:', error)
