@@ -15,7 +15,16 @@ export async function POST(req: NextRequest) {
     }
 
     revalidatePath('/', 'layout')
-    return NextResponse.redirect(new URL('/login', req.url), {
-        status: 302,
-    })
+
+    // Handle proxy headers for correct redirect
+    const forwardedHost = req.headers.get('x-forwarded-host')
+    const isLocalEnv = process.env.NODE_ENV === 'development'
+
+    if (isLocalEnv) {
+        return NextResponse.redirect(new URL('/login', req.url), { status: 302 })
+    } else if (forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}/login`, { status: 302 })
+    } else {
+        return NextResponse.redirect(new URL('/login', req.url), { status: 302 })
+    }
 }
