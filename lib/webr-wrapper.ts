@@ -80,26 +80,22 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 }
 
                 // Install required packages
-                // We install them one by one to give better progress feedback
-                const packages = ['psych', 'lavaan', 'corrplot', 'GPArotation'];
-
-                for (let i = 0; i < packages.length; i++) {
-                    const pkg = packages[i];
-                    updateProgress(`Đang tải thư viện: ${pkg} (${i + 1}/${packages.length})...`);
-                    console.log(`[WebR] Installing ${pkg}...`);
-                    try {
-                        await webR.installPackages([pkg]);
-                    } catch (e) {
-                        console.warn(`Failed to install ${pkg}`, e);
-                    }
+                // Batch install is more efficient for dependency resolution
+                updateProgress('Đang tải thư viện thống kê (psych, lavaan)...');
+                try {
+                    await webR.installPackages(['psych', 'lavaan', 'corrplot', 'GPArotation']);
+                } catch (pkgError) {
+                    console.warn('Package install warning:', pkgError);
+                    // Continue, maybe they are already installed or will fail later
                 }
 
-                // Load packages in parallel for faster init
+                // Load packages
                 updateProgress('Đang kích hoạt R environment...');
+                // Parallel load is usually safe strictly for library() calls
                 await Promise.all([
-                    webR.evalR('library(psych)'),
-                    webR.evalR('library(lavaan)'),
-                    webR.evalR('library(GPArotation)')
+                    webR.evalR('library(psych)').catch(e => console.warn('Faield to load psych', e)),
+                    webR.evalR('library(lavaan)').catch(e => console.warn('Failed to load lavaan', e)),
+                    webR.evalR('library(GPArotation)').catch(e => console.warn('Failed to load GPArotation', e))
                 ]);
 
                 updateProgress('Sẵn sàng!');
