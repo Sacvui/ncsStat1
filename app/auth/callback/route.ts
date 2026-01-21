@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     if (code) {
         const redirectUrl = `${origin}${next}`
 
-        // 1. Collection Array
         let cookiesToSet: { name: string; value: string; options: any }[] = []
 
         const supabase = createServerClient(
@@ -33,7 +32,6 @@ export async function GET(request: NextRequest) {
                     setAll(cookies) {
                         console.log('[Auth Callback] setAll TRIGGERED with', cookies.length, 'cookies')
                         cookies.forEach((c) => {
-                            // Push to collection
                             cookiesToSet.push(c)
                         })
                     },
@@ -42,10 +40,21 @@ export async function GET(request: NextRequest) {
         )
 
         console.log('[Auth Callback] Calling exchangeCodeForSession...')
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error) {
-            console.log(`[Auth Callback] Exchange success. Collected ${cookiesToSet.length} cookies.`)
+            console.log(`[Auth Callback] Exchange success. Initial Cookies collected: ${cookiesToSet.length}`)
+
+            // FALLBACK: If exchange didn't trigger setAll, force it using setSession
+            if (cookiesToSet.length === 0 && data?.session) {
+                console.warn('[Auth Callback] WARNING: No cookies collected during exchange. Attempting to force setSession...')
+                const { error: setSessionError } = await supabase.auth.setSession(data.session)
+                if (setSessionError) {
+                    console.error('[Auth Callback] Force setSession failed:', setSessionError)
+                } else {
+                    console.log(`[Auth Callback] Force setSession success. Total Cookies collected: ${cookiesToSet.length}`)
+                }
+            }
 
             // HTML Response
             const html = `
@@ -87,7 +96,6 @@ export async function GET(request: NextRequest) {
                 },
             })
 
-            // Common "Safe" Options
             const safeOptions = {
                 path: '/',
                 sameSite: 'lax' as const,
@@ -96,19 +104,22 @@ export async function GET(request: NextRequest) {
                 maxAge: 60 * 60 * 24 * 7, // 1 week
             }
 
-            // 2. Apply Collected Cookies
-            cookiesToSet.forEach(({ name, value }) => {
-                console.log(`[Auth Callback] Applying cookie: ${name} (len: ${value.length})`)
-                response.cookies.set(name, value, safeOptions)
-            })
+            // Apply Collected Cookies
+            if (cookiesToSet.length > 0) {
+                cookiesToSet.forEach(({ name, value }) => {
+                    console.log(`[Auth Callback] Applying cookie: ${name} (len: ${value.length})`)
+                    response.cookies.set(name, value, safeOptions)
+                })
+            } else {
+                console.error('[Auth Callback] CRITICAL: No cookies to set even after fallback!')
+            }
 
-            // 3. Add Probe
-            response.cookies.set('test-probe-cookie-v4', 'collection-pattern-verification', {
+            // Add Probe v5
+            response.cookies.set('test-probe-cookie-v5', 'fallback-trigger-verification', {
                 ...safeOptions,
                 httpOnly: false,
             })
 
-            // 4. Verify
             console.log('[Auth Callback] Final Cookie Count:', response.cookies.getAll().length)
 
             return response
