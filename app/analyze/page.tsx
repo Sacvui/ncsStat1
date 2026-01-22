@@ -911,15 +911,38 @@ export default function AnalyzePage() {
                             </div>
 
                             <div className="bg-white rounded-xl shadow-lg p-6 border">
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Chọn các biến để phân tích nhân tố:
-                                </p>
+                                <div className="flex justify-between items-center mb-2">
+                                    <p className="text-sm text-gray-600">
+                                        Chọn các biến để phân tích nhân tố:
+                                    </p>
+                                    <div className="space-x-2">
+                                        <button
+                                            onClick={() => {
+                                                const checkboxes = document.querySelectorAll('.efa-checkbox') as NodeListOf<HTMLInputElement>;
+                                                checkboxes.forEach(cb => cb.checked = true);
+                                            }}
+                                            className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                                        >
+                                            Chọn tất cả
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                const checkboxes = document.querySelectorAll('.efa-checkbox') as NodeListOf<HTMLInputElement>;
+                                                checkboxes.forEach(cb => cb.checked = false);
+                                            }}
+                                            className="text-xs text-gray-500 hover:text-gray-700"
+                                        >
+                                            Bỏ chọn
+                                        </button>
+                                    </div>
+                                </div>
                                 <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
                                     {getNumericColumns().map(col => (
                                         <label key={col} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
                                             <input
                                                 type="checkbox"
                                                 value={col}
+                                                defaultChecked={true} // Default select all to save time? User asked for button, so maybe standard is fine. Let's select all by default if easiest, or just standard. Current is unchecked.
                                                 className="efa-checkbox w-4 h-4 text-orange-600"
                                             />
                                             <span>{col}</span>
@@ -928,29 +951,36 @@ export default function AnalyzePage() {
                                 </div>
 
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Số nhân tố dự kiến</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Số nhân tố dự kiến (Tùy chọn)
+                                    </label>
                                     <input
                                         type="number"
                                         id="efa-nfactors"
                                         className="w-full px-3 py-2 border rounded-lg"
-                                        defaultValue={3}
+                                        placeholder="Để trống = Tự động (Eigenvalues > 1)"
                                         min={1}
                                         max={10}
                                     />
+                                    <p className="text-xs text-slate-500 mt-1 italic">
+                                        Nếu bỏ trống, hệ thống sẽ tự đề xuất số lượng nhân tố dựa trên hệ số Eigenvalue {'>'} 1 (Kaiser Criterion).
+                                    </p>
                                 </div>
 
                                 <button
                                     onClick={async () => {
                                         const checkboxes = document.querySelectorAll('.efa-checkbox:checked') as NodeListOf<HTMLInputElement>;
                                         const selectedCols = Array.from(checkboxes).map(cb => cb.value);
-                                        const nfactors = parseInt((document.getElementById('efa-nfactors') as HTMLInputElement).value) || 3;
+                                        const factorInput = (document.getElementById('efa-nfactors') as HTMLInputElement).value;
+                                        // If empty, pass 0 to signal auto-detection
+                                        const nfactors = factorInput ? parseInt(factorInput) : 0;
 
-                                        if (selectedCols.length < 4) {
-                                            showToast('Cần chọn ít nhất 4 biến để phân tích EFA', 'error');
+                                        if (selectedCols.length < 3) {
+                                            showToast('Cần chọn ít nhất 3 biến để phân tích EFA', 'error');
                                             return;
                                         }
 
-                                        if (nfactors > selectedCols.length / 2) {
+                                        if (nfactors > 0 && nfactors > selectedCols.length / 2) {
                                             showToast('Số nhân tố không nên lớn hơn số biến / 2', 'error');
                                             return;
                                         }

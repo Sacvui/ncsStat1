@@ -206,6 +206,15 @@ function TTestResults({ results, columns }: { results: any; columns: string[] })
                                 <td className="py-2 font-medium">Cohen&apos;s d (Effect Size)</td>
                                 <td className="py-2 text-right">{results.effectSize?.toFixed(3)}</td>
                             </tr>
+                            <tr className="bg-gray-50">
+                                <td className="py-2 font-medium text-gray-700">Equality of Variances (p)</td>
+                                <td className={`py-2 text-right font-medium ${results.varTestP < 0.05 ? 'text-orange-600' : 'text-green-600'}`}>
+                                    {results.varTestP?.toFixed(4) || 'N/A'}
+                                    <span className="text-xs font-normal text-gray-500 ml-1">
+                                        {results.varTestP < 0.05 ? '(Khác biệt)' : '(Đồng nhất)'}
+                                    </span>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </CardContent>
@@ -213,7 +222,14 @@ function TTestResults({ results, columns }: { results: any; columns: string[] })
 
             <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
                 <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800 mb-2">
+                    <strong>Kiểm định phương sai:</strong> p = {results.varTestP?.toFixed(4)}.
+                    {results.varTestP < 0.05
+                        ? ' Phương sai giữa hai nhóm khác biệt có ý nghĩa (đã sử dụng Welch t-test để điều chỉnh).'
+                        : ' Phương sai giữa hai nhóm đồng nhất (sử dụng Student t-test chuẩn).'}
+                </p>
                 <p className="text-sm text-gray-800">
+                    <strong>Kết quả T-test:</strong>
                     {significant
                         ? `Có sự khác biệt có ý nghĩa thống kê giữa ${columns[0]} và ${columns[1]} (p = ${pValue?.toFixed(4)} < 0.05). Cohen's d = ${results.effectSize?.toFixed(2)} cho thấy ${Math.abs(results.effectSize) > 0.8 ? 'hiệu ứng lớn' : Math.abs(results.effectSize) > 0.5 ? 'hiệu ứng trung bình' : 'hiệu ứng nhỏ'}.`
                         : `Không có sự khác biệt có ý nghĩa thống kê giữa ${columns[0]} và ${columns[1]} (p = ${pValue?.toFixed(4)} >= 0.05).`
@@ -298,6 +314,12 @@ function ANOVAResults({ results, columns }: { results: any; columns: string[] })
 
             <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
                 <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800 mb-2">
+                    <strong>Kiểm định Bartlett (Phương sai):</strong> p = {results.assumptionCheckP?.toFixed(4)}.
+                    {results.assumptionCheckP < 0.05
+                        ? <span className="text-orange-600 font-bold"> Cảnh báo: Phương sai giữa các nhóm không đồng nhất (vi phạm giả định ANOVA).</span>
+                        : <span className="text-green-700"> Phương sai đồng nhất (thỏa mãn giả định).</span>}
+                </p>
                 <p className="text-sm text-gray-800">
                     {significant
                         ? `Có sự khác biệt có ý nghĩa thống kê giữa các nhóm (F(${results.dfBetween?.toFixed(0)}, ${results.dfWithin?.toFixed(0)}) = ${results.F?.toFixed(3)}, p = ${pValue?.toFixed(4)} < 0.05). Eta-squared = ${results.etaSquared?.toFixed(3)} cho thấy ${results.etaSquared > 0.14 ? 'hiệu ứng lớn' : results.etaSquared > 0.06 ? 'hiệu ứng trung bình' : 'hiệu ứng nhỏ'}.`
@@ -713,7 +735,7 @@ function EFAResults({ results, columns, onProceedToCFA }: { results: any; column
         if (!results.loadings || !Array.isArray(results.loadings[0])) return [];
 
         const factors = [];
-        const nFactors = results.loadings[0].length;
+        const nFactors = results.nFactorsUsed || results.loadings[0].length; // Fallback
 
         for (let f = 0; f < nFactors; f++) {
             const indicators = columns.filter((col, i) =>
@@ -727,10 +749,42 @@ function EFAResults({ results, columns, onProceedToCFA }: { results: any; column
             }
         }
         return factors;
-    }, [results.loadings, columns]);
+    }, [results.loadings, columns, results.nFactorsUsed]);
 
     return (
         <div className="space-y-6">
+            {/* Eigenvalues & Extracted Factors - NEW */}
+            {results.eigenvalues && results.eigenvalues.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Eigenvalues & Number of Factors</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4 text-sm text-gray-800">
+                            <p>
+                                <strong>Số lượng nhân tố được trích xuất:</strong> {results.nFactorsUsed}
+                            </p>
+                            <div>
+                                <strong>Eigenvalues (Initial):</strong>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                    {results.eigenvalues.slice(0, 10).map((ev: number, i: number) => (
+                                        <div
+                                            key={i}
+                                            className={`px-3 py-1 rounded border ${ev > 1 ? 'bg-green-100 border-green-300 text-green-800 font-bold' : 'bg-gray-50 border-gray-200 text-gray-500'}`}
+                                        >
+                                            F{i + 1}: {ev.toFixed(3)}
+                                        </div>
+                                    ))}
+                                    {results.eigenvalues.length > 10 && <span className="text-gray-400 self-center">...</span>}
+                                </div>
+                                <p className="text-xs text-gray-500 italic mt-2">
+                                    * Các nhân tố có Eigenvalue {'>'} 1 được giữ lại theo tiêu chuẩn Kaiser.
+                                </p>
+                            </div>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
             {/* KMO and Bartlett's Test */}
             <Card>
                 <CardHeader>
@@ -974,6 +1028,50 @@ function RegressionResults({ results, columns }: { results: any, columns: string
                     </table>
                 </div>
             </div>
+
+            {/* Assumption Checks Card */}
+            <Card>
+                <CardHeader>
+                    <CardTitle className="text-indigo-700">Kiểm định Giả định (Assumption Checks)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* 1. Normality */}
+                        <div className="p-4 bg-gray-50 rounded border border-gray-100">
+                            <h5 className="font-bold text-sm text-gray-700 mb-2">1. Phân phối chuẩn của phần dư (Normality)</h5>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm text-gray-600">Shapiro-Wilk Test:</span>
+                                <span className={`font-bold ${modelFit.normalityP >= 0.05 ? 'text-green-600' : 'text-orange-500'}`}>
+                                    p = {modelFit.normalityP?.toFixed(4)}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-500 italic">
+                                {modelFit.normalityP >= 0.05
+                                    ? '✓ Phần dư có phân phối chuẩn (Tốt).'
+                                    : '⚠ Phần dư không phân phối chuẩn (Cân nhắc cỡ mẫu lớn).'
+                                }
+                            </p>
+                        </div>
+
+                        {/* 2. Multicollinearity */}
+                        <div className="p-4 bg-gray-50 rounded border border-gray-100">
+                            <h5 className="font-bold text-sm text-gray-700 mb-2">2. Đa cộng tuyến (Multicollinearity)</h5>
+                            <div className="flex justify-between items-center mb-1">
+                                <span className="text-sm text-gray-600">VIF Max:</span>
+                                <span className="font-bold text-purple-700">
+                                    {Math.max(...coefficients.map((c: any) => c.vif || 0)).toFixed(2)}
+                                </span>
+                            </div>
+                            <p className="text-xs text-gray-500 italic">
+                                {Math.max(...coefficients.map((c: any) => c.vif || 0)) < 10
+                                    ? '✓ Không có hiện tượng đa cộng tuyến nghiêm trọng (VIF < 10).'
+                                    : '⚠ Cảnh báo đa cộng tuyến (VIF > 10).'
+                                }
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Conclusion */}
             <div className="bg-gray-50 border border-gray-200 p-6 rounded-sm">

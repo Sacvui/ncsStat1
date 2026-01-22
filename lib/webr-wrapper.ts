@@ -431,6 +431,7 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     ci95Lower: number;
     ci95Upper: number;
     effectSize: number; // Cohen's d
+    varTestP: number; // Variance homogeneity
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -439,7 +440,11 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     group1 <- c(${group1.join(',')})
     group2 <- c(${group2.join(',')})
     
-    result <- t.test(group1, group2, var.equal = FALSE)
+    # Check Equal Variance assumption
+    var_test <- var.test(group1, group2)
+    var_equal <- var_test$p.value > 0.05
+    
+    result <- t.test(group1, group2, var.equal = var_equal)
     
     # Cohen's d effect size
     pooledSD <- sqrt(((length(group1)-1)*sd(group1)^2 + (length(group2)-1)*sd(group2)^2) / (length(group1)+length(group2)-2))
@@ -454,7 +459,8 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
       meanDiff = mean(group1) - mean(group2),
       ci95Lower = result$conf.int[1],
       ci95Upper = result$conf.int[2],
-      effectSize = cohensD
+      effectSize = cohensD,
+      varTestP = var_test$p.value
     )
     `;
 
@@ -477,6 +483,7 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
         ci95Lower: getValue('ci95Lower'),
         ci95Upper: getValue('ci95Upper'),
         effectSize: getValue('effectSize'),
+        varTestP: getValue('varTestP'),
         rCode: rCode
     };
 }
@@ -548,6 +555,7 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     groupMeans: number[];
     grandMean: number;
     etaSquared: number;
+    assumptionCheckP: number; // Bartlett's test P-value
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -561,6 +569,9 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     # Create data frame with values and group labels
     values <- c(${groups.map(g => g.join(',')).join(',')})
     groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
+    
+    # Assumption Check: Bartlett's test for homogeneity of variance
+    bartlett <- bartlett.test(values ~ groups)
     
     # Run ANOVA
     model <- aov(values ~ groups)
@@ -581,7 +592,8 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         pValue = result[1, 5],
         groupMeans = as.numeric(groupMeans),
         grandMean = mean(values),
-        etaSquared = etaSquared
+        etaSquared = etaSquared,
+        bartlettP = bartlett$p.value
     )
     `;
 
@@ -598,6 +610,7 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         groupMeans: getValue('groupMeans') || [],
         grandMean: getValue('grandMean')?.[0] || 0,
         etaSquared: getValue('etaSquared')?.[0] || 0,
+        assumptionCheckP: getValue('bartlettP')?.[0] || 0,
         rCode
     };
 }
@@ -611,46 +624,84 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
     loadings: number[][];
     communalities: number[];
     structure: number[][];
+    eigenvalues: number[];
+    nFactorsUsed: number;
     rCode: string;
 }> {
     const webR = await initWebR();
 
+    // R Code to handle data cleaning and auto-factor detection
     const rCode = `
-    # Load psych package for EFA
+    # Load psych package
     library(psych)
 
-    # Convert JS array of arrays to R matrix
-    # Convert JS array of arrays to R matrix
-    data_mat <- matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
+    # 1. Prepare Data
+    raw_data <- matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
     
-    # KMO and Bartlett's Test
-    kmo_result <- KMO(data_mat)
-    bartlett_result <- cortest.bartlett(cor(data_mat), n = ${data.length})
+    # 2. Clean Data: Remove rows with NA or Inf
+    # Convert to dataframe to handle mixed checks easily, though matrix is fine
+    df <- as.data.frame(raw_data)
+    df_clean <- na.omit(df)
+    # Also filter out Inf if any (simplistic check)
+    df_clean <- df_clean[apply(df_clean, 1, function(x) all(is.finite(x))), ]
     
-    # Perform EFA using principal axis factoring (fa = "pa") with varimax rotation
-    # nfactors is the number of factors to extract
-    efa_result <- fa(data_mat, nfactors = ${nFactors}, rotate = "varimax", fm = "pa")
+    if (nrow(df_clean) < ncol(df_clean)) {
+      stop("Số lượng mẫu hợp lệ (sau khi loại bỏ NA/Inf) nhỏ hơn số lượng biến. Không thể chạy EFA.")
+    }
+    if (nrow(df_clean) < 3) {
+        stop("Quá ít dữ liệu hợp lệ để chạy phân tích.")
+    }
 
-list(
-    kmo = kmo_result$MSA[1], # Overall MSA
-      bartlett_p = bartlett_result$p.value,
-    loadings = efa_result$loadings,
-    communalities = efa_result$communalities,
-    structure = efa_result$Structure
-)
+    # 3. Calculate Correlation Matrix & Eigenvalues
+    # Check for zero variance
+    if (any(apply(df_clean, 2, sd) == 0)) {
+        stop("Biến có phương sai bằng 0 (hằng số). Hãy loại bỏ biến này.")
+    }
+
+    cor_mat <- cor(df_clean)
+    eigenvalues <- eigen(cor_mat)$values
+
+    # 4. Determine Number of Factors (if auto)
+    n_factors_run <- ${nFactors}
+    if (n_factors_run <= 0) {
+        n_factors_run <- sum(eigenvalues > 1)
+        if (n_factors_run < 1) n_factors_run <- 1 # Fallback
+    }
+
+    # 5. KMO and Bartlett on Cleaned Data
+    kmo_result <- tryCatch(KMO(df_clean), error = function(e) list(MSA = 0))
+    bartlett_result <- tryCatch(cortest.bartlett(cor_mat, n = nrow(df_clean)), error = function(e) list(p.value = 1))
+    
+    # 6. Run EFA
+    # fa() handles the correlation matrix or raw data. Raw data is better for scores but here we want loadings.
+    # Using 'pa' (Principal Axis) and 'varimax' as requested.
+    efa_result <- fa(df_clean, nfactors = n_factors_run, rotate = "varimax", fm = "pa")
+
+    list(
+        kmo = if(is.numeric(kmo_result$MSA)) kmo_result$MSA[1] else 0,
+        bartlett_p = bartlett_result$p.value,
+        loadings = efa_result$loadings,
+        communalities = efa_result$communalities,
+        structure = efa_result$Structure,
+        eigenvalues = eigenvalues,
+        n_factors_used = n_factors_run
+    )
   `;
 
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
     const getValue = parseWebRResult(jsResult);
+    const nFactorsUsed = getValue('n_factors_used')?.[0] || nFactors || 1;
 
     return {
         kmo: getValue('kmo')?.[0] || 0,
         bartlettP: getValue('bartlett_p')?.[0] || 1,
-        loadings: parseMatrix(getValue('loadings'), getValue('n_factors')?.[0] || 0),
+        loadings: parseMatrix(getValue('loadings'), nFactorsUsed),
         communalities: getValue('communalities') || [],
-        structure: parseMatrix(getValue('structure'), getValue('n_factors')?.[0] || 0),
+        structure: parseMatrix(getValue('structure'), nFactorsUsed),
+        eigenvalues: getValue('eigenvalues') || [],
+        nFactorsUsed: nFactorsUsed,
         rCode
     };
 }
@@ -708,6 +759,7 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
         dfResid: number; // Denom df
         pValue: number;
         residualStdError: number;
+        normalityP: number; // Added Shapiro-Wilk
     };
     equation: string;
     chartData: {
@@ -760,27 +812,32 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
 
     # CALCULATE VIF (Manual method)
     vif_vals <- tryCatch({
-       x_data <- df[, -1, drop = FALSE] # Exclude dependent variable
-       p <- ncol(x_data)
-       vifs <- numeric(p)
-       names(vifs) <- colnames(x_data)
-       
-       if (p > 1) {
-         for (i in 1:p) {
-             # Regress x[i] on other xs
-             r_model <- lm(x_data[, i] ~ ., data = x_data[, -i, drop = FALSE])
-             r2 <- summary(r_model)$r.squared
-             if (r2 >= 0.9999) {
-                 vifs[i] <- 999.99 
-             } else {
-                 vifs[i] <- 1 / (1 - r2)
-             }
-         }
-       } else {
-         vifs[1] <- 1.0
-       }
-       vifs
-    }, error = function (e) { return (numeric(0)) })
+        # Exclude dependent variable (1st column) to get predictors
+        x_data <- df[, -1, drop = FALSE]
+        n_vars <- ncol(x_data)
+        vifs <- numeric(n_vars)
+        
+        if (n_vars > 1) {
+            for (i in 1:n_vars) {
+                # Regress x_i on other x's
+                r_model <- lm(x_data[, i] ~ ., data = x_data[, -i, drop = FALSE])
+                r2 <- summary(r_model)$r.squared
+                if (r2 >= 0.9999) {
+                    vifs[i] <- 999.99 
+                } else {
+                    vifs[i] <- 1 / (1 - r2)
+                }
+            }
+        } else {
+            vifs[1] <- 1.0
+        }
+        vifs
+    }, error = function(e) numeric(0))
+
+    # Normality of Residuals (Shapiro-Wilk)
+    normality_p <- tryCatch({
+        shapiro.test(residuals(model))$p.value
+    }, error = function(e) 0)
 
     list(
         coef_names = rownames(coefs),
@@ -801,7 +858,8 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
         residuals = residuals(model),
         actual_values = df[, 1],
     
-        vifs = vif_vals
+        vifs = vif_vals,
+        normality_p = normality_p
     )
     `;
 
@@ -828,7 +886,8 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
         df: getValue('df_num')?.[0] || 0,
         dfResid: getValue('df_denom')?.[0] || 0,
         pValue: getValue('f_p_value')?.[0] || 0,
-        residualStdError: getValue('sigma')?.[0] || 0
+        residualStdError: getValue('sigma')?.[0] || 0,
+        normalityP: getValue('normality_p')?.[0] || 0
     };
 
     const interceptVal = estimates[0] || 0; // Assuming first is intercept

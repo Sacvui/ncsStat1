@@ -27,8 +27,36 @@ export default async function AdminPage() {
         redirect('/') // Or show 403 Forbidden
     }
 
+    // Fetch Feedback Data
+    const { data: feedbackData } = await supabase
+        .from('feedback')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+    // Process data for dashboard
+    const processedData = {
+        demographics: feedbackData?.filter(f => f.type === 'demographics').map(f => ({
+            ...f.details, // Spread the JSON details
+            userId: f.user_id,
+            timestamp: f.created_at,
+            id: f.id
+        })) || [],
+        aiFeedback: feedbackData?.filter(f => f.type === 'ai_feedback').map(f => ({
+            ...f.details,
+            userId: f.user_id,
+            timestamp: f.created_at,
+            id: f.id
+        })) || [],
+        applicability: feedbackData?.filter(f => f.type === 'applicability').map(f => ({
+            ...f.details,
+            userId: f.user_id,
+            timestamp: f.created_at,
+            id: f.id
+        })) || []
+    }
+
     return (
-        <AdminClientWrapper />
+        <AdminClientWrapper initialData={processedData} />
     )
 }
 

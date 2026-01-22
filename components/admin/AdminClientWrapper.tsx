@@ -7,12 +7,20 @@ import FeedbackTable from '@/components/admin/FeedbackTable';
 import { Settings, LogOut, BarChart3, Users, FileText, Download, ExternalLink, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
-export default function AdminClientWrapper() {
+interface AdminWrapperProps {
+    initialData: {
+        demographics: any[];
+        aiFeedback: any[];
+        applicability: any[];
+    }
+}
+
+export default function AdminClientWrapper({ initialData }: AdminWrapperProps) {
     const router = useRouter();
     const [configUrl, setConfigUrl] = useState('');
     const [isSaved, setIsSaved] = useState(false);
     const [activeTab, setActiveTab] = useState('overview');
-    const [data, setData] = useState<any>({ demographics: [], aiFeedback: [], applicability: [] });
+    const [data, setData] = useState(initialData);
 
     // Stats are derived from data
     const stats = {
@@ -23,16 +31,11 @@ export default function AdminClientWrapper() {
 
     useEffect(() => {
         loadConfig();
-        loadStats();
+        // Removed loadStats() as data is now passed via props from server
     }, []);
 
     const loadConfig = () => {
         setConfigUrl(FeedbackService.getGASUrl());
-    };
-
-    const loadStats = () => {
-        const loadedData = FeedbackService.exportAllData();
-        setData(loadedData);
     };
 
     const handleSaveConfig = () => {
