@@ -9,271 +9,230 @@ import {
     Network,
     Table,
     FileText,
-    Sigma
+    Sigma,
+    BookOpen
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 export function ProjectFlowAnimation() {
     // 0: Data Import (Matrix Grid)
-    // 1: Model Specification (Path Diagram Construction)
-    // 2: Processing (Equation/Syntax)
-    // 3: Publication Results (Dashboard)
+    // 1: Model Specification (Path Diagram)
+    // 2: Mathematical Processing (Equations)
+    // 3: Publication Results (Journal Style)
     const [step, setStep] = useState(0);
 
     useEffect(() => {
         const interval = setInterval(() => {
             setStep((prev) => (prev + 1) % 4);
-        }, 5000); // 5s per step to admire the details
+        }, 5000);
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="relative w-full h-full flex flex-col justify-center items-center p-8 overflow-hidden bg-slate-950 text-white font-sans selection:bg-cyan-500/30">
+        <div className="relative w-full h-full flex items-center justify-center p-12 overflow-hidden bg-[#0f172a] text-white">
 
-            {/* 1. BACKGROUND EFFECTS */}
+            {/* 1. BACKGROUND (Subtle Academic Texture) */}
             <div className="absolute inset-0 z-0">
-                {/* Grid */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
-                <div className="absolute inset-0"
-                    style={{ backgroundImage: 'radial-gradient(circle, #334155 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.1 }}>
-                </div>
-
-                {/* Glow Orbs - Scientific Colors (Cyan = Data, Purple = Logic, Emerald = Result) */}
-                <div className={`absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[120px] transition-all duration-1000 ${step === 0 ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`} />
-                <div className={`absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] transition-all duration-1000 ${step === 1 || step === 2 ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`} />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-20"></div>
+                {/* Soft ambient lighting, less neon, more intellectual */}
+                <div className={`absolute top-0 right-0 w-[800px] h-[800px] bg-slate-800/20 rounded-full blur-[120px] transition-all duration-1000`} />
             </div>
 
-            <div className="z-10 w-full max-w-4xl relative flex gap-12 items-center h-full">
+            <div className="z-10 w-full max-w-6xl w-full grid grid-cols-10 gap-12 h-[600px] items-center">
 
-                {/* LEFT: TEXT CONTENT */}
-                <div className="w-1/3 space-y-8 pl-8 hidden xl:block">
-                    {/* Header */}
+                {/* LEFT: TEXT CONTENT (3 Columns) */}
+                <div className="col-span-3 space-y-10 pl-4">
                     <div className="space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-950/30 text-cyan-400 text-xs font-mono tracking-wider uppercase">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-                            </span>
-                            Scientific Engine Active
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-200/20 bg-indigo-900/20 text-indigo-200 text-xs font-semibold tracking-wider uppercase">
+                            <BookOpen size={12} />
+                            <span>Scientific Standard</span>
                         </div>
-                        <h2 className="text-5xl font-bold tracking-tight text-white leading-tight">
-                            Publication <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Ready</span>
+                        <h2 className="text-4xl lg:text-5xl font-serif text-white leading-tight">
+                            Research <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">Simplified</span>
                         </h2>
-                        <p className="text-slate-400 text-lg font-light leading-relaxed">
-                            Advanced SEM, CFA, and Path Analysis. From raw data to Q1 Journal tables in seconds.
+                        <p className="text-slate-400 text-base leading-relaxed font-light">
+                            Transform raw datasets into rigorous Q1 journal-ready findings. No coding required.
                         </p>
                     </div>
 
-                    {/* Steps Indicator */}
-                    <div className="space-y-6 pt-8 border-l border-slate-800 ml-2">
-                        <StepIndicator active={step === 0} title="1. Import Data" desc="Auto-cleaning & Matrix Prep" />
-                        <StepIndicator active={step === 1} title="2. Config Model" desc="Path Diagram Construction" />
-                        <StepIndicator active={step === 2} title="3. Processing" desc="R-WASM Kernel Execution" />
-                        <StepIndicator active={step === 3} title="4. Final Results" desc="APA Tables & Visualization" />
+                    <div className="space-y-6 pt-4 border-l-2 border-slate-800/50 ml-2 pl-6">
+                        <StepIndicator active={step === 0} title="Data Input" desc="Matrix Cleaning & Prep" />
+                        <StepIndicator active={step === 1} title="Model Design" desc="SEM Path Construction" />
+                        <StepIndicator active={step === 2} title="processing" desc="Statistical Computation" />
+                        <StepIndicator active={step === 3} title="Results" desc="APA Format Tables" />
                     </div>
                 </div>
 
 
-                {/* RIGHT: DYNAMIC VISUALIZATION STAGE (Centerpiece) */}
-                <div className="flex-1 h-[600px] relative perspective-1000">
+                {/* RIGHT: VISUALIZATION STAGE (7 Columns) - Fixed container to prevent overlaps */}
+                <div className="col-span-7 relative h-full bg-slate-900/50 rounded-2xl border border-slate-800 backdrop-blur-sm overflow-hidden flex items-center justify-center shadow-2xl">
 
-                    {/* STAGE CONTAINER */}
-                    <div className="relative w-full h-full flex items-center justify-center">
-
-                        {/* === SCENE 0: DATA MATRIX (The "Matrix" Effect) === */}
-                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 0 ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-90 blur-xl pointer-events-none'}`}>
-                            <Card className="w-[500px] h-[350px] bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl p-6 relative overflow-hidden group">
-                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500"></div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs">
-                                        <FileSpreadsheet size={16} /> DATA_SOURCE_V2.CSV
-                                    </div>
-                                    <div className="text-[10px] text-slate-500 font-mono">N=10,500 ROWS</div>
-                                </div>
-                                {/* Data Grid */}
-                                <div className="grid grid-cols-5 gap-2 font-mono text-xs text-slate-400">
-                                    {['ID', 'VAR_X', 'VAR_Y', 'VAR_M', 'VAR_Z'].map(h => <div key={h} className="text-slate-200 font-bold pb-2 border-b border-slate-700">{h}</div>)}
-                                    {Array.from({ length: 25 }).map((_, i) => (
-                                        <div key={i} className={`py-1 transition-colors duration-300 ${i % 3 === 0 ? 'text-cyan-300' : ''}`}>
-                                            {(Math.random() * 10).toFixed(2)}
-                                        </div>
-                                    ))}
-                                </div>
-                                {/* Scanning Effect */}
-                                <div className="absolute top-0 left-0 w-full h-[20%] bg-gradient-to-b from-cyan-500/20 to-transparent animate-scan"></div>
-                                {/* Floating Badge */}
-                                <div className="absolute bottom-4 right-4 bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-3 py-1 rounded text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
-                                    <Database size={12} /> CLEANED & READY
-                                </div>
-                            </Card>
-                        </div>
-
-                        {/* === SCENE 1: MODEL CONFIG (The "Blueprint") === */}
-                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 1 ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-110 -rotate-3 pointer-events-none'}`}>
-                            <div className="relative w-[540px] h-[380px] bg-slate-900/90 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl p-8 overflow-hidden">
-                                {/* Grid Background */}
-                                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
-
-                                <div className="absolute top-4 left-6 text-purple-400 font-mono text-xs tracking-widest uppercase">
-                                    Model Specification (SEM)
-                                </div>
-
-                                {/* Dynamic Nodes */}
-                                <div className="relative w-full h-full mt-4">
-                                    {/* Latent 1 */}
-                                    <div className="absolute top-10 left-10 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                                        <div className="w-16 h-16 rounded-full border-2 border-purple-400 bg-purple-900/50 flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(168,85,247,0.4)]">IV</div>
-                                        <div className="flex gap-2 mt-4 justify-center">
-                                            {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400">x{i}</div>)}
-                                        </div>
-                                    </div>
-
-                                    {/* Mediator */}
-                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-                                        <div className="w-16 h-16 rounded-full border-2 border-pink-400 bg-pink-900/50 flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(236,72,153,0.4)]">MED</div>
-                                        <div className="flex gap-2 mt-4 justify-center">
-                                            {[1, 2].map(i => <div key={i} className="w-8 h-8 bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400">m{i}</div>)}
-                                        </div>
-                                    </div>
-
-                                    {/* Latent 2 */}
-                                    <div className="absolute bottom-10 right-10 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
-                                        <div className="w-16 h-16 rounded-full border-2 border-cyan-400 bg-cyan-900/50 flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(34,211,238,0.4)]">DV</div>
-                                        <div className="flex gap-2 mt-4 justify-center">
-                                            {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400">y{i}</div>)}
-                                        </div>
-                                    </div>
-
-                                    {/* Connection Line Simulation */}
-                                    <svg className="absolute inset-0 pointer-events-none overflow-visible">
-                                        <path d="M 80 80 Q 250 180 440 280" fill="none" stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5" className="animate-dash" />
-                                        <defs>
-                                            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                                                <stop offset="0%" stopColor="#a855f7" />
-                                                <stop offset="100%" stopColor="#22d3ee" />
-                                            </linearGradient>
-                                        </defs>
-                                    </svg>
-                                </div>
+                    {/* === SCENE 0: CLEAN DATA (Spreadsheet) === */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 p-8 ${step === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                        <div className="w-full h-full bg-white text-slate-900 rounded-lg shadow-xl overflow-hidden flex flex-col">
+                            {/* Toolbar */}
+                            <div className="h-10 border-b border-slate-200 bg-slate-50 flex items-center px-4 gap-4 text-xs font-semibold text-slate-500">
+                                <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-400" /><div className="w-2.5 h-2.5 rounded-full bg-yellow-400" /><div className="w-2.5 h-2.5 rounded-full bg-green-400" /></div>
+                                <span>dataset_final_clean.csv</span>
                             </div>
-                        </div>
-
-                        {/* === SCENE 2: PROCESSING (The "Kernel") === */}
-                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-125 blur pointer-events-none'}`}>
-                            <div className="relative w-[500px] h-[300px] bg-black border-2 border-slate-800 rounded-lg p-6 font-mono text-sm shadow-2xl overflow-hidden">
-                                <div className="absolute top-0 left-0 w-full h-6 bg-slate-900 flex items-center px-4 gap-2 border-b border-slate-800">
-                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                                    <span className="ml-2 text-xs text-slate-500">R-WASM Kernel v4.2.0</span>
-                                </div>
-                                <div className="mt-4 space-y-1 text-slate-300 overflow-hidden h-full relative">
-                                    {/* Code scrolling up */}
-                                    <div className="animate-code-scroll">
-                                        <p className="text-purple-400">&gt; library(lavaan)</p>
-                                        <p>&gt; model &lt;- &#39; IV =~ x1 + x2 + x3</p>
-                                        <p className="pl-12">MED =~ m1 + m2</p>
-                                        <p className="pl-12">DV =~ y1 + y2 + y3</p>
-                                        <p className="pl-12">DV ~ MED + IV</p>
-                                        <p className="pl-12">MED ~ IV &#39;</p>
-                                        <p>&gt; fit &lt;- sem(model, data=ncs_data)</p>
-                                        <p className="text-yellow-400">&gt; Computing Iteration 1...</p>
-                                        <p className="text-yellow-400">&gt; Computing Iteration 5...</p>
-                                        <p className="text-yellow-400">&gt; Computing Iteration 12...</p>
-                                        <p className="text-green-400">&gt; CONVERGED_NORMAL_GRADIENT</p>
-                                        <p>&gt; summary(fit, fit.measures=TRUE)</p>
-                                        <p className="text-cyan-400">&gt; Generating Matrix Representation...</p>
-                                    </div>
-                                    {/* Gradient overlay for fade */}
-                                    <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-black to-transparent"></div>
-                                </div>
-                                <div className="absolute bottom-4 right-4 animate-spin-slow">
-                                    <Sigma className="text-slate-700 w-12 h-12 opacity-50" />
-                                </div>
+                            {/* Header */}
+                            <div className="grid grid-cols-5 bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+                                {['ID', 'Predictor_X', 'Mediator_M', 'Outcome_Y', 'Control_Z'].map(h => (
+                                    <div key={h} className="py-3 px-4 border-r border-slate-200">{h}</div>
+                                ))}
                             </div>
-                        </div>
-
-                        {/* === SCENE 3: FINAL RESULTS (The "Dashboard") === */}
-                        <div className={`absolute inset-0 transition-all duration-1000 ${step === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-                            {/* Complicated Multi-Panel Layout */}
-                            <div className="relative w-full h-full">
-
-                                {/* 1. Path Diagram Card (Main) */}
-                                <Card className="absolute top-10 left-10 w-[300px] bg-slate-900/90 border border-slate-700 p-4 shadow-2xl z-20">
-                                    <div className="flex items-center gap-2 mb-3 border-b border-slate-700 pb-2">
-                                        <Network size={14} className="text-purple-400" />
-                                        <span className="text-xs font-bold text-white uppercase">Path Model (Standardized)</span>
-                                    </div>
-                                    <div className="h-24 flex items-center justify-center relative">
-                                        {/* Simplified Viz */}
-                                        <div className="w-10 h-10 rounded-full border border-purple-400 flex items-center justify-center text-[10px] text-white absolute left-2">IV</div>
-                                        <div className="w-10 h-10 rounded-full border border-cyan-400 flex items-center justify-center text-[10px] text-white absolute right-2">DV</div>
-                                        <div className="h-0.5 w-full bg-slate-600 mx-12 relative">
-                                            <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 text-[9px] bg-black px-1 text-green-400">0.45***</div>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between text-[9px] text-slate-400 mt-2 font-mono">
-                                        <span>CFI: 0.985</span>
-                                        <span>TLI: 0.972</span>
-                                        <span>RMSEA: 0.041</span>
-                                    </div>
-                                </Card>
-
-                                {/* 2. Table Card (Floating Right) */}
-                                <Card className="absolute top-32 right-0 w-[260px] bg-white text-slate-900 p-4 shadow-2xl z-30 transform rotate-2">
-                                    <div className="flex items-center gap-2 mb-2 border-b border-slate-200 pb-1">
-                                        <Table size={14} className="text-slate-500" />
-                                        <span className="text-xs font-bold uppercase">Regression Weights</span>
-                                    </div>
-                                    <div className="space-y-1">
-                                        {['IV -> MED', 'MED -> DV', 'IV -> DV'].map((rel, i) => (
-                                            <div key={rel} className="flex justify-between text-[10px] font-mono border-b border-slate-100 py-1">
-                                                <span>{rel}</span>
-                                                <span className="font-bold">{[0.52, 0.43, 0.21][i].toString()}</span>
-                                                <span className="text-green-600 font-bold">&lt; .001</span>
+                            {/* Rows */}
+                            <div className="flex-1 overflow-hidden relative">
+                                {Array.from({ length: 12 }).map((_, i) => (
+                                    <div key={i} className="grid grid-cols-5 text-[11px] font-mono text-slate-600 border-b border-slate-100 hover:bg-blue-50 transition-colors">
+                                        <div className="py-2 px-4 border-r border-slate-100 font-bold text-slate-400">{1001 + i}</div>
+                                        {Array.from({ length: 4 }).map((_, j) => (
+                                            <div key={j} className="py-2 px-4 border-r border-slate-100">
+                                                {(Math.random() * 5).toFixed(2)}
                                             </div>
                                         ))}
                                     </div>
-                                </Card>
-
-                                {/* 3. Heatmap Card (Floating Bottom) */}
-                                <Card className="absolute bottom-10 left-20 w-[240px] bg-slate-800 border-none p-4 shadow-2xl z-25 opacity-90">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <BarChart3 size={14} className="text-orange-400" />
-                                        <span className="text-xs font-bold text-white uppercase">Correlation Matrix</span>
-                                    </div>
-                                    <div className="grid grid-cols-4 gap-0.5">
-                                        {Array.from({ length: 16 }).map((_, i) => {
-                                            const op = Math.random();
-                                            return <div key={i} className="h-4 w-full bg-orange-500" style={{ opacity: op }}></div>
-                                        })}
-                                    </div>
-                                </Card>
+                                ))}
+                                {/* Scan Line */}
+                                <div className="absolute top-0 left-0 w-full h-[30%] bg-gradient-to-b from-blue-500/10 to-transparent animate-scan"></div>
                             </div>
                         </div>
-
                     </div>
+
+                    {/* === SCENE 1: MODEL DIAGRAM (Clean Whiteboard Style) === */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                        <div className="relative w-[90%] h-[80%] bg-[#1e1e1e] rounded-xl border border-slate-700 shadow-2xl p-6">
+                            <div className="absolute top-4 left-4 text-slate-400 text-xs font-serif italic">Figure 1. Proposed Structural Model</div>
+
+                            <div className="w-full h-full flex items-center justify-center relative">
+                                {/* Nodes */}
+                                <Node x="20%" y="50%" label="X" sub="Predictor" color="#60a5fa" delay="0s" />
+                                <Node x="50%" y="20%" label="M" sub="Mediator" color="#c084fc" delay="0.2s" />
+                                <Node x="80%" y="50%" label="Y" sub="Outcome" color="#34d399" delay="0.4s" />
+
+                                {/* Arrows (SVG Overlay) */}
+                                <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                                    <defs>
+                                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="28" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                                        </marker>
+                                    </defs>
+                                    {/* X -> M */}
+                                    <path d="M 180 250 L 380 150" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-draw" strokeDasharray="500" />
+                                    {/* M -> Y */}
+                                    <path d="M 460 150 L 660 250" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-draw" style={{ animationDelay: '0.5s' }} strokeDasharray="500" />
+                                    {/* X -> Y */}
+                                    <path d="M 190 270 L 650 270" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-draw" style={{ animationDelay: '1s' }} strokeDasharray="1000" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* === SCENE 2: MATH/EQUATIONS (Academic Rigor) === */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                        <div className="w-[80%] space-y-6 text-center">
+                            <div className="inline-block relative">
+                                <Sigma className="w-16 h-16 text-indigo-400 mx-auto mb-4 animate-pulse" />
+                            </div>
+                            <div className="space-y-4 font-serif text-2xl text-slate-300 leading-relaxed">
+                                <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                                    y<sub>i</sub> = &beta;<sub>0</sub> + &beta;<sub>1</sub>x<sub>i</sub> + &epsilon;<sub>i</sub>
+                                </div>
+                                <div className="animate-fade-in-up" style={{ animationDelay: '0.5s' }} className="text-3xl text-white font-medium">
+                                    &Chi;<sup>2</sup> = &Sigma; (O - E)<sup>2</sup> / E
+                                </div>
+                                <div className="animate-fade-in-up" style={{ animationDelay: '0.9s' }} className="text-xl text-slate-400 italic">
+                                    p &lt; 0.001
+                                </div>
+                            </div>
+                            <div className="text-xs font-mono text-indigo-400 mt-8">
+                                Computing Covariance Matrix...
+                            </div>
+                            {/* Loading Bar */}
+                            <div className="w-48 h-1 bg-slate-800 rounded-full mx-auto mt-2 overflow-hidden">
+                                <div className="h-full bg-indigo-500 animate-progress"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* === SCENE 3: PUBLICATION RESULTS (Clean APA Style) === */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 p-8 ${step === 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
+                        <Card className="w-full bg-white text-slate-900 shadow-2xl rounded-xl overflow-hidden border-t-4 border-indigo-600">
+                            <div className="p-6">
+                                <h3 className="text-lg font-serif font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">
+                                    Table 1. Regression Analysis Results
+                                </h3>
+
+                                <table className="w-full text-sm text-left">
+                                    <thead>
+                                        <tr className="border-b-2 border-slate-800 text-slate-800">
+                                            <th className="py-2 italic font-serif">Predictor</th>
+                                            <th className="py-2 font-serif text-center">&beta;</th>
+                                            <th className="py-2 font-serif text-center">SE</th>
+                                            <th className="py-2 font-serif text-center">t</th>
+                                            <th className="py-2 font-serif text-center">p</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="font-serif text-slate-700">
+                                        <tr className="border-b border-slate-200">
+                                            <td className="py-2 pl-2">Variable X</td>
+                                            <td className="py-2 text-center">0.45</td>
+                                            <td className="py-2 text-center">0.04</td>
+                                            <td className="py-2 text-center">11.25</td>
+                                            <td className="py-2 text-center font-bold">&lt; .001</td>
+                                        </tr>
+                                        <tr className="border-b border-slate-200">
+                                            <td className="py-2 pl-2">Variable M</td>
+                                            <td className="py-2 text-center">0.32</td>
+                                            <td className="py-2 text-center">0.05</td>
+                                            <td className="py-2 text-center">6.40</td>
+                                            <td className="py-2 text-center font-bold">.002</td>
+                                        </tr>
+                                        <tr>
+                                            <td className="py-2 pl-2">Variable Z</td>
+                                            <td className="py-2 text-center">0.12</td>
+                                            <td className="py-2 text-center">0.06</td>
+                                            <td className="py-2 text-center">2.10</td>
+                                            <td className="py-2 text-center">.038*</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                                <p className="text-[10px] text-slate-500 mt-4 italic font-serif">
+                                    Note. N = 10,500. *** p &lt; .001, * p &lt; .05. R<sup>2</sup> = .48
+                                </p>
+                            </div>
+                        </Card>
+                    </div>
+
                 </div>
 
-            </div>
-
-            {/* Disclaimer Footer */}
-            <div className="absolute bottom-4 left-0 w-full text-center text-slate-600 text-[10px] font-mono">
-                POWERED BY NCS.STAT ENGINE • WEBASSEMBLY ACCELERATED • SCIENTIFIC STANDARD
             </div>
         </div>
     );
 }
 
-// Indicator Component for List
+// Helper Components
+function Node({ x, y, label, sub, color, delay }: any) {
+    return (
+        <div
+            className="absolute flex flex-col items-center justify-center animate-fade-in z-10"
+            style={{ left: x, top: y, transform: 'translate(-50%, -50%)', animationDelay: delay }}
+        >
+            <div className="w-20 h-20 rounded-full bg-slate-800 border-2 flex items-center justify-center text-xl font-bold text-white shadow-xl" style={{ borderColor: color }}>
+                {label}
+            </div>
+            <div className="mt-2 text-xs text-slate-400 font-sans uppercase tracking-widest">{sub}</div>
+        </div>
+    )
+}
+
 function StepIndicator({ active, title, desc }: { active: boolean, title: string, desc: string }) {
     return (
-        <div className={`flex items-center gap-4 transition-all duration-500 ${active ? 'opacity-100 translate-x-2' : 'opacity-40'}`}>
-            <div className={`w-3 h-3 rounded-full transition-all duration-500 ${active ? 'bg-cyan-400 scale-125 shadow-[0_0_10px_#22d3ee]' : 'bg-slate-700'}`}></div>
+        <div className={`flex items-center gap-4 transition-all duration-500 ${active ? 'opacity-100 translate-x-2' : 'opacity-30'}`}>
+            <div className={`w-2 h-2 rounded-full transition-all ${active ? 'bg-indigo-400 scale-150' : 'bg-slate-600'}`}></div>
             <div>
-                <div className={`text-sm font-bold uppercase tracking-wider ${active ? 'text-white' : 'text-slate-400'}`}>{title}</div>
-                <div className="text-xs text-slate-500 font-light">{desc}</div>
+                <div className={`text-sm font-semibold uppercase tracking-wide ${active ? 'text-indigo-200' : 'text-slate-500'}`}>{title}</div>
             </div>
         </div>
     )
