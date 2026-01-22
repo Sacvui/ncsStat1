@@ -84,13 +84,13 @@ export async function GET(request: Request) {
                     const session = ${JSON.stringify(data.session)};
                     const redirectUrl = '${next}';
 
-                    // Initialize client
-                    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                    // Initialize client with a non-conflicting name
+                    const supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
 
                     async function setSessionAndRedirect() {
                         try {
                             // Manual check first
-                            const { error } = await supabase.auth.setSession({
+                            const { error } = await supabaseClient.auth.setSession({
                                 access_token: session.access_token,
                                 refresh_token: session.refresh_token
                             });
@@ -99,8 +99,14 @@ export async function GET(request: Request) {
                                 console.error('Set session error:', error);
                                 window.location.href = '/login?error=' + encodeURIComponent(error.message);
                             } else {
-                                // Success - redirect
-                                window.location.href = redirectUrl;
+                                // Double check if session is active
+                                const { data: { user } } = await supabaseClient.auth.getUser();
+                                if (user) {
+                                     // Success
+                                     window.location.href = redirectUrl;
+                                } else {
+                                     throw new Error('Verification failed');
+                                }
                             }
                         } catch (e) {
                             console.error('Finalization error:', e);
