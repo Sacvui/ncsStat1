@@ -141,6 +141,7 @@ function LoginForm() {
 
             {/* Right Column: Animation (2/3 width on desktop, hidden on mobile) */}
             <div className="hidden lg:block lg:w-2/3 bg-gray-900 relative overflow-hidden h-full">
+                {/* Trigger Release: 2026-01-22-09-20 */}
                 <ProjectFlowAnimation />
             </div>
         </div>
