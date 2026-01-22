@@ -19,6 +19,7 @@ export async function updateSession(request: NextRequest) {
 
     const isHttps = request.headers.get('x-forwarded-proto') === 'https' || request.nextUrl.protocol === 'https:'
     const isProduction = process.env.NODE_ENV === 'production'
+    const useSecureCookies = isHttps || isProduction
 
     try {
         const supabase = createServerClient(
@@ -39,14 +40,15 @@ export async function updateSession(request: NextRequest) {
                         cookiesToSet.forEach(({ name, value, options }) =>
                             response.cookies.set(name, value, {
                                 ...options,
-                                secure: isHttps || isProduction,
+                                secure: useSecureCookies,
                                 sameSite: 'lax',
+                                path: '/', // Ensure path is always root
                             })
                         )
                     },
                 },
                 cookieOptions: {
-                    secure: isHttps || isProduction,
+                    secure: useSecureCookies,
                     sameSite: 'lax',
                     path: '/',
                 }

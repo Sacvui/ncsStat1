@@ -26,7 +26,7 @@ export async function createClient() {
             },
             cookieOptions: {
                 sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
+                secure: process.env.NODE_ENV === 'production' || process.env.VERCEL === '1',
                 path: '/',
             }
         }

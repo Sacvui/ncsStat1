@@ -16,8 +16,9 @@ export async function GET(request: Request) {
         ? `https://${forwardedHost}` // Force https for the public domain
         : requestUrl.origin
 
-    const isHttps = forwardedProto === 'https' || publicOrigin.startsWith('https')
+    const isHttps = forwardedProto === 'https' || publicOrigin.startsWith('https') || process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
     const isProduction = process.env.NODE_ENV === 'production'
+    const useSecureCookies = isHttps || isProduction
 
     if (code) {
         const cookieStore = await cookies()
@@ -34,7 +35,7 @@ export async function GET(request: Request) {
                             cookiesToSet.forEach(({ name, value, options }) =>
                                 cookieStore.set(name, value, {
                                     ...options,
-                                    secure: isHttps || isProduction,
+                                    secure: useSecureCookies,
                                     sameSite: 'lax',
                                     path: '/',
                                 })
@@ -44,6 +45,11 @@ export async function GET(request: Request) {
                         }
                     },
                 },
+                cookieOptions: {
+                    secure: useSecureCookies,
+                    sameSite: 'lax',
+                    path: '/',
+                }
             }
         )
 
