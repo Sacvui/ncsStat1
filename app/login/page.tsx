@@ -42,18 +42,18 @@ function LoginForm() {
     }
 
     return (
-        <div className="min-h-screen bg-white flex">
+        <div className="h-screen w-screen overflow-hidden bg-white flex">
             {/* Left Column: Login Form (1/3 width on desktop) */}
-            <div className="w-full lg:w-1/3 flex items-center justify-center p-8 lg:p-12 xl:p-16 border-r border-gray-100 relative z-20 bg-white">
+            <div className="w-full lg:w-1/3 flex items-center justify-center p-8 lg:p-12 border-r border-gray-100 relative z-20 bg-white h-full overflow-y-auto">
                 <div className="w-full max-w-sm space-y-8">
                     {/* Header */}
                     <div className="text-center">
                         <img className="mx-auto h-16 w-auto mb-6" src="/logo.svg" alt="ncsStat" />
                         <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                            Chào mừng trở lại
+                            Welcome Back
                         </h2>
                         <p className="mt-2 text-sm text-gray-500">
-                            Đăng nhập để khám phá sức mạnh của số liệu
+                            Sign in to unlock the power of advanced statistics
                         </p>
                     </div>
 
@@ -73,7 +73,7 @@ function LoginForm() {
                                     <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
                                     <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                                 </svg>
-                                <span>Tiếp tục với Google</span>
+                                <span>Continue with Google</span>
                             </button>
 
                             {/* LinkedIn */}
@@ -84,7 +84,7 @@ function LoginForm() {
                                 <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
                                     <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
                                 </svg>
-                                <span>Tiếp tục với LinkedIn</span>
+                                <span>Continue with LinkedIn</span>
                             </button>
 
                             {/* ORCID */}
@@ -103,14 +103,14 @@ function LoginForm() {
                     {/* Footer Links */}
                     <div className="mt-8 pt-8 border-t border-gray-100">
                         <p className="text-center text-xs text-gray-400">
-                            Bằng việc tiếp tục, bạn đồng ý với <a href="#" className="underline hover:text-gray-600">Điều khoản</a> & <a href="#" className="underline hover:text-gray-600">Chính sách bảo mật</a> của ncsStat.
+                            By signing in, you agree to our <a href="#" className="underline hover:text-gray-600">Terms of Service</a> & <a href="#" className="underline hover:text-gray-600">Privacy Policy</a>.
                         </p>
                     </div>
                 </div>
             </div>
 
             {/* Right Column: Animation (2/3 width on desktop, hidden on mobile) */}
-            <div className="hidden lg:block lg:w-2/3 bg-gray-50 relative overflow-hidden">
+            <div className="hidden lg:block lg:w-2/3 bg-gray-900 relative overflow-hidden h-full">
                 <ProjectFlowAnimation />
             </div>
         </div>
@@ -120,11 +120,11 @@ function LoginForm() {
 function LoadingState() {
     const [textIndex, setTextIndex] = useState(0)
     const texts = [
-        "Đang kết nối đến máy chủ bảo mật...",
-        "Đang chuẩn bị môi trường phân tích...",
-        "Đang tải thư viện thống kê R...",
-        "Đang xác thực thông tin người dùng...",
-        "Sẵn sàng khám phá dữ liệu..."
+        "Initializing Scientific Core...",
+        "Establishing Secure Connection...",
+        "Loading R Statistical Engine...",
+        "Verifying User Credentials...",
+        "Preparing Analytics Workspace..."
     ]
 
     useEffect(() => {
