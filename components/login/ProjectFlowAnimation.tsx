@@ -2,23 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-    Database,
-    FileSpreadsheet,
-    BarChart3,
-    BrainCircuit,
-    Network,
+    BookOpen,
     Table,
-    FileText,
     Sigma,
-    BookOpen
+    Activity,
+    Layers,
+    CheckCircle2
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 export function ProjectFlowAnimation() {
-    // 0: Data Import (Matrix Grid)
-    // 1: Model Specification (Path Diagram)
-    // 2: Mathematical Processing (Equations)
-    // 3: Publication Results (Journal Style)
+    // 0: Data Import
+    // 1: Model Design (Complex SEM)
+    // 2: Processing (Math)
+    // 3: Results (Multi-Table Dashboard)
     const [step, setStep] = useState(0);
 
     useEffect(() => {
@@ -29,180 +26,220 @@ export function ProjectFlowAnimation() {
     }, []);
 
     return (
-        <div className="relative w-full h-full flex items-center justify-center p-12 overflow-hidden bg-[#0f172a] text-white">
+        <div className="relative w-full h-full flex items-center justify-center p-12 overflow-hidden bg-[#0f172a] text-white select-none">
 
-            {/* 1. BACKGROUND (Subtle Academic Texture) */}
+            {/* BACKGROUND */}
             <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-20"></div>
-                {/* Soft ambient lighting, less neon, more intellectual */}
-                <div className={`absolute top-0 right-0 w-[800px] h-[800px] bg-slate-800/20 rounded-full blur-[120px] transition-all duration-1000`} />
+                <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:40px_40px] opacity-10"></div>
+                <div className={`absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-900/20 rounded-full blur-[100px] transition-all duration-1000`} />
             </div>
 
-            <div className="z-10 w-full max-w-6xl w-full grid grid-cols-10 gap-12 h-[600px] items-center">
+            <div className="z-10 w-full max-w-7xl grid grid-cols-12 gap-12 h-[600px] items-center">
 
-                {/* LEFT: TEXT CONTENT (3 Columns) */}
-                <div className="col-span-3 space-y-10 pl-4">
+                {/* LEFT: TEXT CONTENT (4 Columns) */}
+                <div className="col-span-4 space-y-10 pl-4 relative">
                     <div className="space-y-4">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-indigo-200/20 bg-indigo-900/20 text-indigo-200 text-xs font-semibold tracking-wider uppercase">
-                            <BookOpen size={12} />
-                            <span>Scientific Standard</span>
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-700 bg-slate-800/50 text-slate-300 text-[10px] font-bold tracking-wider uppercase">
+                            <Activity size={12} className="text-emerald-400" />
+                            <span>System Ready v2.4</span>
                         </div>
-                        <h2 className="text-4xl lg:text-5xl font-serif text-white leading-tight">
+                        <h2 className="text-4xl lg:text-5xl font-serif text-white leading-[1.1]">
                             Research <br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-indigo-300">Simplified</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-200 to-indigo-200">Intelligence</span>
                         </h2>
-                        <p className="text-slate-400 text-base leading-relaxed font-light">
-                            Transform raw datasets into rigorous Q1 journal-ready findings. No coding required.
+                        <p className="text-slate-400 text-sm leading-relaxed font-light max-w-sm">
+                            From raw data to <strong className="text-white font-medium">Q1 Journal</strong> acceptance. Automated structural equation modeling engine.
                         </p>
                     </div>
 
-                    <div className="space-y-6 pt-4 border-l-2 border-slate-800/50 ml-2 pl-6">
-                        <StepIndicator active={step === 0} title="Data Input" desc="Matrix Cleaning & Prep" />
-                        <StepIndicator active={step === 1} title="Model Design" desc="SEM Path Construction" />
-                        <StepIndicator active={step === 2} title="processing" desc="Statistical Computation" />
-                        <StepIndicator active={step === 3} title="Results" desc="APA Format Tables" />
+                    <div className="space-y-4 pt-4 border-l border-slate-800 ml-1 pl-6">
+                        <StepIndicator active={step === 0} title="1. Data Input" desc="Matrix Cleaning & Prep" />
+                        <StepIndicator active={step === 1} title="2. Model Specification" desc="Complex SEM/CFA Design" />
+                        <StepIndicator active={step === 2} title="3. Computation" desc="Matrix Algebra Solver" />
+                        <StepIndicator active={step === 3} title="4. Final Report" desc="Fit Indices & Reliability" />
                     </div>
                 </div>
 
 
-                {/* RIGHT: VISUALIZATION STAGE (7 Columns) - Fixed container to prevent overlaps */}
-                <div className="col-span-7 relative h-full bg-slate-900/50 rounded-2xl border border-slate-800 backdrop-blur-sm overflow-hidden flex items-center justify-center shadow-2xl">
+                {/* RIGHT: VISUALIZATION STAGE (8 Columns) */}
+                <div className="col-span-8 relative h-full bg-[#161e31] rounded-xl border border-slate-800/80 shadow-2xl overflow-hidden flex items-center justify-center">
 
-                    {/* === SCENE 0: CLEAN DATA (Spreadsheet) === */}
-                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 p-8 ${step === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-                        <div className="w-full h-full bg-white text-slate-900 rounded-lg shadow-xl overflow-hidden flex flex-col">
-                            {/* Toolbar */}
-                            <div className="h-10 border-b border-slate-200 bg-slate-50 flex items-center px-4 gap-4 text-xs font-semibold text-slate-500">
-                                <div className="flex gap-1.5"><div className="w-2.5 h-2.5 rounded-full bg-red-400" /><div className="w-2.5 h-2.5 rounded-full bg-yellow-400" /><div className="w-2.5 h-2.5 rounded-full bg-green-400" /></div>
-                                <span>dataset_final_clean.csv</span>
+                    {/* SCENE 0: DATA (Spreadsheet) - Kept Simple for Contrast */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 p-12 ${step === 0 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                        <div className="w-full h-full bg-white text-slate-900 rounded shadow-sm border border-slate-200 overflow-hidden flex flex-col font-mono text-[10px]">
+                            <div className="bg-slate-100 p-2 border-b border-slate-200 flex gap-2">
+                                <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                                <span className="text-slate-400 ml-2">raw_survey_data.csv (N=10,500)</span>
                             </div>
-                            {/* Header */}
-                            <div className="grid grid-cols-5 bg-slate-100 border-b border-slate-200 text-[10px] font-bold text-slate-600 uppercase tracking-wider">
-                                {['ID', 'Predictor_X', 'Mediator_M', 'Outcome_Y', 'Control_Z'].map(h => (
-                                    <div key={h} className="py-3 px-4 border-r border-slate-200">{h}</div>
-                                ))}
+                            <div className="grid grid-cols-6 bg-slate-50 font-bold text-slate-500 border-b border-slate-200">
+                                {['ID', 'A1', 'A2', 'A3', 'B1', 'B2'].map(h => <div key={h} className="p-2 border-r border-slate-200">{h}</div>)}
                             </div>
-                            {/* Rows */}
-                            <div className="flex-1 overflow-hidden relative">
-                                {Array.from({ length: 12 }).map((_, i) => (
-                                    <div key={i} className="grid grid-cols-5 text-[11px] font-mono text-slate-600 border-b border-slate-100 hover:bg-blue-50 transition-colors">
-                                        <div className="py-2 px-4 border-r border-slate-100 font-bold text-slate-400">{1001 + i}</div>
-                                        {Array.from({ length: 4 }).map((_, j) => (
-                                            <div key={j} className="py-2 px-4 border-r border-slate-100">
-                                                {(Math.random() * 5).toFixed(2)}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                                {/* Scan Line */}
-                                <div className="absolute top-0 left-0 w-full h-[30%] bg-gradient-to-b from-blue-500/10 to-transparent animate-scan"></div>
-                            </div>
+                            {Array.from({ length: 15 }).map((_, i) => (
+                                <div key={i} className="grid grid-cols-6 border-b border-slate-100 text-slate-600">
+                                    <div className="p-2 border-r border-slate-100 text-slate-400">{i + 1}</div>
+                                    {Array.from({ length: 5 }).map((_, j) => (
+                                        <div key={j} className="p-2 border-r border-slate-100">{(Math.random() * 5 + 1).toFixed(0)}</div>
+                                    ))}
+                                </div>
+                            ))}
+                            <div className="absolute bottom-0 left-0 w-full h-[50%] bg-gradient-to-t from-blue-500/5 to-transparent animate-pulse"></div>
                         </div>
                     </div>
 
-                    {/* === SCENE 1: MODEL DIAGRAM (Clean Whiteboard Style) === */}
+                    {/* SCENE 1: MODEL DESIGN (Professional AMOS/SmartPLS Style) */}
                     <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 1 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
-                        <div className="relative w-[90%] h-[80%] bg-[#1e1e1e] rounded-xl border border-slate-700 shadow-2xl p-6">
-                            <div className="absolute top-4 left-4 text-slate-400 text-xs font-serif italic">Figure 1. Proposed Structural Model</div>
+                        <div className="relative w-full h-full bg-[#f8fafc] p-6 overflow-hidden">
+                            <div className="absolute top-3 left-4 text-slate-400 text-[10px] font-sans font-bold uppercase tracking-widest border border-slate-200 px-2 py-1 rounded">Figure 1. Structural Model</div>
 
-                            <div className="w-full h-full flex items-center justify-center relative">
-                                {/* Nodes */}
-                                <Node x="20%" y="50%" label="X" sub="Predictor" color="#60a5fa" delay="0s" />
-                                <Node x="50%" y="20%" label="M" sub="Mediator" color="#c084fc" delay="0.2s" />
-                                <Node x="80%" y="50%" label="Y" sub="Outcome" color="#34d399" delay="0.4s" />
-
-                                {/* Arrows (SVG Overlay) */}
-                                <svg className="absolute inset-0 w-full h-full pointer-events-none">
+                            <div className="w-full h-full relative scale-90 origin-center">
+                                <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                                     <defs>
-                                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="28" refY="3.5" orient="auto">
-                                            <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+                                        <marker id="arrow" markerWidth="10" markerHeight="10" refX="28" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 10 3.5, 0 7" fill="#64748b" />
+                                        </marker>
+                                        <marker id="arrow-sm" markerWidth="8" markerHeight="8" refX="18" refY="3.5" orient="auto">
+                                            <polygon points="0 0, 8 3.5, 0 7" fill="#94a3b8" />
                                         </marker>
                                     </defs>
-                                    {/* X -> M */}
-                                    <path d="M 180 250 L 380 150" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-draw" strokeDasharray="500" />
-                                    {/* M -> Y */}
-                                    <path d="M 460 150 L 660 250" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-draw" style={{ animationDelay: '0.5s' }} strokeDasharray="500" />
-                                    {/* X -> Y */}
-                                    <path d="M 190 270 L 650 270" stroke="#94a3b8" strokeWidth="2" markerEnd="url(#arrowhead)" className="animate-draw" style={{ animationDelay: '1s' }} strokeDasharray="1000" />
+
+                                    {/* Path: IV1 -> MED */}
+                                    <path d="M 180 180 L 380 280" stroke="#64748b" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                                    {/* Path: IV2 -> MED */}
+                                    <path d="M 180 380 L 380 280" stroke="#64748b" strokeWidth="1.5" markerEnd="url(#arrow)" />
+                                    {/* Path: MED -> DV */}
+                                    <path d="M 460 280 L 660 280" stroke="#64748b" strokeWidth="1.5" markerEnd="url(#arrow)" />
+
+                                    {/* Correlation IV1 <-> IV2 */}
+                                    <path d="M 140 210 Q 100 280 140 350" fill="none" stroke="#94a3b8" strokeWidth="1" strokeDasharray="4,4" markerStart="url(#arrow-sm)" markerEnd="url(#arrow-sm)" />
+
+                                    {/* Indicators Lines (Simplified) */}
+                                    {[1, 2, 3].map(i => (
+                                        <path key={`iv1-${i}`} d={`M 140 180 L 80 ${120 + i * 30}`} stroke="#cbd5e1" strokeWidth="1" markerEnd="url(#arrow-sm)" />
+                                    ))}
+                                    {[1, 2, 3].map(i => (
+                                        <path key={`dv-${i}`} d={`M 700 280 L 760 ${220 + i * 30}`} stroke="#cbd5e1" strokeWidth="1" markerEnd="url(#arrow-sm)" />
+                                    ))}
                                 </svg>
+
+                                {/* Nodes (Latent Variables) - Oval Shapes */}
+                                <div className="absolute top-[180px] left-[140px] -translate-x-1/2 -translate-y-1/2 w-28 h-16 rounded-[50%] border-2 border-blue-500 bg-white shadow-lg flex items-center justify-center text-xs font-bold text-slate-700 z-10">
+                                    Trust
+                                    <span className="absolute -top-3 right-0 text-[8px] text-slate-400">ξ1</span>
+                                </div>
+
+                                <div className="absolute top-[380px] left-[140px] -translate-x-1/2 -translate-y-1/2 w-28 h-16 rounded-[50%] border-2 border-blue-500 bg-white shadow-lg flex items-center justify-center text-xs font-bold text-slate-700 z-10">
+                                    Quality
+                                    <span className="absolute -top-3 right-0 text-[8px] text-slate-400">ξ2</span>
+                                </div>
+
+                                <div className="absolute top-[280px] left-[420px] -translate-x-1/2 -translate-y-1/2 w-28 h-16 rounded-[50%] border-2 border-purple-500 bg-white shadow-lg flex items-center justify-center text-xs font-bold text-slate-700 z-10">
+                                    Satisfaction
+                                    <span className="absolute -top-3 right-0 text-[8px] text-slate-400">η1</span>
+                                    {/* Disturbance Term */}
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-300 bg-white text-[6px] flex items-center justify-center">z1</div>
+                                    <div className="absolute -top-4 left-1/2 w-0.5 h-4 bg-slate-300"></div>
+                                </div>
+
+                                <div className="absolute top-[280px] left-[700px] -translate-x-1/2 -translate-y-1/2 w-28 h-16 rounded-[50%] border-2 border-emerald-500 bg-white shadow-lg flex items-center justify-center text-xs font-bold text-slate-700 z-10">
+                                    Loyalty
+                                    <span className="absolute -top-3 right-0 text-[8px] text-slate-400">η2</span>
+                                    {/* Disturbance Term */}
+                                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full border border-slate-300 bg-white text-[6px] flex items-center justify-center">z2</div>
+                                    <div className="absolute -top-4 left-1/2 w-0.5 h-4 bg-slate-300"></div>
+                                </div>
+
+                                {/* Indicator Boxes (Manifest Variables) */}
+                                {[1, 2, 3].map(i => (
+                                    <div key={`ind-x-${i}`} className="absolute w-12 h-8 border border-slate-400 bg-slate-50 flex items-center justify-center text-[8px] text-slate-600 shadow-sm" style={{ left: '40px', top: `${105 + i * 30}px` }}>x{i}</div>
+                                ))}
+                                {[1, 2, 3].map(i => (
+                                    <div key={`ind-y-${i}`} className="absolute w-12 h-8 border border-slate-400 bg-slate-50 flex items-center justify-center text-[8px] text-slate-600 shadow-sm" style={{ left: '760px', top: `${205 + i * 30}px` }}>y{i}</div>
+                                ))}
+
                             </div>
                         </div>
                     </div>
 
-                    {/* === SCENE 2: MATH/EQUATIONS (Academic Rigor) === */}
-                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
-                        <div className="w-[80%] space-y-6 text-center">
-                            <div className="inline-block relative">
-                                <Sigma className="w-16 h-16 text-indigo-400 mx-auto mb-4 animate-pulse" />
+                    {/* SCENE 2: MATH (Equations) */}
+                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 2 ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                        <div className="text-center space-y-8">
+                            <Sigma className="w-20 h-20 text-indigo-300 mx-auto animate-pulse" strokeWidth={1} />
+                            <div className="text-3xl font-serif text-white italic opacity-80">
+                                <span className="inline-block animate-fade-in-up">Y = &Lambda;<sub>y</sub>&eta; + &epsilon;</span>
                             </div>
-                            <div className="space-y-4 font-serif text-2xl text-slate-300 leading-relaxed">
-                                <div className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                                    y<sub>i</sub> = &beta;<sub>0</sub> + &beta;<sub>1</sub>x<sub>i</sub> + &epsilon;<sub>i</sub>
-                                </div>
-                                <div className="animate-fade-in-up" style={{ animationDelay: '0.5s' }} className="text-3xl text-white font-medium">
-                                    &Chi;<sup>2</sup> = &Sigma; (O - E)<sup>2</sup> / E
-                                </div>
-                                <div className="animate-fade-in-up" style={{ animationDelay: '0.9s' }} className="text-xl text-slate-400 italic">
-                                    p &lt; 0.001
-                                </div>
+                            <div className="text-3xl font-serif text-white italic opacity-80 animation-delay-500">
+                                <span className="inline-block animate-fade-in-up" style={{ animationDelay: '0.3s' }}>&eta; = B&eta; + &Gamma;&xi; + &zeta;</span>
                             </div>
-                            <div className="text-xs font-mono text-indigo-400 mt-8">
-                                Computing Covariance Matrix...
+                            <div className="w-64 h-1 bg-slate-800 rounded-full mx-auto relative overflow-hidden mt-8">
+                                <div className="absolute inset-0 bg-indigo-500 w-1/2 animate-progress"></div>
                             </div>
-                            {/* Loading Bar */}
-                            <div className="w-48 h-1 bg-slate-800 rounded-full mx-auto mt-2 overflow-hidden">
-                                <div className="h-full bg-indigo-500 animate-progress"></div>
-                            </div>
+                            <p className="text-xs font-mono text-indigo-400">Minimizing Discrepancy Function F_ML...</p>
                         </div>
                     </div>
 
-                    {/* === SCENE 3: PUBLICATION RESULTS (Clean APA Style) === */}
-                    <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 p-8 ${step === 3 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
-                        <Card className="w-full bg-white text-slate-900 shadow-2xl rounded-xl overflow-hidden border-t-4 border-indigo-600">
-                            <div className="p-6">
-                                <h3 className="text-lg font-serif font-bold text-slate-900 border-b border-slate-200 pb-2 mb-4">
-                                    Table 1. Regression Analysis Results
-                                </h3>
+                    {/* SCENE 3: RESULTS (Rich Dashboard) */}
+                    <div className={`absolute inset-0 flex flex-col p-8 transition-all duration-700 bg-slate-50 ${step === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                        <div className="flex-1 w-full grid grid-cols-2 gap-4">
+                            {/* Card 1: Model Fit */}
+                            <div className="col-span-2 bg-white p-4 rounded border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-2 mb-3 border-b border-slate-100 pb-2">
+                                    <CheckCircle2 size={14} className="text-emerald-500" />
+                                    <span className="text-xs font-bold text-slate-700 uppercase">Model Fit Indices (Excellent)</span>
+                                </div>
+                                <div className="grid grid-cols-4 gap-4">
+                                    <FitMetric label="Chi-Square/df" value="1.85" ideal="< 3" />
+                                    <FitMetric label="CFI" value="0.982" ideal="> 0.95" highlight />
+                                    <FitMetric label="TLI" value="0.976" ideal="> 0.95" highlight />
+                                    <FitMetric label="RMSEA" value="0.042" ideal="< 0.06" highlight />
+                                </div>
+                            </div>
 
-                                <table className="w-full text-sm text-left">
+                            {/* Card 2: Regression Weights */}
+                            <div className="bg-white p-4 rounded border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Table size={14} className="text-blue-500" />
+                                    <span className="text-xs font-bold text-slate-700 uppercase">Regression Weights</span>
+                                </div>
+                                <table className="w-full text-[10px] text-slate-600">
                                     <thead>
-                                        <tr className="border-b-2 border-slate-800 text-slate-800">
-                                            <th className="py-2 italic font-serif">Predictor</th>
-                                            <th className="py-2 font-serif text-center">&beta;</th>
-                                            <th className="py-2 font-serif text-center">SE</th>
-                                            <th className="py-2 font-serif text-center">t</th>
-                                            <th className="py-2 font-serif text-center">p</th>
+                                        <tr className="border-b border-slate-200 text-slate-400 font-normal text-left">
+                                            <th className="py-1">Path</th>
+                                            <th>Estimate</th>
+                                            <th>P</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="font-serif text-slate-700">
-                                        <tr className="border-b border-slate-200">
-                                            <td className="py-2 pl-2">Variable X</td>
-                                            <td className="py-2 text-center">0.45</td>
-                                            <td className="py-2 text-center">0.04</td>
-                                            <td className="py-2 text-center">11.25</td>
-                                            <td className="py-2 text-center font-bold">&lt; .001</td>
-                                        </tr>
-                                        <tr className="border-b border-slate-200">
-                                            <td className="py-2 pl-2">Variable M</td>
-                                            <td className="py-2 text-center">0.32</td>
-                                            <td className="py-2 text-center">0.05</td>
-                                            <td className="py-2 text-center">6.40</td>
-                                            <td className="py-2 text-center font-bold">.002</td>
-                                        </tr>
-                                        <tr>
-                                            <td className="py-2 pl-2">Variable Z</td>
-                                            <td className="py-2 text-center">0.12</td>
-                                            <td className="py-2 text-center">0.06</td>
-                                            <td className="py-2 text-center">2.10</td>
-                                            <td className="py-2 text-center">.038*</td>
-                                        </tr>
+                                    <tbody>
+                                        <tr className="border-b border-slate-50"><td>Qual &rarr; Sat</td><td className="font-bold">0.65</td><td className="text-emerald-600">***</td></tr>
+                                        <tr className="border-b border-slate-50"><td>Trust &rarr; Sat</td><td className="font-bold">0.24</td><td className="text-emerald-600">***</td></tr>
+                                        <tr className="border-b border-slate-50"><td>Sat &rarr; Loy</td><td className="font-bold">0.58</td><td className="text-emerald-600">***</td></tr>
                                     </tbody>
                                 </table>
-                                <p className="text-[10px] text-slate-500 mt-4 italic font-serif">
-                                    Note. N = 10,500. *** p &lt; .001, * p &lt; .05. R<sup>2</sup> = .48
-                                </p>
                             </div>
-                        </Card>
+
+                            {/* Card 3: Reliability */}
+                            <div className="bg-white p-4 rounded border border-slate-200 shadow-sm">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Layers size={14} className="text-purple-500" />
+                                    <span className="text-xs font-bold text-slate-700 uppercase">Construct Reliability</span>
+                                </div>
+                                <table className="w-full text-[10px] text-slate-600">
+                                    <thead>
+                                        <tr className="border-b border-slate-200 text-slate-400 font-normal text-left">
+                                            <th className="py-1">Construct</th>
+                                            <th>CR</th>
+                                            <th>AVE</th>
+                                            <th>Alpha</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr className="border-b border-slate-50"><td>Trust</td><td className="font-bold">0.89</td><td>0.62</td><td className="text-emerald-600">0.88</td></tr>
+                                        <tr className="border-b border-slate-50"><td>Quality</td><td className="font-bold">0.91</td><td>0.74</td><td className="text-emerald-600">0.92</td></tr>
+                                        <tr className="border-b border-slate-50"><td>Loyalty</td><td className="font-bold">0.85</td><td>0.58</td><td className="text-emerald-600">0.86</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
@@ -212,27 +249,23 @@ export function ProjectFlowAnimation() {
     );
 }
 
-// Helper Components
-function Node({ x, y, label, sub, color, delay }: any) {
+function FitMetric({ label, value, ideal, highlight }: any) {
     return (
-        <div
-            className="absolute flex flex-col items-center justify-center animate-fade-in z-10"
-            style={{ left: x, top: y, transform: 'translate(-50%, -50%)', animationDelay: delay }}
-        >
-            <div className="w-20 h-20 rounded-full bg-slate-800 border-2 flex items-center justify-center text-xl font-bold text-white shadow-xl" style={{ borderColor: color }}>
-                {label}
-            </div>
-            <div className="mt-2 text-xs text-slate-400 font-sans uppercase tracking-widest">{sub}</div>
+        <div className="text-center">
+            <div className="text-[9px] text-slate-400 uppercase tracking-wide">{label}</div>
+            <div className={`text-lg font-bold font-mono ${highlight ? 'text-emerald-600' : 'text-slate-700'}`}>{value}</div>
+            <div className="text-[9px] text-slate-300 border-t border-slate-100 pt-1 mt-1 inline-block px-1">{ideal}</div>
         </div>
     )
 }
 
 function StepIndicator({ active, title, desc }: { active: boolean, title: string, desc: string }) {
     return (
-        <div className={`flex items-center gap-4 transition-all duration-500 ${active ? 'opacity-100 translate-x-2' : 'opacity-30'}`}>
-            <div className={`w-2 h-2 rounded-full transition-all ${active ? 'bg-indigo-400 scale-150' : 'bg-slate-600'}`}></div>
+        <div className={`group flex items-start gap-4 transition-all duration-500 cursor-default ${active ? 'opacity-100 translate-x-3' : 'opacity-40 hover:opacity-60'}`}>
+            <div className={`mt-1 w-2 h-2 rounded-full transition-all duration-300 ${active ? 'bg-indigo-400 scale-125 shadow-[0_0_8px_#818cf8]' : 'bg-slate-700 group-hover:bg-slate-600'}`}></div>
             <div>
-                <div className={`text-sm font-semibold uppercase tracking-wide ${active ? 'text-indigo-200' : 'text-slate-500'}`}>{title}</div>
+                <div className={`text-sm font-bold tracking-tight ${active ? 'text-white' : 'text-slate-400'}`}>{title}</div>
+                <div className="text-[11px] text-slate-500 font-light mt-0.5">{desc}</div>
             </div>
         </div>
     )
