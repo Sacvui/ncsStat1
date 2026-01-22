@@ -86,7 +86,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 // Added explicit dependencies for lavaan: numDeriv, pbivnorm, quadprog
                 updateProgress('Đang tải thư viện thống kê (lavaan dependencies)...');
                 try {
-                    await webR.installPackages(['numDeriv', 'pbivnorm', 'quadprog']);
+                    await webR.installPackages(['numDeriv', 'pbivnorm', 'mnormt']);
                 } catch (depError) {
                     console.warn('Dependency install warning:', depError);
                 }
