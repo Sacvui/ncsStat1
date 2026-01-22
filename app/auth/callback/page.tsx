@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { createClientOnly } from '@/utils/supabase/client-only'
 import { Loader2 } from 'lucide-react'
 
 function AuthCallbackContent() {
@@ -32,26 +33,45 @@ function AuthCallbackContent() {
                 return
             }
 
-            const supabase = createClient()
+            // 1. Initialize logic clients
+            // clientOnly: Uses localStorage, where the code_verifier was saved during login
+            const clientOnly = createClientOnly()
+            // clientSSR: Uses cookies, where we want to put the final session for middleware
+            const clientSSR = createClient()
 
             try {
                 // Client-side exchange! 
-                // Uses browser cookies/storage for PKCE verifier automatically.
-                console.log('Exchanging code for session on client...')
-                const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+                // Uses localStorage for PKCE verifier automatically.
+                console.log('Phase 1: Exchanging code via LocalStorage client...')
+                const { data, error } = await clientOnly.auth.exchangeCodeForSession(code)
 
                 if (error) throw error
 
                 if (data.session) {
-                    console.log('Exchange successful:', data.session.user.id)
-                    setStatus('Đăng nhập thành công! Đang chuyển hướng...')
+                    console.log('Phase 1 Success. User:', data.session.user.id)
+                    setStatus('Xác thực thành công. Đang đồng bộ phiên...')
+
+                    // 2. Sync to Cookies
+                    // We take the session we got from LS client and force it into the Cookie client
+                    const { error: syncError } = await clientSSR.auth.setSession({
+                        access_token: data.session.access_token,
+                        refresh_token: data.session.refresh_token,
+                    })
+
+                    if (syncError) {
+                        console.error('Phase 2 Error:', syncError)
+                        throw syncError
+                    }
+
+                    console.log('Phase 2 Success: Session synced to cookies.')
+                    setStatus('Đăng nhập hoàn tất! Đang chuyển hướng...')
 
                     // Force a hard navigation to ensure cookies are sent freshly to the server middleware
                     // This avoids any SPA caching issues with middleware states
                     window.location.href = next
                 }
             } catch (error: any) {
-                console.error('Auth error:', error)
+                console.error('Auth Hybrid Error:', error)
                 // If it's a PKCE error, it might be due to stale cookies. 
                 // We should clear them or just ask user to try again.
                 router.push(`/login?error=${encodeURIComponent(error.message)}`)
