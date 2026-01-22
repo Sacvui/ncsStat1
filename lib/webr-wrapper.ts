@@ -74,8 +74,8 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 updateProgress('Đang tải R runtime...');
                 await webR.init();
 
-                // Step 1: Set correct WASM Repo
-                await webR.evalR('options(repos = c(R_WASM = "https://repo.r-wasm.org/"))');
+                // Step 1: Set correct WASM Repo (Priority: 1. Core WASM, 2. R-Universe for missing binaries like quadprog)
+                await webR.evalR('options(repos = c(R_WASM = "https://repo.r-wasm.org/", CRAN = "https://cran.r-universe.dev/"))');
 
                 // Verify initialization
                 if (!webR.evalR) {
