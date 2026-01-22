@@ -6,191 +6,275 @@ import {
     FileSpreadsheet,
     BarChart3,
     BrainCircuit,
-    CheckCircle2,
-    ArrowRight,
-    PieChart,
-    Network
+    Network,
+    Table,
+    FileText,
+    Sigma
 } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 export function ProjectFlowAnimation() {
-    // Animation steps:
-    // 0: Upload Data
-    // 1: Select Variables
-    // 2: Run Analysis (Processing)
-    // 3: Scientific Results
+    // 0: Data Import (Matrix Grid)
+    // 1: Model Specification (Path Diagram Construction)
+    // 2: Processing (Equation/Syntax)
+    // 3: Publication Results (Dashboard)
     const [step, setStep] = useState(0);
 
     useEffect(() => {
         const interval = setInterval(() => {
             setStep((prev) => (prev + 1) % 4);
-        }, 4000); // Slower cycle for better viewing
+        }, 5000); // 5s per step to admire the details
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="relative w-full h-full flex flex-col justify-center items-center p-10 overflow-hidden bg-gradient-to-br from-indigo-950 to-blue-950 text-white">
-            {/* Background Grid & Math Symbols (Subtle) */}
-            <div className="absolute inset-0 opacity-10 pointer-events-none"
-                style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '30px 30px' }}>
+        <div className="relative w-full h-full flex flex-col justify-center items-center p-8 overflow-hidden bg-slate-950 text-white font-sans selection:bg-cyan-500/30">
+
+            {/* 1. BACKGROUND EFFECTS */}
+            <div className="absolute inset-0 z-0">
+                {/* Grid */}
+                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 brightness-100 contrast-150 mix-blend-overlay"></div>
+                <div className="absolute inset-0"
+                    style={{ backgroundImage: 'radial-gradient(circle, #334155 1px, transparent 1px)', backgroundSize: '40px 40px', opacity: 0.1 }}>
+                </div>
+
+                {/* Glow Orbs - Scientific Colors (Cyan = Data, Purple = Logic, Emerald = Result) */}
+                <div className={`absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-cyan-500/10 rounded-full blur-[120px] transition-all duration-1000 ${step === 0 ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`} />
+                <div className={`absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] transition-all duration-1000 ${step === 1 || step === 2 ? 'opacity-100 scale-110' : 'opacity-30 scale-100'}`} />
             </div>
 
-            {/* Abstract Scientific Background */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden opacity-20 pointer-events-none">
-                <div className="absolute top-[10%] left-[10%] w-[400px] h-[400px] bg-blue-600 rounded-full blur-[120px] animate-pulse"></div>
-                <div className="absolute bottom-[10%] right-[10%] w-[300px] h-[300px] bg-indigo-500 rounded-full blur-[100px] animate-pulse" style={{ animationDelay: '2s' }}></div>
+            <div className="z-10 w-full max-w-4xl relative flex gap-12 items-center h-full">
+
+                {/* LEFT: TEXT CONTENT */}
+                <div className="w-1/3 space-y-8 pl-8 hidden xl:block">
+                    {/* Header */}
+                    <div className="space-y-4">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/30 bg-cyan-950/30 text-cyan-400 text-xs font-mono tracking-wider uppercase">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
+                            </span>
+                            Scientific Engine Active
+                        </div>
+                        <h2 className="text-5xl font-bold tracking-tight text-white leading-tight">
+                            Publication <br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">Ready</span>
+                        </h2>
+                        <p className="text-slate-400 text-lg font-light leading-relaxed">
+                            Advanced SEM, CFA, and Path Analysis. From raw data to Q1 Journal tables in seconds.
+                        </p>
+                    </div>
+
+                    {/* Steps Indicator */}
+                    <div className="space-y-6 pt-8 border-l border-slate-800 ml-2">
+                        <StepIndicator active={step === 0} title="1. Import Data" desc="Auto-cleaning & Matrix Prep" />
+                        <StepIndicator active={step === 1} title="2. Config Model" desc="Path Diagram Construction" />
+                        <StepIndicator active={step === 2} title="3. Processing" desc="R-WASM Kernel Execution" />
+                        <StepIndicator active={step === 3} title="4. Final Results" desc="APA Tables & Visualization" />
+                    </div>
+                </div>
+
+
+                {/* RIGHT: DYNAMIC VISUALIZATION STAGE (Centerpiece) */}
+                <div className="flex-1 h-[600px] relative perspective-1000">
+
+                    {/* STAGE CONTAINER */}
+                    <div className="relative w-full h-full flex items-center justify-center">
+
+                        {/* === SCENE 0: DATA MATRIX (The "Matrix" Effect) === */}
+                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 0 ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-90 blur-xl pointer-events-none'}`}>
+                            <Card className="w-[500px] h-[350px] bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 shadow-2xl p-6 relative overflow-hidden group">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 to-blue-500"></div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs">
+                                        <FileSpreadsheet size={16} /> DATA_SOURCE_V2.CSV
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 font-mono">N=10,500 ROWS</div>
+                                </div>
+                                {/* Data Grid */}
+                                <div className="grid grid-cols-5 gap-2 font-mono text-xs text-slate-400">
+                                    {['ID', 'VAR_X', 'VAR_Y', 'VAR_M', 'VAR_Z'].map(h => <div key={h} className="text-slate-200 font-bold pb-2 border-b border-slate-700">{h}</div>)}
+                                    {Array.from({ length: 25 }).map((_, i) => (
+                                        <div key={i} className={`py-1 transition-colors duration-300 ${i % 3 === 0 ? 'text-cyan-300' : ''}`}>
+                                            {(Math.random() * 10).toFixed(2)}
+                                        </div>
+                                    ))}
+                                </div>
+                                {/* Scanning Effect */}
+                                <div className="absolute top-0 left-0 w-full h-[20%] bg-gradient-to-b from-cyan-500/20 to-transparent animate-scan"></div>
+                                {/* Floating Badge */}
+                                <div className="absolute bottom-4 right-4 bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 px-3 py-1 rounded text-xs font-bold flex items-center gap-2 shadow-lg animate-pulse">
+                                    <Database size={12} /> CLEANED & READY
+                                </div>
+                            </Card>
+                        </div>
+
+                        {/* === SCENE 1: MODEL CONFIG (The "Blueprint") === */}
+                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 1 ? 'opacity-100 scale-100 rotate-0' : 'opacity-0 scale-110 -rotate-3 pointer-events-none'}`}>
+                            <div className="relative w-[540px] h-[380px] bg-slate-900/90 backdrop-blur-xl border border-purple-500/30 rounded-xl shadow-2xl p-8 overflow-hidden">
+                                {/* Grid Background */}
+                                <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(#6366f1 1px, transparent 1px), linear-gradient(90deg, #6366f1 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+
+                                <div className="absolute top-4 left-6 text-purple-400 font-mono text-xs tracking-widest uppercase">
+                                    Model Specification (SEM)
+                                </div>
+
+                                {/* Dynamic Nodes */}
+                                <div className="relative w-full h-full mt-4">
+                                    {/* Latent 1 */}
+                                    <div className="absolute top-10 left-10 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+                                        <div className="w-16 h-16 rounded-full border-2 border-purple-400 bg-purple-900/50 flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(168,85,247,0.4)]">IV</div>
+                                        <div className="flex gap-2 mt-4 justify-center">
+                                            {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400">x{i}</div>)}
+                                        </div>
+                                    </div>
+
+                                    {/* Mediator */}
+                                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                                        <div className="w-16 h-16 rounded-full border-2 border-pink-400 bg-pink-900/50 flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(236,72,153,0.4)]">MED</div>
+                                        <div className="flex gap-2 mt-4 justify-center">
+                                            {[1, 2].map(i => <div key={i} className="w-8 h-8 bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400">m{i}</div>)}
+                                        </div>
+                                    </div>
+
+                                    {/* Latent 2 */}
+                                    <div className="absolute bottom-10 right-10 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
+                                        <div className="w-16 h-16 rounded-full border-2 border-cyan-400 bg-cyan-900/50 flex items-center justify-center text-white font-bold shadow-[0_0_20px_rgba(34,211,238,0.4)]">DV</div>
+                                        <div className="flex gap-2 mt-4 justify-center">
+                                            {[1, 2, 3].map(i => <div key={i} className="w-8 h-8 bg-slate-800 border border-slate-600 flex items-center justify-center text-[8px] text-slate-400">y{i}</div>)}
+                                        </div>
+                                    </div>
+
+                                    {/* Connection Line Simulation */}
+                                    <svg className="absolute inset-0 pointer-events-none overflow-visible">
+                                        <path d="M 80 80 Q 250 180 440 280" fill="none" stroke="url(#lineGradient)" strokeWidth="2" strokeDasharray="5,5" className="animate-dash" />
+                                        <defs>
+                                            <linearGradient id="lineGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                                <stop offset="0%" stopColor="#a855f7" />
+                                                <stop offset="100%" stopColor="#22d3ee" />
+                                            </linearGradient>
+                                        </defs>
+                                    </svg>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* === SCENE 2: PROCESSING (The "Kernel") === */}
+                        <div className={`absolute inset-0 flex items-center justify-center transition-all duration-700 ${step === 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-125 blur pointer-events-none'}`}>
+                            <div className="relative w-[500px] h-[300px] bg-black border-2 border-slate-800 rounded-lg p-6 font-mono text-sm shadow-2xl overflow-hidden">
+                                <div className="absolute top-0 left-0 w-full h-6 bg-slate-900 flex items-center px-4 gap-2 border-b border-slate-800">
+                                    <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+                                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                                    <span className="ml-2 text-xs text-slate-500">R-WASM Kernel v4.2.0</span>
+                                </div>
+                                <div className="mt-4 space-y-1 text-slate-300 overflow-hidden h-full relative">
+                                    {/* Code scrolling up */}
+                                    <div className="animate-code-scroll">
+                                        <p className="text-purple-400">&gt; library(lavaan)</p>
+                                        <p>&gt; model &lt;- &#39; IV =~ x1 + x2 + x3</p>
+                                        <p className="pl-12">MED =~ m1 + m2</p>
+                                        <p className="pl-12">DV =~ y1 + y2 + y3</p>
+                                        <p className="pl-12">DV ~ MED + IV</p>
+                                        <p className="pl-12">MED ~ IV &#39;</p>
+                                        <p>&gt; fit &lt;- sem(model, data=ncs_data)</p>
+                                        <p className="text-yellow-400">&gt; Computing Iteration 1...</p>
+                                        <p className="text-yellow-400">&gt; Computing Iteration 5...</p>
+                                        <p className="text-yellow-400">&gt; Computing Iteration 12...</p>
+                                        <p className="text-green-400">&gt; CONVERGED_NORMAL_GRADIENT</p>
+                                        <p>&gt; summary(fit, fit.measures=TRUE)</p>
+                                        <p className="text-cyan-400">&gt; Generating Matrix Representation...</p>
+                                    </div>
+                                    {/* Gradient overlay for fade */}
+                                    <div className="absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-black to-transparent"></div>
+                                </div>
+                                <div className="absolute bottom-4 right-4 animate-spin-slow">
+                                    <Sigma className="text-slate-700 w-12 h-12 opacity-50" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* === SCENE 3: FINAL RESULTS (The "Dashboard") === */}
+                        <div className={`absolute inset-0 transition-all duration-1000 ${step === 3 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+                            {/* Complicated Multi-Panel Layout */}
+                            <div className="relative w-full h-full">
+
+                                {/* 1. Path Diagram Card (Main) */}
+                                <Card className="absolute top-10 left-10 w-[300px] bg-slate-900/90 border border-slate-700 p-4 shadow-2xl z-20">
+                                    <div className="flex items-center gap-2 mb-3 border-b border-slate-700 pb-2">
+                                        <Network size={14} className="text-purple-400" />
+                                        <span className="text-xs font-bold text-white uppercase">Path Model (Standardized)</span>
+                                    </div>
+                                    <div className="h-24 flex items-center justify-center relative">
+                                        {/* Simplified Viz */}
+                                        <div className="w-10 h-10 rounded-full border border-purple-400 flex items-center justify-center text-[10px] text-white absolute left-2">IV</div>
+                                        <div className="w-10 h-10 rounded-full border border-cyan-400 flex items-center justify-center text-[10px] text-white absolute right-2">DV</div>
+                                        <div className="h-0.5 w-full bg-slate-600 mx-12 relative">
+                                            <div className="absolute top-[-10px] left-1/2 -translate-x-1/2 text-[9px] bg-black px-1 text-green-400">0.45***</div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] text-slate-400 mt-2 font-mono">
+                                        <span>CFI: 0.985</span>
+                                        <span>TLI: 0.972</span>
+                                        <span>RMSEA: 0.041</span>
+                                    </div>
+                                </Card>
+
+                                {/* 2. Table Card (Floating Right) */}
+                                <Card className="absolute top-32 right-0 w-[260px] bg-white text-slate-900 p-4 shadow-2xl z-30 transform rotate-2">
+                                    <div className="flex items-center gap-2 mb-2 border-b border-slate-200 pb-1">
+                                        <Table size={14} className="text-slate-500" />
+                                        <span className="text-xs font-bold uppercase">Regression Weights</span>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {['IV -> MED', 'MED -> DV', 'IV -> DV'].map((rel, i) => (
+                                            <div key={rel} className="flex justify-between text-[10px] font-mono border-b border-slate-100 py-1">
+                                                <span>{rel}</span>
+                                                <span className="font-bold">{[0.52, 0.43, 0.21][i].toString()}</span>
+                                                <span className="text-green-600 font-bold">&lt; .001</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Card>
+
+                                {/* 3. Heatmap Card (Floating Bottom) */}
+                                <Card className="absolute bottom-10 left-20 w-[240px] bg-slate-800 border-none p-4 shadow-2xl z-25 opacity-90">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <BarChart3 size={14} className="text-orange-400" />
+                                        <span className="text-xs font-bold text-white uppercase">Correlation Matrix</span>
+                                    </div>
+                                    <div className="grid grid-cols-4 gap-0.5">
+                                        {Array.from({ length: 16 }).map((_, i) => {
+                                            const op = Math.random();
+                                            return <div key={i} className="h-4 w-full bg-orange-500" style={{ opacity: op }}></div>
+                                        })}
+                                    </div>
+                                </Card>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
             </div>
 
-            <div className="z-10 w-full max-w-lg space-y-8 relative">
-                <div className="text-center space-y-2 mb-12">
-                    <h2 className="text-4xl font-bold tracking-tight text-white mb-2 font-mono">
-                        Scientific Workflow
-                    </h2>
-                    <p className="text-blue-200/80 text-lg">
-                        From raw data to publication-ready insights.
-                    </p>
-                </div>
-
-                {/* Workflow Steps Visualization */}
-                <div className="relative pl-4">
-                    {/* Connecting Line */}
-                    <div className="absolute left-[36px] top-4 bottom-4 w-0.5 bg-blue-800/30 -z-10"></div>
-
-                    {/* Step 1: Data Upload */}
-                    <FlowStep
-                        active={step === 0}
-                        completed={step > 0}
-                        icon={<FileSpreadsheet className="w-6 h-6" />}
-                        title="Raw Data Import"
-                        description="Auto-cleaning & preprocessing."
-                    />
-
-                    {/* Step 2: Config */}
-                    <FlowStep
-                        active={step === 1}
-                        completed={step > 1}
-                        icon={<Database className="w-6 h-6" />}
-                        title="Model Configuration"
-                        description="Define variables & hypotheses."
-                    />
-
-                    {/* Step 3: Analysis */}
-                    <FlowStep
-                        active={step === 2}
-                        completed={step > 2}
-                        icon={<BrainCircuit className="w-6 h-6" />}
-                        title="Statistical Processing"
-                        description="R-WASM Engine (Matrix Algebra)."
-                    />
-
-                    {/* Step 4: Results */}
-                    <FlowStep
-                        active={step === 3}
-                        completed={step > 3}
-                        isLast
-                        icon={<BarChart3 className="w-6 h-6" />}
-                        title="Publication-Ready Results"
-                        description="APA tables & SEM path diagrams."
-                    />
-                </div>
-
-                {/* VISUALIZATIONS OVERLAY */}
-                {/* Step 2: Matrix Algebra / Code Scrolling */}
-                <div className={`absolute top-20 -right-20 w-80 p-4 bg-black/80 rounded-xl border border-blue-500/30 font-mono text-xs text-green-400 shadow-2xl transition-all duration-500 transform ${step === 2 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-10 pointer-events-none'}`}>
-                    <div className="border-b border-gray-700 pb-2 mb-2 text-gray-400 flex justify-between">
-                        <span>R Engine Core</span>
-                        <div className="flex gap-1"><div className="w-2 h-2 rounded-full bg-red-500" /><div className="w-2 h-2 rounded-full bg-yellow-500" /><div className="w-2 h-2 rounded-full bg-green-500" /></div>
-                    </div>
-                    <div className="space-y-1 opacity-80">
-                        <p>&gt; matrix_X &lt;- as.matrix(data)</p>
-                        <p>&gt; correlation &lt;- cor(matrix_X)</p>
-                        <p>&gt; eigen_decomp &lt;- eigen(correlation)</p>
-                        <p>&gt; SEM_model &lt;- 'factor =~ x1 + x2'</p>
-                        <p>&gt; fit &lt;- cfa(SEM_model, data)</p>
-                        <p className="text-blue-300 animate-pulse">&gt; Calculating P-Values...</p>
-                        <p className="text-green-300">&gt; Converged (Iterations: 12)</p>
-                    </div>
-                </div>
-
-                {/* Step 3: Complex SEM Diagram */}
-                <div className={`absolute top-10 -right-32 w-96 p-5 bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 shadow-2xl transition-all duration-700 transform ${step === 3 ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-10 scale-95 pointer-events-none'}`}>
-                    <div className="flex justify-between items-center border-b border-white/10 pb-2 mb-4">
-                        <span className="text-sm font-bold text-white flex items-center gap-2">
-                            <Network className="w-4 h-4 text-blue-400" /> Structural Model (SEM)
-                        </span>
-                        <span className="text-[10px] text-green-300 border border-green-500/30 px-2 py-0.5 rounded-full">Fit: Excellent</span>
-                    </div>
-
-                    {/* Diagram */}
-                    <div className="relative h-48 w-full flex items-center justify-between px-2">
-                        {/* Factor 1 */}
-                        <div className="flex flex-col gap-2 items-center">
-                            <div className="w-12 h-12 rounded-full border-2 border-blue-400 flex items-center justify-center bg-blue-900/50 text-white font-bold text-xs relative z-10 shadow-[0_0_15px_rgba(59,130,246,0.5)]">
-                                IV
-                            </div>
-                            <div className="flex gap-1 justify-center">
-                                <div className="w-6 h-4 border border-blue-300/50 bg-white/5 mx-auto mb-1"></div>
-                                <div className="w-6 h-4 border border-blue-300/50 bg-white/5 mx-auto mb-1"></div>
-                            </div>
-                        </div>
-
-                        {/* Arrow */}
-                        <div className="flex-1 h-0.5 bg-gradient-to-r from-blue-400 to-green-400 relative mx-2">
-                            <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] text-white bg-black/50 px-1 rounded">β = 0.45***</div>
-                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 border-t-2 border-r-2 border-green-400 rotate-45"></div>
-                        </div>
-
-                        {/* Factor 2 */}
-                        <div className="flex flex-col gap-2 items-center">
-                            <div className="w-12 h-12 rounded-full border-2 border-green-400 flex items-center justify-center bg-green-900/50 text-white font-bold text-xs relative z-10 shadow-[0_0_15px_rgba(74,222,128,0.5)]">
-                                DV
-                            </div>
-                            <div className="flex gap-1 justify-center">
-                                <div className="w-6 h-4 border border-green-300/50 bg-white/5 mx-auto mb-1"></div>
-                                <div className="w-6 h-4 border border-green-300/50 bg-white/5 mx-auto mb-1"></div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="mt-2 text-[10px] text-white/50 text-center font-mono">
-                        Global Fit: CFI=0.98, TLI=0.97, RMSEA=0.04
-                    </div>
-                </div>
-
+            {/* Disclaimer Footer */}
+            <div className="absolute bottom-4 left-0 w-full text-center text-slate-600 text-[10px] font-mono">
+                POWERED BY NCS.STAT ENGINE • WEBASSEMBLY ACCELERATED • SCIENTIFIC STANDARD
             </div>
         </div>
     );
 }
 
-function FlowStep({ active, completed, display, icon, title, description, isLast }: any) {
+// Indicator Component for List
+function StepIndicator({ active, title, desc }: { active: boolean, title: string, desc: string }) {
     return (
-        <div className={`relative flex items-center gap-6 mb-10 ${isLast ? 'mb-0' : ''}`}>
-            {/* Dot/Icon Circle */}
-            <div
-                className={`
-                    flex-shrink-0 w-16 h-16 rounded-2xl flex items-center justify-center border transition-all duration-500 z-10 relative
-                    ${active
-                        ? 'bg-blue-600 border-blue-400 text-white shadow-[0_0_30px_rgba(37,99,235,0.6)] scale-110 rotate-3'
-                        : completed
-                            ? 'bg-blue-900/40 border-blue-800 text-blue-400 grayscale'
-                            : 'bg-transparent border-white/10 text-white/20'
-                    }
-                `}
-            >
-                {icon}
-                {/* Active pulse ring */}
-                {active && <div className="absolute inset-0 rounded-2xl border border-blue-400 animate-ping opacity-50"></div>}
-            </div>
-
-            {/* Content */}
-            <div className={`transition-all duration-500 ${active ? 'opacity-100 translate-x-2' : 'opacity-40 translate-x-0'}`}>
-                <h3 className={`font-bold text-xl mb-1 tracking-wide ${active ? 'text-white' : 'text-blue-100'}`}>
-                    {title}
-                </h3>
-                <p className="text-sm text-blue-200/60 leading-relaxed font-light">
-                    {description}
-                </p>
+        <div className={`flex items-center gap-4 transition-all duration-500 ${active ? 'opacity-100 translate-x-2' : 'opacity-40'}`}>
+            <div className={`w-3 h-3 rounded-full transition-all duration-500 ${active ? 'bg-cyan-400 scale-125 shadow-[0_0_10px_#22d3ee]' : 'bg-slate-700'}`}></div>
+            <div>
+                <div className={`text-sm font-bold uppercase tracking-wider ${active ? 'text-white' : 'text-slate-400'}`}>{title}</div>
+                <div className="text-xs text-slate-500 font-light">{desc}</div>
             </div>
         </div>
-    );
+    )
 }
