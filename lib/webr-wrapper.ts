@@ -83,12 +83,13 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 }
 
                 // Step 2: Install required packages & dependencies
-                // Explicitly install quadprog from R-Universe first because it's missing in default repo
+                // Explicitly install quadprog from R-Universe first using WebR's binary installer
                 updateProgress('Đang tải thư viện nền (quadprog)...');
                 try {
-                    await webR.evalR('install.packages("quadprog", repos = "https://cran.r-universe.dev")');
+                    // @ts-ignore - installPackages supports options in newer versions, trusting override or standard API
+                    await webR.installPackages(['quadprog'], { repos: 'https://cran.r-universe.dev/' });
                 } catch (qError) {
-                    console.warn('Quadprog manual install warning:', qError);
+                    console.warn('Quadprog install warning:', qError);
                 }
 
                 updateProgress('Đang tải thư viện thống kê (lavaan dependencies)...');
