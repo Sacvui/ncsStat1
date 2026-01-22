@@ -22,8 +22,9 @@ export async function GET(request: Request) {
 
     if (code) {
         const cookieStore = await cookies()
-        const cookiesToSetOnResponse: { name: string; value: string; options: any }[] = []
 
+        // Standard createServerClient just to do the exchange.
+        // We don't rely on it for cookies anymore, but we keep the options consistent.
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,53 +34,92 @@ export async function GET(request: Request) {
                         return cookieStore.getAll()
                     },
                     setAll(cookiesToSet) {
+                        // We still allow this to try, but our main reliance is now on the client-side script
                         try {
-                            cookiesToSet.forEach(({ name, value, options }) => {
-                                // Update the store for consistency (though redirect might ignore it)
+                            cookiesToSet.forEach(({ name, value, options }) =>
                                 cookieStore.set(name, value, {
                                     ...options,
                                     secure: useSecureCookies,
                                     sameSite: 'lax',
                                     path: '/',
                                 })
-                                // Capture for manual setting on response
-                                cookiesToSetOnResponse.push({
-                                    name,
-                                    value,
-                                    options: {
-                                        ...options,
-                                        secure: useSecureCookies,
-                                        sameSite: 'lax',
-                                        path: '/',
-                                    }
-                                })
-                            })
-                        } catch (err) {
-                            console.log('[AuthCallback] cookieStore.set error:', err)
-                        }
+                            )
+                        } catch { }
                     },
                 },
-                cookieOptions: {
-                    secure: useSecureCookies,
-                    sameSite: 'lax',
-                    path: '/',
-                }
             }
         )
 
         const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
         if (!error && data?.session) {
-            console.log(`[AuthCallback] Session exchange successful. Capturing ${cookiesToSetOnResponse.length} cookies.`)
+            console.log(`[AuthCallback] Session exchange successful.`)
 
-            const response = NextResponse.redirect(`${publicOrigin}${next}`)
+            // Client-Side Redirect Strategy
+            // We return an HTML page that serves as a bridge. 
+            // It initializes the Supabase client relative to the browser (so cookies work naturally)
+            // and sets the session found by the server.
 
-            cookiesToSetOnResponse.forEach(({ name, value, options }) => {
-                console.log(`[AuthCallback] Setting On Response: ${name}`)
-                response.cookies.set(name, value, options)
+            const html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Finalizing Login...</title>
+                <meta charset="utf-8">
+                <style>
+                    body { font-family: system-ui, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background: #f9fafe; color: #333; }
+                    .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3b82f6; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 20px; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                </style>
+                <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+            </head>
+            <body>
+                <div class="loader"></div>
+                <h2>Hoàn tất đăng nhập...</h2>
+                <p>Vui lòng đợi trong giây lát</p>
+                
+                <script>
+                    const supabaseUrl = '${process.env.NEXT_PUBLIC_SUPABASE_URL}';
+                    const supabaseKey = '${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}';
+                    const session = ${JSON.stringify(data.session)};
+                    const redirectUrl = '${next}';
+
+                    // Initialize client
+                    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+                    async function setSessionAndRedirect() {
+                        try {
+                            // Manual check first
+                            const { error } = await supabase.auth.setSession({
+                                access_token: session.access_token,
+                                refresh_token: session.refresh_token
+                            });
+                            
+                            if (error) {
+                                console.error('Set session error:', error);
+                                window.location.href = '/login?error=' + encodeURIComponent(error.message);
+                            } else {
+                                // Success - redirect
+                                window.location.href = redirectUrl;
+                            }
+                        } catch (e) {
+                            console.error('Finalization error:', e);
+                            window.location.href = '/login?error=client-side-error';
+                        }
+                    }
+
+                    // Run immediately
+                    setSessionAndRedirect();
+                </script>
+            </body>
+            </html>
+            `
+
+            return new Response(html, {
+                headers: {
+                    'Content-Type': 'text/html',
+                },
             })
-
-            return response
         } else if (error) {
             console.log('[AuthCallback] Exchange error:', error.message)
         }
