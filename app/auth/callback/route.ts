@@ -3,9 +3,19 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
-    const { searchParams, origin } = new URL(request.url)
-    const code = searchParams.get('code')
-    const next = searchParams.get('next') ?? '/'
+    const requestUrl = new URL(request.url)
+    const code = requestUrl.searchParams.get('code')
+    const next = requestUrl.searchParams.get('next') ?? '/'
+
+    // Get true origin for redirection
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'http'
+    const host = request.headers.get('host')
+
+    // Construct the public origin
+    const publicOrigin = (forwardedHost)
+        ? `${forwardedProto}://${forwardedHost}`
+        : requestUrl.origin
 
     if (code) {
         const cookieStore = await cookies()
@@ -23,31 +33,20 @@ export async function GET(request: Request) {
                                 cookieStore.set(name, value, options)
                             )
                         } catch {
-                            // The `setAll` method was called from a Server Component.
-                            // This can be ignored if you have middleware refreshing
-                            // user sessions.
+                            // This can be ignored if middleware is refreshing
                         }
                     },
                 },
             }
         )
+
         const { error } = await supabase.auth.exchangeCodeForSession(code)
         if (!error) {
-            const forwardedHost = request.headers.get('x-forwarded-host') // valid logic for proxy?
-            const isLocal = process.env.NODE_ENV === 'development'
-
-            let redirectUrl = `${origin}${next}`
-            if (!isLocal && forwardedHost) {
-                redirectUrl = `https://${forwardedHost}${next}`
-            } else if (isLocal && forwardedHost) {
-                // Even in dev, if forwarded host exists (likely tunnel), use it
-                redirectUrl = `https://${forwardedHost}${next}`
-            }
-
-            return NextResponse.redirect(redirectUrl)
+            // Success: redirect to the 'next' destination on the public origin
+            return NextResponse.redirect(`${publicOrigin}${next}`)
         }
     }
 
-    // return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/login?error=auth-code-error`)
+    // Failure: redirect back to login with error
+    return NextResponse.redirect(`${publicOrigin}/login?error=auth-code-error`)
 }

@@ -8,7 +8,7 @@ export function createClient() {
             cookieOptions: {
                 // Ensure cookies are available across redirects and subdomains if needed
                 sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production',
+                secure: typeof window !== 'undefined' && (window.location.protocol === 'https:' || process.env.NODE_ENV === 'production'),
                 path: '/',
             }
         }

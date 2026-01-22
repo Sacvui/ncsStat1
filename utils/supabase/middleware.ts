@@ -38,6 +38,12 @@ export async function updateSession(request: NextRequest) {
                         )
                     },
                 },
+                cookieOptions: {
+                    // Try to be explicit about security if we are on HTTPS
+                    secure: request.nextUrl.protocol === 'https:' || process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    path: '/',
+                }
             }
         )
 
