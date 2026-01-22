@@ -8,9 +8,11 @@ export function createClientOnly() {
         {
             auth: {
                 flowType: 'pkce',
-                detectSessionInUrl: false, // We handle the code exchange manually
-                persistSession: true, // Allow localStorage persistence for the handshake
-                storage: typeof window !== 'undefined' ? window.localStorage : undefined
+                detectSessionInUrl: false,
+                persistSession: true,
+                storageKey: 'ncs_auth_token', // Explicit key to ensure consistency
+                storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+                debug: true // Enable debug logs
             }
         }
     )
