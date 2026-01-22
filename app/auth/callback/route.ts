@@ -9,13 +9,15 @@ export async function GET(request: Request) {
 
     // Get true origin for redirection
     const forwardedHost = request.headers.get('x-forwarded-host')
-    const forwardedProto = request.headers.get('x-forwarded-proto') || 'http'
-    const host = request.headers.get('host')
+    const forwardedProto = request.headers.get('x-forwarded-proto')
 
-    // Construct the public origin
+    // Construct the public origin. If behind a proxy, assume https for safety unless explicitly http
     const publicOrigin = (forwardedHost)
-        ? `${forwardedProto}://${forwardedHost}`
+        ? `https://${forwardedHost}` // Force https for the public domain
         : requestUrl.origin
+
+    const isHttps = forwardedProto === 'https' || publicOrigin.startsWith('https')
+    const isProduction = process.env.NODE_ENV === 'production'
 
     if (code) {
         const cookieStore = await cookies()
@@ -30,7 +32,12 @@ export async function GET(request: Request) {
                     setAll(cookiesToSet) {
                         try {
                             cookiesToSet.forEach(({ name, value, options }) =>
-                                cookieStore.set(name, value, options)
+                                cookieStore.set(name, value, {
+                                    ...options,
+                                    secure: isHttps || isProduction,
+                                    sameSite: 'lax',
+                                    path: '/',
+                                })
                             )
                         } catch {
                             // This can be ignored if middleware is refreshing
