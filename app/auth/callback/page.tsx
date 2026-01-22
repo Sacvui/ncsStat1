@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { Loader2 } from 'lucide-react'
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
     const router = useRouter()
     const searchParams = useSearchParams()
 
@@ -67,5 +67,18 @@ export default function AuthCallbackPage() {
             <h2 className="text-xl font-semibold">{status}</h2>
             <p className="text-sm text-gray-400 mt-2">Dữ liệu đang được xác thực trực tiếp trên trình duyệt...</p>
         </div>
+    )
+}
+
+export default function AuthCallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#f9fafe] text-gray-600">
+                <Loader2 className="w-10 h-10 animate-spin text-blue-600 mb-4" />
+                <h2 className="text-xl font-semibold">Đang tải...</h2>
+            </div>
+        }>
+            <AuthCallbackContent />
+        </Suspense>
     )
 }
