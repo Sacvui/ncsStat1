@@ -7,14 +7,16 @@ export async function GET(request: Request) {
     const code = requestUrl.searchParams.get('code')
     const next = requestUrl.searchParams.get('next') ?? '/'
 
-    // Get true origin for redirection
+    const host = request.headers.get('host')
     const forwardedHost = request.headers.get('x-forwarded-host')
     const forwardedProto = request.headers.get('x-forwarded-proto')
+    console.log(`[AuthCallback] Host: ${host}, ForwardedHost: ${forwardedHost}, ForwardedProto: ${forwardedProto}`)
 
     // Construct the public origin. If behind a proxy, assume https for safety unless explicitly http
     const publicOrigin = (forwardedHost)
         ? `https://${forwardedHost}` // Force https for the public domain
         : requestUrl.origin
+    console.log(`[AuthCallback] PublicOrigin: ${publicOrigin}`)
 
     const isHttps = forwardedProto === 'https' || publicOrigin.startsWith('https') || process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
     const isProduction = process.env.NODE_ENV === 'production'

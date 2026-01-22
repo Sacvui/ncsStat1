@@ -17,9 +17,19 @@ export async function updateSession(request: NextRequest) {
         return response
     }
 
-    const isHttps = request.headers.get('x-forwarded-proto') === 'https' || request.nextUrl.protocol === 'https:'
-    const isProduction = process.env.NODE_ENV === 'production'
+    const host = request.headers.get('host')
+    const forwardedHost = request.headers.get('x-forwarded-host')
+    const forwardedProto = request.headers.get('x-forwarded-proto')
+    const isHttps = forwardedProto === 'https' || request.nextUrl.protocol === 'https:'
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
     const useSecureCookies = isHttps || isProduction
+
+    // DIAGNOSTIC LOGGING
+    const sbCookies = request.cookies.getAll().filter(c => c.name.startsWith('sb-'))
+    console.log(`[Middleware] Path: ${request.nextUrl.pathname}, Host: ${host}, ForwardedHost: ${forwardedHost}, Proto: ${forwardedProto}, Https: ${isHttps}, SB Cookies Found: ${sbCookies.length}`)
+    if (sbCookies.length > 0) {
+        console.log(`[Middleware] Cookie Names: ${sbCookies.map(c => c.name).join(', ')}`)
+    }
 
     try {
         const supabase = createServerClient(
@@ -42,7 +52,7 @@ export async function updateSession(request: NextRequest) {
                                 ...options,
                                 secure: useSecureCookies,
                                 sameSite: 'lax',
-                                path: '/', // Ensure path is always root
+                                path: '/',
                             })
                         )
                     },
@@ -57,7 +67,13 @@ export async function updateSession(request: NextRequest) {
 
         const {
             data: { user },
+            error: userError
         } = await supabase.auth.getUser()
+
+        if (userError) {
+            console.log(`[Middleware] auth.getUser error: ${userError.message}`)
+        }
+        console.log(`[Middleware] User ID: ${user?.id || 'null'}`)
 
         // Protected routes
         if (
