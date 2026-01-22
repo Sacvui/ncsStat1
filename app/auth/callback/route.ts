@@ -12,18 +12,18 @@ export async function GET(request: Request) {
     const forwardedProto = request.headers.get('x-forwarded-proto')
     console.log(`[AuthCallback] Host: ${host}, ForwardedHost: ${forwardedHost}, ForwardedProto: ${forwardedProto}`)
 
-    // Construct the public origin. If behind a proxy, assume https for safety unless explicitly http
     const publicOrigin = (forwardedHost)
-        ? `https://${forwardedHost}` // Force https for the public domain
+        ? `https://${forwardedHost}`
         : requestUrl.origin
     console.log(`[AuthCallback] PublicOrigin: ${publicOrigin}`)
 
     const isHttps = forwardedProto === 'https' || publicOrigin.startsWith('https') || process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
-    const isProduction = process.env.NODE_ENV === 'production'
-    const useSecureCookies = isHttps || isProduction
+    const useSecureCookies = isHttps
 
     if (code) {
         const cookieStore = await cookies()
+        const cookiesToSetOnResponse: { name: string; value: string; options: any }[] = []
+
         const supabase = createServerClient(
             process.env.NEXT_PUBLIC_SUPABASE_URL!,
             process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -34,16 +34,28 @@ export async function GET(request: Request) {
                     },
                     setAll(cookiesToSet) {
                         try {
-                            cookiesToSet.forEach(({ name, value, options }) =>
+                            cookiesToSet.forEach(({ name, value, options }) => {
+                                // Update the store for consistency (though redirect might ignore it)
                                 cookieStore.set(name, value, {
                                     ...options,
                                     secure: useSecureCookies,
                                     sameSite: 'lax',
                                     path: '/',
                                 })
-                            )
-                        } catch {
-                            // This can be ignored if middleware is refreshing
+                                // Capture for manual setting on response
+                                cookiesToSetOnResponse.push({
+                                    name,
+                                    value,
+                                    options: {
+                                        ...options,
+                                        secure: useSecureCookies,
+                                        sameSite: 'lax',
+                                        path: '/',
+                                    }
+                                })
+                            })
+                        } catch (err) {
+                            console.log('[AuthCallback] cookieStore.set error:', err)
                         }
                     },
                 },
@@ -55,13 +67,23 @@ export async function GET(request: Request) {
             }
         )
 
-        const { error } = await supabase.auth.exchangeCodeForSession(code)
-        if (!error) {
-            // Success: redirect to the 'next' destination on the public origin
-            return NextResponse.redirect(`${publicOrigin}${next}`)
+        const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+        if (!error && data?.session) {
+            console.log(`[AuthCallback] Session exchange successful. Capturing ${cookiesToSetOnResponse.length} cookies.`)
+
+            const response = NextResponse.redirect(`${publicOrigin}${next}`)
+
+            cookiesToSetOnResponse.forEach(({ name, value, options }) => {
+                console.log(`[AuthCallback] Setting On Response: ${name}`)
+                response.cookies.set(name, value, options)
+            })
+
+            return response
+        } else if (error) {
+            console.log('[AuthCallback] Exchange error:', error.message)
         }
     }
 
-    // Failure: redirect back to login with error
     return NextResponse.redirect(`${publicOrigin}/login?error=auth-code-error`)
 }
