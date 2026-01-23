@@ -26,7 +26,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
         // Validate input data
         if (!results) {
-            throw new Error('Không có dữ liệu để xuất PDF');
+            throw new Error('No data to export PDF');
         }
 
         // Helper to load font
@@ -66,7 +66,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             // Timestamp
             doc.setFontSize(8);
             doc.setTextColor(150);
-            doc.text(`Exported: ${new Date().toLocaleString('vi-VN')}`, pageWidth - 15, 36, { align: 'right' });
+            doc.text(`Exported: ${new Date().toLocaleString('en-US')}`, pageWidth - 15, 36, { align: 'right' });
 
             // Branding Line
             doc.setDrawColor(200);
@@ -120,16 +120,16 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             doc.text(`Cronbach's Alpha: ${alpha.toFixed(3)}`, 15, yPos);
             yPos += 7;
 
-            let evalText = alpha >= 0.9 ? 'Xuất sắc' : alpha >= 0.7 ? 'Chấp nhận được' : 'Kém';
-            doc.text(`Đánh giá: ${evalText}`, 15, yPos);
+            let evalText = alpha >= 0.9 ? 'Excellent' : alpha >= 0.7 ? 'Acceptable' : 'Poor';
+            doc.text(`Evaluation: ${evalText}`, 15, yPos);
             yPos += 10;
 
             if (results.itemTotalStats && Array.isArray(results.itemTotalStats) && results.itemTotalStats.length > 0) {
                 checkPageBreak(50);
-                doc.text('Thống kê Item-Total:', 15, yPos);
+                doc.text('Item-Total Statistics:', 15, yPos);
                 yPos += 5;
 
-                const headers = [['Biến', 'Scale Mean if Deleted', 'Corrected Item-Total Cor.', 'Alpha if Deleted']];
+                const headers = [['Variable', 'Scale Mean if Deleted', 'Corrected Item-Total Cor.', 'Alpha if Deleted']];
                 const data = results.itemTotalStats.map((item: any, idx: number) => [
                     columns[idx] || item.itemName || `Item ${idx + 1}`,
                     (item.scaleMeanIfDeleted ?? 0).toFixed(3),
@@ -151,7 +151,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             doc.text('Independent Samples T-Test:', 15, yPos);
             yPos += 10;
 
-            const headers1 = [['Nhóm', 'Mean', 'N (Sample)']];
+            const headers1 = [['Group', 'Mean', 'N (Sample)']];
             const data1 = [
                 ['Group 1', results.mean1.toFixed(2), '-'],
                 ['Group 2', results.mean2.toFixed(2), '-']
@@ -187,8 +187,8 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
             if (results.varTestP !== undefined) {
                 doc.setFontSize(9);
-                const varMsg = results.varTestP < 0.05 ? "Phương sai không đồng nhất" : "Phương sai đồng nhất";
-                doc.text(`* Kiểm định Levene: p = ${results.varTestP.toFixed(3)} (${varMsg})`, 15, yPos);
+                const varMsg = results.varTestP < 0.05 ? "Violated (Welch t-test used)" : "Assumed Equal Variance";
+                doc.text(`* Levene's Test: p = ${results.varTestP.toFixed(3)} (${varMsg})`, 15, yPos);
                 yPos += 15;
                 doc.setFontSize(10);
             }
@@ -197,10 +197,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             doc.text('Paired Samples T-Test:', 15, yPos);
             yPos += 10;
 
-            const headers1 = [['Thời điểm', 'Mean']];
+            const headers1 = [['Time', 'Mean']];
             const data1 = [
-                [`Trước (${columns[0] || 'V1'})`, results.meanBefore.toFixed(2)],
-                [`Sau (${columns[1] || 'V2'})`, results.meanAfter.toFixed(2)]
+                [`Before (${columns[0] || 'V1'})`, results.meanBefore.toFixed(2)],
+                [`After (${columns[1] || 'V2'})`, results.meanAfter.toFixed(2)]
             ];
             autoTable(doc, {
                 ...commonTableOptions, startY: yPos, head: headers1, body: data1, theme: 'plain', tableWidth: 80
@@ -246,9 +246,9 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             // Group Means
             if (results.groupMeans) {
                 checkPageBreak(40);
-                doc.text('Trung bình các nhóm (Group Means):', 15, yPos);
+                doc.text('Group Means:', 15, yPos);
                 yPos += 5;
-                const hMeans = [['Nhóm', 'Mean']];
+                const hMeans = [['Group', 'Mean']];
                 const dMeans = columns.map((col, i) => [col, results.groupMeans[i]?.toFixed(3) || '-']);
                 if (results.grandMean) dMeans.push(['Grand Mean', results.grandMean.toFixed(3)]);
 
@@ -287,7 +287,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             const { modelFit, coefficients, equation } = results;
 
             doc.setFontSize(10);
-            doc.text(`Phương trình: ${equation}`, 15, yPos, { maxWidth: 180 });
+            doc.text(`Equation: ${equation}`, 15, yPos, { maxWidth: 180 });
             yPos += 15;
 
             checkPageBreak();
@@ -296,7 +296,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             doc.text(`F: ${modelFit.fStatistic.toFixed(2)} | Sig: ${modelFit.pValue < 0.001 ? '< .001' : modelFit.pValue.toFixed(3)}`, 15, yPos);
             yPos += 10;
 
-            const headers = [['Biến', 'B', 'Std. Error', 't', 'Sig.', 'VIF']];
+            const headers = [['Variable', 'B', 'Std. Error', 't', 'Sig.', 'VIF']];
             const data = coefficients.map((c: any) => [
                 c.term,
                 c.estimate.toFixed(3),
@@ -328,7 +328,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             }
 
             if (results.loadings) {
-                const headers = [['Biến', ...Array(results.loadings[0].length).fill(0).map((_, i) => `F${i + 1}`)]];
+                const headers = [['Variable', ...Array(results.loadings[0].length).fill(0).map((_, i) => `Factor ${i + 1}`)]];
                 const data = results.loadings.map((row: number[], i: number) => {
                     return [`Var ${i + 1} (${columns[i] || ''})`, ...row.map(v => v.toFixed(3))];
                 });
@@ -347,10 +347,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
             if (fitMeasures) {
                 checkPageBreak();
-                doc.text('Chỉ số độ phù hợp mô hình (Model Fit):', 15, yPos);
+                doc.text('Model Fit Indices:', 15, yPos);
                 yPos += 5;
 
-                const fitHeaders = [['Chỉ số', 'Giá trị']];
+                const fitHeaders = [['Index', 'Value']];
                 const fitOrder = ['chisq', 'df', 'pvalue', 'cfi', 'tli', 'rmsea', 'srmr'];
                 const fitLabels: any = { chisq: 'Chi-square', df: 'df', pvalue: 'P-value', cfi: 'CFI', tli: 'TLI', rmsea: 'RMSEA', srmr: 'SRMR' };
 
@@ -369,7 +369,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
             if (estimates) {
                 checkPageBreak();
-                doc.text('Ước lượng tham số (CFA/SEM Estimates):', 15, yPos);
+                doc.text('Parameter Estimates:', 15, yPos);
                 yPos += 5;
 
                 const estHeaders = [['LHS', 'Op', 'RHS', 'Est', 'Std.Err', 'z', 'P(>|z|)', 'Std.All']];
@@ -397,10 +397,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         }
         else if (analysisType === 'descriptive') {
             doc.setFontSize(14);
-            doc.text('Thống kê miêu tả (Descriptive Statistics):', 15, yPos);
+            doc.text('Descriptive Statistics:', 15, yPos);
             yPos += 10;
 
-            const headers = [['Biến', 'Mean', 'SD', 'Min', 'Max', 'Skew', 'Kurtosis']];
+            const headers = [['Variable', 'Mean', 'SD', 'Min', 'Max', 'Skew', 'Kurtosis']];
             if (results.mean && results.mean.length > 0) {
                 const data = results.mean.map((_: any, i: number) => [
                     columns[i] || `Var ${i + 1}`,
@@ -423,9 +423,9 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             }
         }
         else if (analysisType === 'correlation') {
-            doc.text('Ma trận tương quan (Pearson Correlation):', 15, yPos);
+            doc.text('Correlation Matrix (Pearson):', 15, yPos);
             yPos += 10;
-            const colHeaders = ['Biến', ...(columns.length > 0 ? columns : Array(results.correlationMatrix.length).fill(0).map((_, i) => `V${i + 1}`))];
+            const colHeaders = ['Variable', ...(columns.length > 0 ? columns : Array(results.correlationMatrix.length).fill(0).map((_, i) => `V${i + 1}`))];
             const data = results.correlationMatrix.map((row: number[], i: number) => [
                 columns[i] || `V${i + 1}`,
                 ...row.map((val: number, j: number) => {
@@ -468,7 +468,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
             doc.setFontSize(14);
             doc.setFont('NotoSans', 'bold');
-            doc.text('Biểu đồ trực quan (Charts)', 15, yPos);
+            doc.text('Visual Charts', 15, yPos);
             yPos += 15;
 
             for (const imgData of chartImages) {
@@ -494,10 +494,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         yPos += 10;
 
         doc.setFontSize(9);
-        doc.setFont("times", "italic"); // Use standard font for citation if possible, or fallback
+        doc.setFont("times", "italic");
         doc.setTextColor(80);
 
-        const citation1 = "Dữ liệu được phân tích bằng ngôn ngữ lập trình R (R Core Team, 2023) thông qua nền tảng ncsStat (Le, 2026). Các phân tích độ tin cậy và nhân tố được thực hiện bằng các package psych (Revelle, 2023) và lavaan (Rosseel, 2012).";
+        const citation1 = "Data analyzed using R (R Core Team, 2023) via ncsStat platform (Le, 2026). Reliability and factor analyses performed using psych (Revelle, 2023) and lavaan (Rosseel, 2012) packages.";
         const citation2 = "Le, P. H. (2026). ncsStat: A Web-Based Statistical Analysis Platform for Psychometric Analysis. Available at https://ncsstat.ncskit.org";
 
         // Split text to fit width
