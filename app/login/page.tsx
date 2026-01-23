@@ -20,30 +20,11 @@ function LoginForm() {
     const [loading, setLoading] = useState<string | null>(null)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+    // AUTH BYPASS: Directly navigate to analyze page without authentication
     const handleLogin = async (provider: 'google' | 'linkedin_oidc') => {
-        try {
-            setLoading(provider)
-            setErrorMsg(null)
-            const supabase = createClientOnly()
-
-            const redirectTo = next
-                ? `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`
-                : `${window.location.origin}/auth/callback`
-
-            const { error } = await supabase.auth.signInWithOAuth({
-                provider: provider,
-                options: {
-                    redirectTo,
-                    skipBrowserRedirect: false // Ensure we definitely want the redirect
-                },
-            })
-
-            if (error) throw error
-        } catch (err: any) {
-            console.error('Login error:', err)
-            setErrorMsg(err.message || 'Đăng nhập thất bại')
-            setLoading(null)
-        }
+        setLoading(provider)
+        // Redirect directly to analyze page (bypassing OAuth for testing)
+        window.location.href = next || '/analyze'
     }
 
     return (

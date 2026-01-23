@@ -39,50 +39,13 @@ export default function AnalyzePage() {
     const [userProfile, setUserProfile] = useState<any>(null); // New User Profile State
     const [loading, setLoading] = useState(true);
 
+    // AUTH BYPASS: Skip authentication check for testing
     useEffect(() => {
-        const supabase = createClient()
-        let channel: any
-
-        const checkUser = async () => {
-            const { data: { user } } = await supabase.auth.getUser()
-
-            if (!user) {
-                router.push('/login?next=/analyze')
-            } else {
-                setUser(user)
-                // Fetch User Profile for AI Context
-                const { data: profile } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('id', user.id)
-                    .single()
-                if (profile) setUserProfile(profile)
-
-                // Subscribe to real-time changes
-                channel = supabase
-                    .channel(`profile-${user.id}`)
-                    .on(
-                        'postgres_changes',
-                        {
-                            event: '*',
-                            schema: 'public',
-                            table: 'profiles',
-                            filter: `id=eq.${user.id}`,
-                        },
-                        (payload) => {
-                            setUserProfile(payload.new)
-                        }
-                    )
-                    .subscribe()
-            }
-            setLoading(false)
-        }
-        checkUser()
-
-        return () => {
-            if (channel) supabase.removeChannel(channel)
-        }
-    }, [router])
+        // Immediately set loading to false without checking auth
+        setLoading(false)
+        // Set a mock user for testing purposes
+        setUser({ id: 'test-user', email: 'test@example.com' })
+    }, [])
     // Session State Management
     const {
         isPrivateMode, setIsPrivateMode,
