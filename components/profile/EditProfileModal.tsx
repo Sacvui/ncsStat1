@@ -83,20 +83,62 @@ export default function EditProfileModal({
         }
     }
 
+    // Image Upload Handler
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!e.target.files || e.target.files.length === 0) {
+            return
+        }
+
+        let file = e.target.files[0]
+
+        setLoading(true)
+        setMessage(null)
+
+        try {
+            // Client-side Compression: Resize to 300x300, WebP, 80% Quality
+            try {
+                const { compressImage } = await import('@/utils/imageHelper');
+                file = await compressImage(file, 300, 300, 0.8);
+            } catch (compError) {
+                console.warn('Compression failed, falling back to original:', compError);
+            }
+
+            const fileName = `${user.id}/${Date.now()}.webp`
+            const filePath = `${fileName}`
+
+            // Upload compressed file
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file, {
+                    contentType: 'image/webp',
+                    upsert: true
+                })
+
+            if (uploadError) throw uploadError
+
+            const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
+            setAvatarUrl(data.publicUrl)
+            setMessage({ text: 'Tải ảnh lên thành công!', type: 'success' })
+        } catch (error: any) {
+            setMessage({ text: 'Lỗi upload: ' + error.message, type: 'error' })
+        } finally {
+            setLoading(false)
+        }
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-8">
+                {/* ... Header ... */}
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                     <h3 className="font-bold text-slate-900 text-lg">Cập nhật thông tin cá nhân</h3>
-                    <button
-                        onClick={onClose}
-                        className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100"
-                    >
+                    <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-1 rounded-full hover:bg-slate-100">
                         <X className="w-5 h-5" />
                     </button>
                 </div>
 
                 <form onSubmit={handleUpdate} className="p-6 space-y-6">
+                    {/* ... Message ... */}
                     {message && (
                         <div className={`p-3 rounded-lg text-sm font-medium ${message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>
                             {message.text}
@@ -108,6 +150,32 @@ export default function EditProfileModal({
                         <div className="space-y-4">
                             <h4 className="font-semibold text-slate-800 border-b pb-2">Thông tin cơ bản</h4>
 
+                            {/* Avatar Section */}
+                            <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 hover:border-blue-400 transition-colors">
+                                <div className="relative group cursor-pointer">
+                                    <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white shadow-md">
+                                        {(avatarUrl || user?.user_metadata?.avatar_url) ? (
+                                            <img src={avatarUrl || user?.user_metadata?.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl">
+                                                {fullName?.[0]?.toUpperCase() || 'U'}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
+                                        <span className="text-xs font-medium">Thay đổi</span>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={handleImageUpload}
+                                            className="hidden"
+                                            disabled={loading}
+                                        />
+                                    </label>
+                                </div>
+                                <p className="text-xs text-slate-500 mt-2">Nhấn vào ảnh để tải lên</p>
+                            </div>
+
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-700">Họ và tên</label>
                                 <input
@@ -118,22 +186,8 @@ export default function EditProfileModal({
                                     placeholder="Nhập họ tên đầy đủ"
                                 />
                             </div>
-
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium text-slate-700">Avatar URL</label>
-                                <input
-                                    type="text"
-                                    value={avatarUrl}
-                                    onChange={(e) => setAvatarUrl(e.target.value)}
-                                    className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-mono text-slate-600"
-                                    placeholder="https://..."
-                                />
-                                {avatarUrl && (
-                                    <div className="w-12 h-12 rounded-lg overflow-hidden border border-slate-100 mt-2">
-                                        <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" />
-                                    </div>
-                                )}
-                            </div>
+                            {/* Hidden Avatar URL Input (for manual override if needed, or remove) */}
+                            {/* <input type="hidden" value={avatarUrl} /> */}
 
                             <div className="space-y-2">
                                 <label className="text-sm font-medium text-slate-700 flex items-center gap-2">

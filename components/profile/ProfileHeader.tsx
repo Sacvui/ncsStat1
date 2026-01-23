@@ -32,9 +32,13 @@ export default function ProfileHeader({ user, profile }: { user: any, profile: P
             </button>
 
             <div className="flex flex-col items-center">
-                {profile?.avatar_url ? (
+                {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
                     <div className="relative">
-                        <img src={profile.avatar_url} alt="Avatar" className="w-24 h-24 rounded-full mb-4 ring-4 ring-blue-50 object-cover" />
+                        <img
+                            src={profile?.avatar_url || user?.user_metadata?.avatar_url}
+                            alt="Avatar"
+                            className="w-24 h-24 rounded-full mb-4 ring-4 ring-blue-50 object-cover"
+                        />
                         <button
                             onClick={() => setIsEditOpen(true)}
                             className="absolute bottom-4 right-0 w-8 h-8 bg-white rounded-full border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors"
