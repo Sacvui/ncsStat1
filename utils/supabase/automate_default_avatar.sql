@@ -1,6 +1,6 @@
 -- 1. Update existing users with missing avatars
 UPDATE public.profiles 
-SET avatar_url = '/default-avatar.png' 
+SET avatar_url = '/webr/default-avatar.png' 
 WHERE avatar_url IS NULL OR avatar_url = '' OR avatar_url = 'N/A';
 
 -- 2. Modify the signup trigger to handle future users
@@ -13,7 +13,7 @@ BEGIN
   VALUES (
     new.id, 
     new.raw_user_meta_data->>'full_name', 
-    COALESCE(new.raw_user_meta_data->>'avatar_url', '/default-avatar.png'), 
+    COALESCE(new.raw_user_meta_data->>'avatar_url', '/webr/default-avatar.png'), 
     new.email
   );
   RETURN new;
