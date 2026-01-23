@@ -1593,11 +1593,23 @@ export default function AnalyzePage() {
                                 </button>
                                 <button
                                     onClick={handleExportPDF}
-                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
+                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
                                 >
                                     <FileText className="w-5 h-5" />
                                     Xuất PDF
                                 </button>
+                                <div className="relative group">
+                                    <button
+                                        disabled
+                                        className="px-6 py-3 bg-blue-400 text-white font-semibold rounded-lg flex items-center gap-2 cursor-not-allowed opacity-70"
+                                    >
+                                        <FileText className="w-5 h-5" />
+                                        Xuất Word
+                                    </button>
+                                    <span className="absolute -top-3 -right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                        Soon
+                                    </span>
+                                </div>
                                 <button
                                     onClick={() => {
                                         setStep('upload');

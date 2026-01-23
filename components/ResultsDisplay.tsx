@@ -45,7 +45,8 @@ export function ResultsDisplay({
     onProceedToEFA,
     onProceedToCFA,
     onProceedToSEM,
-    userProfile
+    userProfile,
+    columns
 }: ResultsDisplayProps) {
 
     const display = useMemo(() => {
@@ -76,7 +77,7 @@ export function ResultsDisplay({
             case 'chisquare':
                 return <ChiSquareResults results={results} />;
             case 'descriptive':
-                return <DescriptiveResults results={results} columns={results.columns || []} />;
+                return <DescriptiveResults results={results} columns={columns || []} />;
             default:
                 return (
                     <Card>

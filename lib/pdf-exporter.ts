@@ -27,8 +27,6 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             throw new Error('Không có dữ liệu để xuất PDF');
         }
 
-        // ... existing imports
-
         // Helper to load font
         const loadVietnameseFont = async (doc: jsPDF) => {
             try {
@@ -45,71 +43,90 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             }
         };
 
-        const addBranding = (doc: jsPDF) => {
+        const addHeader = (doc: jsPDF, showTitle = false) => {
             const pageWidth = doc.internal.pageSize.width;
+            const pageHeight = doc.internal.pageSize.height;
 
+            // --- HEADER ---
             // Logo/Brand Name
             doc.setFontSize(24);
             doc.setTextColor(41, 128, 185); // Blue color
-            doc.setFont('helvetica', 'bold'); // Use bold for logo
-            doc.text('NCS STAT', pageWidth - 20, 20, { align: 'right' });
+            doc.setFont('helvetica', 'bold');
+            doc.text('NCS STAT', pageWidth - 15, 20, { align: 'right' });
 
-            // Reset font
+            // Sub-branding info
+            doc.setFontSize(9);
+            doc.setTextColor(100);
+            doc.setFont('helvetica', 'normal');
+            doc.text('https://ncsstat.com', pageWidth - 15, 26, { align: 'right' });
+            doc.text('Powered by NCS Stat Library', pageWidth - 15, 31, { align: 'right' });
+
+            // Timestamp
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Exported: ${new Date().toLocaleString('vi-VN')}`, pageWidth - 15, 36, { align: 'right' });
+
+            // Branding Line
+            doc.setDrawColor(200);
+            doc.line(15, 40, pageWidth - 15, 40);
+
+            // Analysis Title (Only if requested, usually first page of section)
+            if (showTitle) {
+                doc.setFont('NotoSans', 'bold');
+                doc.setFontSize(16);
+                doc.setTextColor(40);
+                doc.text(title, 15, 30, { maxWidth: pageWidth - 80 });
+            }
+
+            // --- FOOTER ---
+            const pageCount = doc.getCurrentPageInfo().pageNumber;
+            doc.setFontSize(8);
+            doc.setTextColor(150);
+            doc.text(`Page ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+            // Reset font for content
             doc.setFont('NotoSans', 'normal');
             doc.setFontSize(10);
-            doc.setTextColor(100);
+            doc.setTextColor(0);
         };
 
         const doc = new jsPDF();
         await loadVietnameseFont(doc);
-        addBranding(doc);
 
-        let yPos = 30; // Start lower due to branding
+        let yPos = 55; // Start content below header
 
-        // Helper to check page break
-        const checkPageBreak = (height: number = 10) => {
-            if (yPos + height > 280) {
+        // Page break helper that resets Y but relies on final loop for headers
+        const checkPageBreak = (height: number = 20) => {
+            if (yPos + height > 270) {
                 doc.addPage();
-                addBranding(doc); // Re-add branding on new page? Or just page num.
-                // Usually branding is only on first page or header. Let's keep it clean on subsequent pages.
-                yPos = 20;
+                yPos = 50;
             }
         };
 
-        // Title
-        doc.setFontSize(18);
-        doc.setTextColor(40);
-        doc.text(title, 14, yPos);
-        yPos += 10;
+        const commonTableOptions = {
+            styles: { font: 'NotoSans', fontSize: 10, cellPadding: 4 },
+            headStyles: { fillColor: [44, 62, 80], fontStyle: 'bold' },
+            theme: 'striped' as const,
+            margin: { top: 50 },
+            // We do NOT use didDrawPage for branding to avoid conflicts.
+            // We apply it cleanly at the end.
+        };
 
-        doc.setFontSize(10);
-        doc.setTextColor(100);
-        doc.text(`Ngày tạo: ${new Date().toLocaleString('vi-VN')}`, 14, yPos);
-        yPos += 10;
+        // --- CONTENT GENERATION ---
 
-        // Line separator
-        doc.setDrawColor(200);
-        doc.line(14, yPos, 196, yPos);
-        yPos += 10;
-
-        // Analysis Specific Content
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-
-        // Dynamic handling based on type
         if (analysisType === 'cronbach') {
             const alpha = results.alpha ?? results.rawAlpha ?? 0;
-            doc.text(`Cronbach's Alpha: ${alpha.toFixed(3)}`, 14, yPos);
+            doc.setFontSize(12);
+            doc.text(`Cronbach's Alpha: ${alpha.toFixed(3)}`, 15, yPos);
             yPos += 7;
 
             let evalText = alpha >= 0.9 ? 'Xuất sắc' : alpha >= 0.7 ? 'Chấp nhận được' : 'Kém';
-            doc.text(`Đánh giá: ${evalText}`, 14, yPos);
+            doc.text(`Đánh giá: ${evalText}`, 15, yPos);
             yPos += 10;
 
-            // Item Stats Table
             if (results.itemTotalStats && Array.isArray(results.itemTotalStats) && results.itemTotalStats.length > 0) {
                 checkPageBreak(50);
-                doc.text('Thống kê Item-Total:', 14, yPos);
+                doc.text('Thống kê Item-Total:', 15, yPos);
                 yPos += 5;
 
                 const headers = [['Biến', 'Scale Mean if Deleted', 'Corrected Item-Total Cor.', 'Alpha if Deleted']];
@@ -121,11 +138,11 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 ]);
 
                 autoTable(doc, {
+                    ...commonTableOptions,
                     startY: yPos,
                     head: headers,
                     body: data,
-                    theme: 'grid',
-                    headStyles: { fillColor: [41, 128, 185] }
+                    headStyles: { fillColor: [41, 128, 185], fontStyle: 'bold' as any }
                 });
                 yPos = (doc as any).lastAutoTable.finalY + 15;
             }
@@ -134,16 +151,15 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             const { modelFit, coefficients, equation } = results;
 
             doc.setFontSize(10);
-            doc.text(`Phương trình: ${equation}`, 14, yPos, { maxWidth: 180 });
-            yPos += 15; // Equation might be long
+            doc.text(`Phương trình: ${equation}`, 15, yPos, { maxWidth: 180 });
+            yPos += 15;
 
             checkPageBreak();
-            doc.text(`R Square: ${modelFit.rSquared.toFixed(3)} | Adj R Square: ${modelFit.adjRSquared.toFixed(3)}`, 14, yPos);
+            doc.text(`R Square: ${modelFit.rSquared.toFixed(3)} | Adj R Square: ${modelFit.adjRSquared.toFixed(3)}`, 15, yPos);
             yPos += 7;
-            doc.text(`F: ${modelFit.fStatistic.toFixed(2)} | Sig: ${modelFit.pValue < 0.001 ? '< .001' : modelFit.pValue.toFixed(3)}`, 14, yPos);
+            doc.text(`F: ${modelFit.fStatistic.toFixed(2)} | Sig: ${modelFit.pValue < 0.001 ? '< .001' : modelFit.pValue.toFixed(3)}`, 15, yPos);
             yPos += 10;
 
-            // Coefficients Table
             const headers = [['Biến', 'B', 'Std. Error', 't', 'Sig.', 'VIF']];
             const data = coefficients.map((c: any) => [
                 c.term,
@@ -155,21 +171,20 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             ]);
 
             autoTable(doc, {
+                ...commonTableOptions,
                 startY: yPos,
                 head: headers,
                 body: data,
-                theme: 'striped',
-                headStyles: { fillColor: [50, 50, 50] }
+                headStyles: { fillColor: [50, 50, 50], fontStyle: 'bold' as any }
             });
             yPos = (doc as any).lastAutoTable.finalY + 15;
         }
         else if (analysisType === 'efa') {
-            doc.text(`KMO: ${results.kmo.toFixed(3)}`, 14, yPos);
+            doc.text(`KMO: ${results.kmo.toFixed(3)}`, 15, yPos);
             yPos += 7;
-            doc.text(`Bartlett Sig: ${results.bartlettP < 0.001 ? '< .001' : results.bartlettP.toFixed(3)}`, 14, yPos);
+            doc.text(`Bartlett Sig: ${results.bartlettP < 0.001 ? '< .001' : results.bartlettP.toFixed(3)}`, 15, yPos);
             yPos += 10;
 
-            // Loadings Table
             if (results.loadings) {
                 const headers = [['Biến', ...Array(results.loadings[0].length).fill(0).map((_, i) => `Factor ${i + 1}`)]];
                 const data = results.loadings.map((row: number[], i: number) => {
@@ -177,10 +192,10 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 });
 
                 autoTable(doc, {
+                    ...commonTableOptions,
                     startY: yPos,
                     head: headers,
-                    body: data,
-                    theme: 'grid'
+                    body: data
                 });
                 yPos = (doc as any).lastAutoTable.finalY + 15;
             }
@@ -188,10 +203,9 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         else if (analysisType === 'cfa' || analysisType === 'sem') {
             const { fitMeasures, estimates } = results;
 
-            // Fit Measures
             if (fitMeasures) {
                 checkPageBreak();
-                doc.text('Chỉ số độ phù hợp mô hình (Model Fit):', 14, yPos);
+                doc.text('Chỉ số độ phù hợp mô hình (Model Fit):', 15, yPos);
                 yPos += 5;
 
                 const fitHeaders = [['Chỉ số', 'Giá trị']];
@@ -201,6 +215,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 const fitData = fitOrder.map(key => [fitLabels[key], fitMeasures[key]?.toFixed(3) || '-']);
 
                 autoTable(doc, {
+                    ...commonTableOptions,
                     startY: yPos,
                     head: fitHeaders,
                     body: fitData,
@@ -210,10 +225,9 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 yPos = (doc as any).lastAutoTable.finalY + 15;
             }
 
-            // Estimates Table
             if (estimates) {
                 checkPageBreak();
-                doc.text('Ước lượng tham số (CFA/SEM Estimates):', 14, yPos);
+                doc.text('Ước lượng tham số (CFA/SEM Estimates):', 15, yPos);
                 yPos += 5;
 
                 const estHeaders = [['LHS', 'Op', 'RHS', 'Est', 'Std.Err', 'z', 'P(>|z|)', 'Std.All']];
@@ -229,21 +243,22 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 ]);
 
                 autoTable(doc, {
+                    ...commonTableOptions,
                     startY: yPos,
                     head: estHeaders,
                     body: estData,
-                    theme: 'grid',
-                    headStyles: { fillColor: [100, 100, 100] },
-                    styles: { fontSize: 8 }
+                    headStyles: { fillColor: [100, 100, 100], fontStyle: 'bold' as any },
+                    styles: { fontSize: 8, font: 'NotoSans' }
                 });
+                yPos = (doc as any).lastAutoTable.finalY + 15;
             }
         }
         else if (analysisType === 'descriptive') {
-            doc.text('Thống kê miêu tả (Descriptive Statistics):', 14, yPos);
+            doc.setFontSize(14);
+            doc.text('Thống kê miêu tả (Descriptive Statistics):', 15, yPos);
             yPos += 10;
 
             const headers = [['Biến', 'Mean', 'SD', 'Min', 'Max', 'Skew', 'Kurtosis']];
-            // Results structure: { mean: [], sd: [], ... }
             if (results.mean && results.mean.length > 0) {
                 const data = results.mean.map((_: any, i: number) => [
                     columns[i] || `Var ${i + 1}`,
@@ -256,59 +271,52 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 ]);
 
                 autoTable(doc, {
+                    ...commonTableOptions,
                     startY: yPos,
                     head: headers,
                     body: data,
-                    theme: 'striped',
-                    headStyles: { fillColor: [44, 62, 80] }
+                    headStyles: { fillColor: [44, 62, 80], fontStyle: 'bold' as any }
                 });
                 yPos = (doc as any).lastAutoTable.finalY + 15;
             }
         }
         else if (analysisType === 'correlation') {
-            doc.text('Ma trận tương quan (Pearson Correlation):', 14, yPos);
+            doc.text('Ma trận tương quan (Pearson Correlation):', 15, yPos);
             yPos += 10;
-
-            // Headers
             const colHeaders = ['Biến', ...(columns.length > 0 ? columns : Array(results.correlationMatrix.length).fill(0).map((_, i) => `V${i + 1}`))];
-
-            // Generate rows
-            const data = results.correlationMatrix.map((row: number[], i: number) => {
-                const rowName = columns[i] || `V${i + 1}`;
-                const rowData = row.map((val: number, j: number) => {
-                    // Mark significant correlations
+            const data = results.correlationMatrix.map((row: number[], i: number) => [
+                columns[i] || `V${i + 1}`,
+                ...row.map((val: number, j: number) => {
                     const p = results.pValues[i][j];
                     const sig = p < 0.01 ? '**' : p < 0.05 ? '*' : '';
                     return val.toFixed(2) + sig;
-                });
-                return [rowName, ...rowData];
-            });
+                })
+            ]);
 
             autoTable(doc, {
+                ...commonTableOptions,
                 startY: yPos,
                 head: [colHeaders],
                 body: data,
-                theme: 'grid',
-                headStyles: { fillColor: [44, 62, 80] },
-                styles: { fontSize: 8, cellPadding: 2 }
+                headStyles: { fillColor: [44, 62, 80], fontStyle: 'bold' as any },
+                styles: { fontSize: 8, font: 'NotoSans' }
             });
             yPos = (doc as any).lastAutoTable.finalY + 15;
-
             doc.setFontSize(8);
-            doc.text('* p < 0.05, ** p < 0.01', 14, yPos);
+            doc.text('* p < 0.05, ** p < 0.01', 15, yPos);
         }
         else if (analysisType === 'ttest_indep') {
-            doc.text('Independent Samples T-Test:', 14, yPos);
+            doc.text('Independent Samples T-Test:', 15, yPos);
             yPos += 10;
 
-            // Group Stats Table
-            const headers1 = [['Nhóm', 'Mean', 'N (Sample)']]; // Simple summary if we had N, but here we have means directly
+            const headers1 = [['Nhóm', 'Mean', 'N (Sample)']];
             const data1 = [
                 ['Group 1', results.mean1.toFixed(2), '-'],
                 ['Group 2', results.mean2.toFixed(2), '-']
             ];
 
             autoTable(doc, {
+                ...commonTableOptions,
                 startY: yPos,
                 head: headers1,
                 body: data1,
@@ -317,7 +325,6 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             });
             yPos = (doc as any).lastAutoTable.finalY + 10;
 
-            // Test Results
             const headers2 = [['t', 'df', 'Sig. (2-tailed)', 'Mean Diff', 'Cohen\'s d']];
             const data2 = [[
                 results.t.toFixed(3),
@@ -328,16 +335,16 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             ]];
 
             autoTable(doc, {
+                ...commonTableOptions,
                 startY: yPos,
                 head: headers2,
                 body: data2,
-                theme: 'striped',
-                headStyles: { fillColor: [52, 152, 219] }
+                headStyles: { fillColor: [52, 152, 219], fontStyle: 'bold' as any }
             });
             yPos = (doc as any).lastAutoTable.finalY + 15;
         }
         else if (analysisType === 'anova') {
-            doc.text('One-Way ANOVA:', 14, yPos);
+            doc.text('One-Way ANOVA:', 15, yPos);
             yPos += 10;
 
             const headers = [['F', 'df1 (Between)', 'df2 (Within)', 'Sig.', 'Eta Squared']];
@@ -350,20 +357,19 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             ]];
 
             autoTable(doc, {
+                ...commonTableOptions,
                 startY: yPos,
                 head: headers,
                 body: data,
-                theme: 'striped',
-                headStyles: { fillColor: [155, 89, 182] }
+                headStyles: { fillColor: [155, 89, 182], fontStyle: 'bold' as any }
             });
         }
-        // Generic fallback for unknown types
         else if (results && typeof results === 'object') {
             const keys = Object.keys(results).filter(k => typeof results[k] === 'number' || typeof results[k] === 'string');
             const data = keys.map(k => [k, String(results[k])]);
-
             if (data.length > 0) {
                 autoTable(doc, {
+                    ...commonTableOptions,
                     startY: yPos,
                     head: [['Metric', 'Value']],
                     body: data
@@ -371,6 +377,12 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             }
         }
 
+        // --- FINAL POST-PROCESSING: APPLY HEADER TO ALL PAGES ---
+        const totalPages = doc.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            addHeader(doc, i === 1);
+        }
 
         doc.save(filename);
     } catch (error) {
