@@ -59,12 +59,12 @@ export default async function LandingPage() {
             >
               Bắt đầu phân tích ngay
             </Link>
-            <a
-              href="#methods"
+            <Link
+              href="/methods"
               className="px-8 py-4 bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-200 font-medium rounded-xl transition-colors shadow-sm"
             >
               Tìm hiểu tính năng
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -115,7 +115,7 @@ export default async function LandingPage() {
               { name: "Tương quan", sub: "Correlation", icon: Network, color: "text-indigo-600", bg: "bg-indigo-50" },
               { name: "Phi tham số", sub: "Non-parametric", icon: Zap, color: "text-yellow-600", bg: "bg-yellow-50" },
             ].map((item, idx) => (
-              <div key={idx} className="flex flex-col items-center text-center p-6 rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-lg transition-all cursor-default bg-slate-50/50 hover:bg-white group">
+              <Link href="/methods" key={idx} className="flex flex-col items-center text-center p-6 rounded-xl border border-slate-100 hover:border-indigo-100 hover:shadow-lg transition-all cursor-pointer bg-slate-50/50 hover:bg-white group">
                 <div className={`w-10 h-10 ${item.bg} rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                   <item.icon className={`w-5 h-5 ${item.color}`} />
                 </div>
@@ -123,7 +123,7 @@ export default async function LandingPage() {
                   <h3 className="font-bold text-slate-700 text-sm">{item.name}</h3>
                   <p className="text-xs text-slate-400 mt-1">{item.sub}</p>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
