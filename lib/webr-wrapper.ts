@@ -83,10 +83,13 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 }
 
                 // Step 2: Install required packages & dependencies
-                // Explicitly install quadprog from R-Universe first using WebR's binary installer
+                // Step 2: Install required packages & dependencies
+                // DISABLED: quadprog binary is currently missing from all WASM repos (core & r-universe)
+                // This blocks lavaan. Re-enable when quadprog WASM support is fixed.
+                /*
                 updateProgress('Đang tải thư viện nền (quadprog)...');
                 try {
-                    // @ts-ignore - installPackages supports options in newer versions, trusting override or standard API
+                    // @ts-ignore
                     await webR.installPackages(['quadprog'], { repos: 'https://cran.r-universe.dev/' });
                 } catch (qError) {
                     console.warn('Quadprog install warning:', qError);
@@ -98,10 +101,12 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 } catch (depError) {
                     console.warn('Dependency install warning:', depError);
                 }
+                */
 
-                updateProgress('Đang tải thư viện chính (psych, lavaan)...');
+                updateProgress('Đang tải thư viện chính (psych)...');
                 try {
-                    await webR.installPackages(['psych', 'lavaan', 'corrplot', 'GPArotation']);
+                    // Removed 'lavaan' from list
+                    await webR.installPackages(['psych', 'corrplot', 'GPArotation']);
                 } catch (pkgError) {
                     console.warn('Package install warning:', pkgError);
                 }
@@ -112,7 +117,8 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 await webR.evalR('library(psych)');
                 await webR.evalR('library(GPArotation)');
 
-                // Special handling for lavaan loading
+                // Special handling for lavaan loading - DISABLED
+                /*
                 updateProgress('Đang nạp Lavaan SEM Engine...');
                 await webR.evalR(`
                     library(lavaan)
@@ -124,6 +130,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                          print(paste("Lavaan init warning:", e$message))
                     })
                 `);
+                */
 
                 updateProgress('Sẵn sàng!');
                 webRInstance = webR;
