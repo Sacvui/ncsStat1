@@ -1473,6 +1473,58 @@ export default function AnalyzePage() {
                         </div>
                     )}
 
+                    {/* CFA Selection */}
+                    {step === 'cfa-select' && (
+                        <CFASelection
+                            columns={getNumericColumns()}
+                            onRunCFA={async (modelSyntax: string, factors: any[]) => {
+                                setIsAnalyzing(true);
+                                setAnalysisType('cfa');
+                                try {
+                                    const selectedCols = factors.flatMap((f: any) => f.indicators);
+                                    const cfaData = data.map(row =>
+                                        selectedCols.map(col => Number(row[col]) || 0)
+                                    );
+                                    const result = await runCFA(cfaData, selectedCols, modelSyntax);
+                                    setResults({ type: 'cfa', data: result, columns: selectedCols });
+                                    setStep('results');
+                                    showToast('Phân tích CFA hoàn thành!', 'success');
+                                } catch (err) {
+                                    showToast('Lỗi CFA: ' + err, 'error');
+                                }
+                                finally { setIsAnalyzing(false); }
+                            }}
+                            isAnalyzing={isAnalyzing}
+                            onBack={() => setStep('analyze')}
+                        />
+                    )}
+
+                    {/* SEM Selection */}
+                    {step === 'sem-select' && (
+                        <SEMSelection
+                            columns={getNumericColumns()}
+                            onRunSEM={async (modelSyntax: string, factors: any[]) => {
+                                setIsAnalyzing(true);
+                                setAnalysisType('sem');
+                                try {
+                                    const selectedCols = factors.flatMap((f: any) => f.indicators);
+                                    const semData = data.map(row =>
+                                        selectedCols.map(col => Number(row[col]) || 0)
+                                    );
+                                    const result = await runSEM(semData, selectedCols, modelSyntax);
+                                    setResults({ type: 'sem', data: result, columns: selectedCols });
+                                    setStep('results');
+                                    showToast('Phân tích SEM hoàn thành!', 'success');
+                                } catch (err) {
+                                    showToast('Lỗi SEM: ' + err, 'error');
+                                }
+                                finally { setIsAnalyzing(false); }
+                            }}
+                            isAnalyzing={isAnalyzing}
+                            onBack={() => setStep('analyze')}
+                        />
+                    )}
+
                     {step === 'results' && (results || multipleResults.length > 0) && (
                         <div className="max-w-6xl mx-auto space-y-6" id="results-container">
                             <div className="text-center mb-8">
