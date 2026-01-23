@@ -1,5 +1,8 @@
 'use client';
 
+// Prevent prerendering - this page requires client-side Supabase
+export const dynamic = 'force-dynamic';
+
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { FileUpload } from '@/components/FileUpload';
