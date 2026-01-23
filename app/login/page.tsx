@@ -20,11 +20,33 @@ function LoginForm() {
     const [loading, setLoading] = useState<string | null>(null)
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-    // AUTH BYPASS: Directly navigate to analyze page without authentication
+    // Real OAuth flow with Supabase
     const handleLogin = async (provider: 'google' | 'linkedin_oidc') => {
         setLoading(provider)
-        // Redirect directly to analyze page (bypassing OAuth for testing)
-        window.location.href = next || '/analyze'
+        setErrorMsg(null)
+
+        try {
+            const supabase = createClientOnly()
+            const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/analyze')}`
+
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: provider,
+                options: {
+                    redirectTo: redirectTo,
+                },
+            })
+
+            if (error) {
+                console.error('OAuth error:', error)
+                setErrorMsg(error.message)
+                setLoading(null)
+            }
+            // If no error, browser will redirect to OAuth provider
+        } catch (err: any) {
+            console.error('Login error:', err)
+            setErrorMsg(err.message || 'Đã xảy ra lỗi khi đăng nhập')
+            setLoading(null)
+        }
     }
 
     return (
