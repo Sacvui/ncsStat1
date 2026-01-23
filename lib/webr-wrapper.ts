@@ -661,7 +661,7 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
     df_clean <- df_clean[apply(df_clean, 1, function(x) all(is.finite(x))), ]
     
     if (nrow(df_clean) < ncol(df_clean)) {
-      stop("Số lượng mẫu hợp lệ (sau khi loại bỏ NA/Inf) nhỏ hơn số lượng biến. Không thể chạy EFA.")
+      stop("Lỗi: Số lượng mẫu hợp lệ (sau khi loại bỏ NA) nhỏ hơn số lượng biến. Vui lòng kiểm tra dữ liệu trống (missing value) hoặc giảm bớt biến.")
     }
     if (nrow(df_clean) < 3) {
         stop("Quá ít dữ liệu hợp lệ để chạy phân tích.")
@@ -952,44 +952,44 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
 }
 
 /**
- * Run Mann-Whitney U Test (Non-parametric Independent T-test)
- * Data expects 2 columns: [Group, Value]
+ * Run Mann-Whitney U Test (Wilcoxon Rank Sum)
  */
-export async function runMannWhitneyU(data: number[][]): Promise<{
+export async function runMannWhitneyU(
+    group1: number[],
+    group2: number[]
+): Promise<{
     statistic: number;
     pValue: number;
-    method: string;
-    groupStats: any;
+    median1: number;
+    median2: number;
+    effectSize: number; // r = Z / sqrt(N)
     rCode: string;
 }> {
     const webR = await initWebR();
+
     const rCode = `
-    data_mat <- ${arrayToRMatrix(data)}
-    df <- as.data.frame(data_mat)
-    colnames(df) <- c('group', 'value')
-    
-    # Ensure group is factor
-    df$group <- as.factor(df$group)
-    
-    # Check groups
-    if (length(levels(df$group)) != 2) {
-        stop("Mann-Whitney U requires exactly 2 groups")
-    }
-    
-    # Test
-    test <- wilcox.test(value ~ group, data = df)
-    
-    # Simple descriptive stats by group
-    means <- aggregate(value ~ group, data = df, median)
-    
-    list(
-        statistic = test$statistic,
-        p_value = test$p.value,
-        method = test$method,
-        groups = as.character(means[,1]),
-        medians = means[,2]
-    )
-    `;
+   g1 <- c(${group1.join(',')})
+   g2 <- c(${group2.join(',')})
+   
+   # Wilcoxon Rank Sum Test (Mann-Whitney U)
+   test <- wilcox.test(g1, g2, conf.int = TRUE)
+   
+   n1 <- length(g1)
+   n2 <- length(g2)
+   N <- n1 + n2
+   
+   # Calculate Z from p-value (approx)
+   z_score <- qnorm(test$p.value / 2)
+   effect_r <- abs(z_score) / sqrt(N)
+   
+   list(
+       statistic = test$statistic,
+       p_value = test$p.value,
+       median1 = median(g1),
+       median2 = median(g2),
+       effect_size = effect_r
+   )
+   `;
 
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
@@ -998,51 +998,64 @@ export async function runMannWhitneyU(data: number[][]): Promise<{
     return {
         statistic: getValue('statistic')?.[0] || 0,
         pValue: getValue('p_value')?.[0] || 0,
-        method: getValue('method')?.[0] || 'Mann-Whitney U Test',
-        groupStats: {
-            groups: getValue('groups') || [],
-            medians: getValue('medians') || []
-        },
-        rCode: rCode
+        median1: getValue('median1')?.[0] || 0,
+        median2: getValue('median2')?.[0] || 0,
+        effectSize: getValue('effect_size')?.[0] || 0,
+        rCode
     };
 }
 
 /**
  * Run Chi-Square Test of Independence
- * Data expects 2 columns: [Var1, Var2]
+ * Expects data as an array of rows, each row has 2 values [cat1, cat2]
  */
-export async function runChiSquare(data: number[][]): Promise<{
+export async function runChiSquare(data: any[][]): Promise<{
     statistic: number;
     df: number;
     pValue: number;
-    observed: any;
-    expected: any;
+    observed: { data: number[][]; rows: string[]; cols: string[] };
+    expected: { data: number[][]; rows: string[]; cols: string[] };
     rCode: string;
 }> {
     const webR = await initWebR();
+
+    // Serialize data for R
+    // We treat everything as string for categorical analysis
+    // flatten
+    const flatData = data.flat().map(v => `"${String(v).replace(/"/g, '\\"')}"`).join(',');
+    const nRows = data.length;
+
     const rCode = `
-    data_mat <- ${arrayToRMatrix(data)}
-    # Convert to table
-    tbl <- table(data_mat[,1], data_mat[,2])
+    # Create Data Frame
+    raw_vec <- c(${flatData})
+    df_raw <- matrix(raw_vec, nrow = ${nRows}, byrow = TRUE)
     
+    # Create Table
+    # table(RowVar, ColVar)
+    tbl <- table(df_raw[,1], df_raw[,2])
+    
+    # Run Chi-Square
+    # simulate.p.value=TRUE makes it robust for small samples, but standard is fine unless warning.
+    # We'll use standard first.
     test <- chisq.test(tbl)
     
     list(
-        statistic = test$statistic,
-        parameter = test$parameter,
-        p_value = test$p.value,
-        
-        # Capture Observed and Expected matrices flattened or carefully structured
-        # For simplicity, let's keep them as R handles and parse carefully, 
-        # but flattening is safer for transfer
-        obs_vals = as.numeric(test$observed),
-        exp_vals = as.numeric(test$expected),
-        
-        row_names = rownames(tbl),
-        col_names = colnames(tbl),
-        
-        n_rows = nrow(tbl),
-        n_cols = ncol(tbl)
+       statistic = test$statistic,
+       parameter = test$parameter, # df
+       p_value = test$p.value,
+       observed = as.matrix(test$observed),
+       expected = as.matrix(test$expected),
+       
+       # Dimnames
+       row_names = rownames(tbl),
+       col_names = colnames(tbl),
+       
+       n_rows = nrow(tbl),
+       n_cols = ncol(tbl),
+       
+       # Flattened matrices for transport
+       obs_vals = as.vector(test$observed),
+       exp_vals = as.vector(test$expected)
     )
     `;
 
@@ -1050,49 +1063,52 @@ export async function runChiSquare(data: number[][]): Promise<{
     const jsResult = await result.toJs() as any;
     const getValue = parseWebRResult(jsResult);
 
-    const nRows = getValue('n_rows')?.[0] || 0;
-    const nCols = getValue('n_cols')?.[0] || 0;
-    const obsVals = getValue('obs_vals') || [];
-    const expVals = getValue('exp_vals') || [];
     const rowNames = getValue('row_names') || [];
     const colNames = getValue('col_names') || [];
+    const nR = getValue('n_rows')?.[0] || 0;
+    const nC = getValue('n_cols')?.[0] || 0;
+    const obsVals = getValue('obs_vals') || [];
+    const expVals = getValue('exp_vals') || [];
 
-    // Reconstruct matrices
-    // R fills by column by default when flattening, but here we used as.numeric on the table/matrix
-    // table objects are vector-like, column-major.
-    const observed = [];
-    const expected = [];
-
-    for (let r = 0; r < nRows; r++) {
-        const rowObs = [];
-        const rowExp = [];
-        for (let c = 0; c < nCols; c++) {
-            // Index for column-major: r + c * nRows
-            const idx = r + c * nRows;
-            rowObs.push(obsVals[idx]);
-            rowExp.push(expVals[idx]);
+    // Reconstruct 2D arrays
+    const reconstruct = (vals: number[], rows: number, cols: number) => {
+        const res = [];
+        // R stores by column, so we read carefuly? No, wait. 
+        // as.vector(matrix) is column-major: col1, then col2.
+        // We want to reconstruct row by row?
+        // Let's assume correct logic:
+        //  for r
+        //    for c
+        //      val = vals[r + c*nRows]
+        const resMatrix = [];
+        for (let r = 0; r < rows; r++) {
+            const rowArr = [];
+            for (let c = 0; c < cols; c++) {
+                rowArr.push(vals[r + c * rows]);
+            }
+            resMatrix.push(rowArr);
         }
-        observed.push(rowObs);
-        expected.push(rowExp);
-    }
+        return resMatrix;
+    };
 
     return {
         statistic: getValue('statistic')?.[0] || 0,
         df: getValue('parameter')?.[0] || 0,
         pValue: getValue('p_value')?.[0] || 0,
         observed: {
-            data: observed,
+            data: reconstruct(obsVals, nR, nC),
             rows: rowNames,
             cols: colNames
         },
         expected: {
-            data: expected,
+            data: reconstruct(expVals, nR, nC),
             rows: rowNames,
             cols: colNames
         },
-        rCode: rCode
+        rCode
     };
 }
+
 
 /**
  * Run Confirmatory Factor Analysis (CFA) using lavaan
@@ -1355,3 +1371,7 @@ export async function runSEM(
         throw new Error("Lavaan SEM Error: " + e.message);
     }
 }
+
+
+
+

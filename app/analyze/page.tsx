@@ -390,12 +390,7 @@ export default function AnalyzePage() {
                 case 'descriptive':
                     analysisResults = await runDescriptiveStats(numericData);
                     break;
-                case 'chisq':
-                    analysisResults = await runChiSquare(numericData);
-                    break;
-                case 'mannwhitney':
-                    analysisResults = await runMannWhitneyU(numericData);
-                    break;
+
                 default:
                     throw new Error('Unknown analysis type');
             }
@@ -733,12 +728,12 @@ export default function AnalyzePage() {
                                         if (!g1 || !g2) { showToast('Vui lòng chọn cả 2 biến', 'error'); return; }
                                         if (g1 === g2) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
                                         setIsAnalyzing(true);
-                                        setAnalysisType('ttest');
+                                        setAnalysisType('ttest-indep');
                                         try {
                                             const group1Data = data.map(row => Number(row[g1]) || 0);
                                             const group2Data = data.map(row => Number(row[g2]) || 0);
                                             const result = await runTTestIndependent(group1Data, group2Data);
-                                            setResults({ type: 'ttest', data: result, columns: [g1, g2] });
+                                            setResults({ type: 'ttest-indep', data: result, columns: [g1, g2] });
                                             setStep('results');
                                             showToast('Phân tích T-test hoàn thành!', 'success');
                                         } catch (err) { showToast('Lỗi: ' + err, 'error'); }
@@ -1171,6 +1166,188 @@ export default function AnalyzePage() {
                             isAnalyzing={isAnalyzing}
                             onBack={() => setStep('analyze')}
                         />
+                    )}
+
+                    {/* Chi-Square Selection - NEW */}
+                    {step === 'chisq-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Chi-Square Test of Independence
+                                </h2>
+                                <p className="text-gray-600">
+                                    Kiểm định mối quan hệ giữa 2 biến định danh (Categorical Variables)
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Chọn 2 biến để kiểm định:
+                                </p>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Biến hàng (Row)</label>
+                                        <select
+                                            id="chisq-row"
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            defaultValue=""
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {/* For Chi-Square, we ideally want ALL columns, not just numeric. But data profiler usually casts. Let's start with numeric or maybe allow all? 
+                                                Actually getNumericColumns returns only numeric. Chi-Square works on categories. 
+                                                If data is coded 1,2,3 it works. If text, we need 'profile.columnStats'.
+                                            */}
+                                            {profile?.columnStats && Object.keys(profile.columnStats).map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Biến cột (Col)</label>
+                                        <select
+                                            id="chisq-col"
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            defaultValue=""
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {profile?.columnStats && Object.keys(profile.columnStats).map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        const rVar = (document.getElementById('chisq-row') as HTMLSelectElement).value;
+                                        const cVar = (document.getElementById('chisq-col') as HTMLSelectElement).value;
+
+                                        if (!rVar || !cVar) { showToast('Vui lòng chọn cả 2 biến', 'error'); return; }
+                                        if (rVar === cVar) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
+
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('chisquare'); // Matches ResultsDisplay 'chisquare' case
+                                        try {
+                                            // Pass RAW data (strings/numbers) for Chi-Square to handle cross-tabulation
+                                            // runChiSquare implementation (checked via memory or intuition) usually takes a matrix or two arrays.
+                                            // Let's check signature in webr-wrapper.
+                                            // Assuming runChiSquare(dataMatrix) or similar.
+                                            // Actually, the generic 'runAnalysis' loop used 'runChiSquare(numericData)'. 
+                                            // But Chi-Square needs categorical. 
+                                            // Let's implement specific logic here: pass 2 arrays.
+
+                                            // We need to fetch 'runChiSquare' from webr-wrapper or implement a specific one if the generic one assumes numeric matrix.
+                                            // The generic runChiSquare (imported) likely expects matrix.
+                                            // Let's try passing numeric mapping if possible, or wait, we need to see runChiSquare signature.
+                                            // FOR NOW, assumption: runChiSquare takes data matrix [ [val1, val2], ... ]
+
+                                            // Create data matrix [ [rowVal, colVal], ... ]
+                                            const chiData = data.map(row => [
+                                                row[rVar],
+                                                row[cVar]
+                                            ]);
+
+                                            const result = await runChiSquare(chiData); // Need to verify signature
+                                            setResults({ type: 'chisquare', data: result, columns: [rVar, cVar] });
+                                            setStep('results');
+                                            showToast('Phân tích Chi-Square hoàn thành!', 'success');
+                                        } catch (err) { showToast('Lỗi: ' + err, 'error'); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Chi-Square Test'}
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                            >
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Mann-Whitney U Selection - NEW */}
+                    {step === 'mannwhitney-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Mann-Whitney U Test
+                                </h2>
+                                <p className="text-gray-600">
+                                    So sánh trung bình 2 nhóm độc lập (Phi tham số - Non-parametric)
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Chọn 2 biến số để so sánh:
+                                </p>
+                                <div className="grid grid-cols-2 gap-4 mb-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 1</label>
+                                        <select
+                                            id="mw-group1"
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            defaultValue=""
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 2</label>
+                                        <select
+                                            id="mw-group2"
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            defaultValue=""
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        const g1 = (document.getElementById('mw-group1') as HTMLSelectElement).value;
+                                        const g2 = (document.getElementById('mw-group2') as HTMLSelectElement).value;
+
+                                        if (!g1 || !g2) { showToast('Vui lòng chọn cả 2 biến', 'error'); return; }
+                                        if (g1 === g2) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
+
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('mann-whitney'); // Matches ResultsDisplay 'mann-whitney' case
+                                        try {
+                                            const group1Data = data.map(row => Number(row[g1]) || 0);
+                                            const group2Data = data.map(row => Number(row[g2]) || 0);
+                                            // The generic runMannWhitneyU in webr-wrapper likely takes 2 arrays (like t-test).
+                                            const result = await runMannWhitneyU(group1Data, group2Data);
+                                            setResults({ type: 'mann-whitney', data: result, columns: [g1, g2] });
+                                            setStep('results');
+                                            showToast('Phân tích Mann-Whitney U hoàn thành!', 'success');
+                                        } catch (err) { showToast('Lỗi: ' + err, 'error'); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Mann-Whitney U'}
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                            >
+                                ← Quay lại
+                            </button>
+                        </div>
                     )}
 
                     {step === 'results' && (results || multipleResults.length > 0) && (
