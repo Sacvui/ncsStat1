@@ -1,5 +1,5 @@
 export const getAvatarUrl = (avatarUrl: string | null | undefined, googleAvatarUrl?: string | null | undefined): string => {
-    const DEFAULT_AVATAR = '/default-avatar.png';
+    const DEFAULT_AVATAR = '/webr/default-avatar.png';
 
     // Check main avatarURL
     if (avatarUrl && avatarUrl !== 'N/A' && avatarUrl !== 'null' && avatarUrl !== '') {
