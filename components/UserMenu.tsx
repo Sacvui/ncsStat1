@@ -31,8 +31,12 @@ export default function UserMenu({ user }: { user: any }) {
                     onClick={() => setIsOpen(!isOpen)}
                     className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-full border border-slate-200 hover:bg-slate-50 transition-colors"
                 >
-                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-semibold text-sm">
-                        {initial}
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-100 shadow-sm">
+                        <img
+                            src={user.user_metadata?.avatar_url || '/default-avatar.png'}
+                            alt="Avatar"
+                            className="w-full h-full object-cover"
+                        />
                     </div>
                     <span className="text-sm font-medium text-slate-700 hidden md:block max-w-[150px] truncate">
                         {displayName}

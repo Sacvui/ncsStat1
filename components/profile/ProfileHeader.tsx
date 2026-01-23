@@ -32,27 +32,19 @@ export default function ProfileHeader({ user, profile }: { user: any, profile: P
             </button>
 
             <div className="flex flex-col items-center">
-                {(profile?.avatar_url || user?.user_metadata?.avatar_url) ? (
-                    <div className="relative">
-                        <img
-                            src={profile?.avatar_url || user?.user_metadata?.avatar_url}
-                            alt="Avatar"
-                            className="w-24 h-24 rounded-full mb-4 ring-4 ring-blue-50 object-cover"
-                        />
-                        <button
-                            onClick={() => setIsEditOpen(true)}
-                            className="absolute bottom-4 right-0 w-8 h-8 bg-white rounded-full border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors"
-                        >
-                            <Edit2 className="w-3 h-3" />
-                        </button>
-                    </div>
-                ) : (
-                    <div className="relative">
-                        <div className="w-24 h-24 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-3xl font-bold mb-4 ring-4 ring-blue-50 cursor-pointer" onClick={() => setIsEditOpen(true)}>
-                            {profile?.full_name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase()}
-                        </div>
-                    </div>
-                )}
+                <div className="relative">
+                    <img
+                        src={profile?.avatar_url || user?.user_metadata?.avatar_url || '/default-avatar.png'}
+                        alt="Avatar"
+                        className="w-24 h-24 rounded-full mb-4 ring-4 ring-blue-50 object-cover"
+                    />
+                    <button
+                        onClick={() => setIsEditOpen(true)}
+                        className="absolute bottom-4 right-0 w-8 h-8 bg-white rounded-full border border-slate-200 shadow-sm flex items-center justify-center text-slate-500 hover:text-blue-600 transition-colors"
+                    >
+                        <Edit2 className="w-3 h-3" />
+                    </button>
+                </div>
 
                 <h2 className="text-xl font-bold text-slate-900 text-center flex items-center gap-2">
                     {profile?.full_name || 'Người dùng'}

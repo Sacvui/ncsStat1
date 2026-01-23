@@ -154,13 +154,11 @@ export default function EditProfileModal({
                             <div className="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-xl border border-dashed border-slate-300 hover:border-blue-400 transition-colors">
                                 <div className="relative group cursor-pointer">
                                     <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white shadow-md">
-                                        {(avatarUrl || user?.user_metadata?.avatar_url) ? (
-                                            <img src={avatarUrl || user?.user_metadata?.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-2xl">
-                                                {fullName?.[0]?.toUpperCase() || 'U'}
-                                            </div>
-                                        )}
+                                        <img
+                                            src={avatarUrl || user?.user_metadata?.avatar_url || '/default-avatar.png'}
+                                            alt="Avatar"
+                                            className="w-full h-full object-cover"
+                                        />
                                     </div>
                                     <label className="absolute inset-0 flex items-center justify-center bg-black/40 text-white opacity-0 group-hover:opacity-100 transition-opacity rounded-full cursor-pointer">
                                         <span className="text-xs font-medium">Thay đổi</span>
