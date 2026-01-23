@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { User, LogOut, Settings, ChevronDown, MessageSquare } from 'lucide-react'
 import FeedbackModal from './FeedbackModal'
+import { getAvatarUrl } from '@/utils/avatarHelper'
 
 export default function UserMenu({ user }: { user: any }) {
     const [isOpen, setIsOpen] = useState(false)
@@ -33,7 +34,7 @@ export default function UserMenu({ user }: { user: any }) {
                 >
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-100 shadow-sm">
                         <img
-                            src={user.user_metadata?.avatar_url || '/default-avatar.png'}
+                            src={getAvatarUrl(user.user_metadata?.avatar_url)}
                             alt="Avatar"
                             className="w-full h-full object-cover"
                         />

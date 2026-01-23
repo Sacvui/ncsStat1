@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Mail, Shield, Edit2, GraduationCap, Building2, BookOpen } from 'lucide-react'
 import EditProfileModal from './EditProfileModal'
+import { getAvatarUrl } from '@/utils/avatarHelper'
 
 type Profile = {
     id: string
@@ -34,7 +35,7 @@ export default function ProfileHeader({ user, profile }: { user: any, profile: P
             <div className="flex flex-col items-center">
                 <div className="relative">
                     <img
-                        src={profile?.avatar_url || user?.user_metadata?.avatar_url || '/default-avatar.png'}
+                        src={getAvatarUrl(profile?.avatar_url, user?.user_metadata?.avatar_url)}
                         alt="Avatar"
                         className="w-24 h-24 rounded-full mb-4 ring-4 ring-blue-50 object-cover"
                     />

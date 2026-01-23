@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { X, Save, Calendar, GraduationCap, Building2, Phone, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { getAvatarUrl } from '@/utils/avatarHelper'
 
 type Profile = {
     id: string
@@ -155,7 +156,7 @@ export default function EditProfileModal({
                                 <div className="relative group cursor-pointer">
                                     <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white shadow-md">
                                         <img
-                                            src={avatarUrl || user?.user_metadata?.avatar_url || '/default-avatar.png'}
+                                            src={getAvatarUrl(avatarUrl, user?.user_metadata?.avatar_url)}
                                             alt="Avatar"
                                             className="w-full h-full object-cover"
                                         />
