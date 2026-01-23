@@ -324,16 +324,19 @@ export async function runCorrelation(data: number[][]): Promise<{
 
     const rCode = `
     library(psych)
-    data <- ${arrayToRMatrix(data)}
-    
+    data_mat <- ${arrayToRMatrix(data)}
+    df <- as.data.frame(data_mat)
+    # Force unique column names to avoid "duplicate row.names" error in psych
+    colnames(df) <- paste0("V", 1:ncol(df))
+
     # Use psych::corr.test for robust pairwise p-values and handling missing data
     # adjust = "none" matches standard SPSS / Excel output (unadjusted p-values)
-    ct <- corr.test(data, use = "pairwise", method = "pearson", adjust = "none")
+    ct <- corr.test(df, use = "pairwise", method = "pearson", adjust = "none")
 
     list(
         correlation = as.vector(ct$r),
         p_values = as.vector(ct$p),
-        n_cols = ncol(data)
+        n_cols = ncol(df)
     )
     `;
 
@@ -379,10 +382,13 @@ export async function runDescriptiveStats(data: number[][]): Promise<{
 
     const rCode = `
     library(psych)
-    data <- ${arrayToRMatrix(data)}
+    data_mat <- ${arrayToRMatrix(data)}
+    df <- as.data.frame(data_mat)
+    # Force unique column names
+    colnames(df) <- paste0("V", 1:ncol(df))
     
     # Use psych::describe for comprehensive stats (Skew, Kurtosis, SE)
-    desc <- describe(data)
+    desc <- describe(df)
     
     list(
         mean = desc$mean,
@@ -440,9 +446,22 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     group1 <- c(${group1.join(',')})
     group2 <- c(${group2.join(',')})
     
-    # Check Equal Variance assumption
-    var_test <- var.test(group1, group2)
-    var_equal <- var_test$p.value > 0.05
+    # Levene's Test (Brown-Forsythe method - Median)
+    # 1. Calculate medians
+    med1 <- median(group1)
+    med2 <- median(group2)
+    
+    # 2. Calculate absolute deviations
+    z1 <- abs(group1 - med1)
+    z2 <- abs(group2 - med2)
+    
+    # 3. ANOVA on deviations
+    z_val <- c(z1, z2)
+    g_fac <- factor(c(rep(1, length(z1)), rep(2, length(z2))))
+    levene_test <- oneway.test(z_val ~ g_fac, var.equal = TRUE)
+    levene_p <- levene_test$p.value
+    
+    var_equal <- levene_p > 0.05
 
     result <- t.test(group1, group2, var.equal = var_equal)
     
@@ -460,7 +479,7 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
         ci95Lower = result$conf.int[1],
         ci95Upper = result$conf.int[2],
         effectSize = cohensD,
-        varTestP = var_test$p.value
+        leveneP = levene_p
     )
     `;
 
@@ -483,7 +502,7 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
         ci95Lower: getValue('ci95Lower'),
         ci95Upper: getValue('ci95Upper'),
         effectSize: getValue('effectSize'),
-        varTestP: getValue('varTestP'),
+        varTestP: getValue('leveneP'), // Updated from varTestP
         rCode: rCode
     };
 }
@@ -580,10 +599,27 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     values <- c(${groups.map(g => g.join(',')).join(',')})
     groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
     
-    # Assumption Check: Bartlett's test for homogeneity of variance
-    bartlett <- bartlett.test(values ~ groups)
+    # Assumption Check: Levene's Test (Brown-Forsythe - Median) for Homogeneity of Variance
+    # Manual implementation since 'car' package might be heavy
     
-    # Run ANOVA
+    # 1. Calculate group medians
+    group_medians <- tapply(values, groups, median)
+    
+    # 2. Calculate absolute deviations |x - median|
+    # We map through groups
+    deviations <- numeric(length(values))
+    group_indices <- as.numeric(groups)
+    
+    for(i in 1:length(values)) {
+        g_idx <- group_indices[i]
+        deviations[i] <- abs(values[i] - group_medians[g_idx])
+    }
+    
+    # 3. Run ANOVA on deviations
+    levene_model <- aov(deviations ~ groups)
+    levene_p <- summary(levene_model)[[1]][1, 5]
+    
+    # Run Main ANOVA
     model <- aov(values ~ groups)
     result <- summary(model)[[1]]
     
@@ -603,7 +639,7 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         groupMeans = as.numeric(groupMeans),
         grandMean = mean(values),
         etaSquared = etaSquared,
-        bartlettP = bartlett$p.value
+        bartlettP = levene_p
     )
     `;
 
@@ -628,7 +664,7 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
 /**
  * Run Exploratory Factor Analysis (EFA)
  */
-export async function runEFA(data: number[][], nFactors: number): Promise<{
+export async function runEFA(data: number[][], nFactors: number, rotation: string = 'varimax'): Promise<{
     kmo: number;
     bartlettP: number;
     loadings: number[][];
@@ -684,8 +720,9 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
     
     # 6. Run EFA
     # fa() handles the correlation matrix or raw data. Raw data is better for scores but here we want loadings.
-    # Using 'pa' (Principal Axis) and 'varimax' as requested.
-    efa_result <- fa(df_clean, nfactors = n_factors_run, rotate = "varimax", fm = "pa")
+    # Using 'pa' (Principal Axis) and selected rotation.
+    rotation_method <- "${rotation}"
+    efa_result <- fa(df_clean, nfactors = n_factors_run, rotate = rotation_method, fm = "pa")
 
     list(
         kmo = if (is.numeric(kmo_result$MSA)) kmo_result$MSA[1] else 0,

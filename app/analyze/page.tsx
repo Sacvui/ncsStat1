@@ -985,11 +985,30 @@ export default function AnalyzePage() {
                                     </p>
                                 </div>
 
+                                <div className="mb-4">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Phép quay (Rotation)
+                                    </label>
+                                    <select
+                                        id="efa-rotation"
+                                        className="w-full px-3 py-2 border rounded-lg bg-white"
+                                        defaultValue="varimax"
+                                    >
+                                        <option value="none">Không quay (None)</option>
+                                        <option value="varimax">Vuông góc (Varimax) - Đề xuất</option>
+                                        <option value="promax">Xiên (Promax)</option>
+                                    </select>
+                                    <p className="text-xs text-slate-500 mt-1 italic">
+                                        Varimax giúp phân định rõ nhân tố. Promax phù hợp nếu các nhân tố có tương quan.
+                                    </p>
+                                </div>
+
                                 <button
                                     onClick={async () => {
                                         const checkboxes = document.querySelectorAll('.efa-checkbox:checked') as NodeListOf<HTMLInputElement>;
                                         const selectedCols = Array.from(checkboxes).map(cb => cb.value);
                                         const factorInput = (document.getElementById('efa-nfactors') as HTMLInputElement).value;
+                                        const rotationInput = (document.getElementById('efa-rotation') as HTMLSelectElement).value;
                                         // If empty, pass 0 to signal auto-detection
                                         const nfactors = factorInput ? parseInt(factorInput) : 0;
 
@@ -1009,7 +1028,7 @@ export default function AnalyzePage() {
                                             const efaData = data.map(row =>
                                                 selectedCols.map(col => Number(row[col]) || 0)
                                             );
-                                            const result = await runEFA(efaData, nfactors);
+                                            const result = await runEFA(efaData, nfactors, rotationInput);
                                             setResults({ type: 'efa', data: result, columns: selectedCols });
                                             setStep('results');
                                             showToast('Phân tích EFA hoàn thành!', 'success');
