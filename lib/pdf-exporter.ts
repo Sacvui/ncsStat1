@@ -46,46 +46,86 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             }
         };
 
-        const addHeader = (doc: jsPDF, showTitle = false) => {
+        const addHeader = (doc: jsPDF, showTitle = false, pageNum?: number, totalPages?: number) => {
             const pageWidth = doc.internal.pageSize.width;
             const pageHeight = doc.internal.pageSize.height;
 
-            // --- HEADER ---
-            // Logo/Brand Name
-            doc.setFontSize(24);
-            doc.setTextColor(41, 128, 185); // Blue color
-            doc.setFont('helvetica', 'bold');
-            doc.text('NCS STAT', pageWidth - 15, 20, { align: 'right' });
+            // --- PROFESSIONAL HEADER ---
+            // Top border line
+            doc.setDrawColor(59, 130, 246); // Blue
+            doc.setLineWidth(0.5);
+            doc.line(15, 12, pageWidth - 15, 12);
 
-            // Sub-branding info
-            doc.setFontSize(9);
+            // Report Type Badge
+            doc.setFillColor(59, 130, 246);
+            doc.roundedRect(15, 14, 45, 8, 1, 1, 'F');
+            doc.setFontSize(7);
+            doc.setTextColor(255);
+            doc.setFont('helvetica', 'bold');
+            doc.text('STATISTICAL REPORT', 17, 19);
+
+            // Logo/Brand Name (right side)
+            doc.setFontSize(18);
+            doc.setTextColor(59, 130, 246);
+            doc.setFont('helvetica', 'bold');
+            doc.text('ncsStat', pageWidth - 15, 20, { align: 'right' });
+
+            // Subtitle
+            doc.setFontSize(7);
             doc.setTextColor(100);
             doc.setFont('helvetica', 'normal');
-            doc.text('https://ncsstat.com', pageWidth - 15, 26, { align: 'right' });
-            doc.text('Powered by NCS Stat Library', pageWidth - 15, 31, { align: 'right' });
+            doc.text('Statistical Analysis Platform for Vietnamese Researchers', pageWidth - 15, 25, { align: 'right' });
 
-            // Timestamp
+            // Date and timestamp
+            const exportDate = new Date().toLocaleDateString('vi-VN', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
             doc.setFontSize(8);
-            doc.setTextColor(150);
-            doc.text(`Exported: ${new Date().toLocaleString('en-US')}`, pageWidth - 15, 36, { align: 'right' });
+            doc.setTextColor(120);
+            doc.text(`Generated: ${exportDate}`, 15, 28);
 
-            // Branding Line
+            // Header separator
             doc.setDrawColor(200);
-            doc.line(15, 40, pageWidth - 15, 40);
+            doc.setLineWidth(0.3);
+            doc.line(15, 32, pageWidth - 15, 32);
 
-            // Analysis Title (Only if requested, usually first page of section)
+            // Analysis Title (On first page only)
             if (showTitle) {
-                doc.setFont('NotoSans', 'bold');
-                doc.setFontSize(16);
-                doc.setTextColor(40);
-                doc.text(title, 15, 30, { maxWidth: pageWidth - 80 });
+                doc.setFont('NotoSans', 'normal');
+                doc.setFontSize(14);
+                doc.setTextColor(30);
+                const titleLines = doc.splitTextToSize(title, pageWidth - 30);
+                doc.text(titleLines, 15, 42);
             }
 
-            // --- FOOTER ---
-            const pageCount = doc.getCurrentPageInfo().pageNumber;
-            doc.setFontSize(8);
+            // --- PROFESSIONAL FOOTER ---
+            // Footer separator
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.2);
+            doc.line(15, pageHeight - 22, pageWidth - 15, pageHeight - 22);
+
+            // Page number
+            const currentPage = pageNum || doc.getCurrentPageInfo().pageNumber;
+            const total = totalPages || currentPage;
+            doc.setFontSize(9);
+            doc.setTextColor(80);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Page ${currentPage} of ${total}`, pageWidth / 2, pageHeight - 16, { align: 'center' });
+
+            // Footer branding
+            doc.setFontSize(7);
+            doc.setTextColor(120);
+            doc.text('ncsStat - https://ncsstat.com', 15, pageHeight - 12);
+            doc.text('© 2026 Le Phuc Hai', pageWidth - 15, pageHeight - 12, { align: 'right' });
+
+            // Citation note (small)
+            doc.setFontSize(6);
             doc.setTextColor(150);
-            doc.text(`Page ${pageCount}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+            doc.text('For academic use. Cite: Le, P.H. (2026). ncsStat Statistical Platform.', pageWidth / 2, pageHeight - 8, { align: 'center' });
 
             // Reset font for content
             doc.setFont('NotoSans', 'normal');
@@ -559,7 +599,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         const totalPages = doc.getNumberOfPages();
         for (let i = 1; i <= totalPages; i++) {
             doc.setPage(i);
-            addHeader(doc, i === 1);
+            addHeader(doc, i === 1, i, totalPages);
         }
 
         doc.save(filename);

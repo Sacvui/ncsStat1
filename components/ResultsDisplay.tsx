@@ -16,6 +16,7 @@ import {
 import { Code, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { AIInterpretation } from './AIInterpretation';
+import SEMPathDiagram from './SEMPathDiagram';
 
 ChartJS.register(
     CategoryScale,
@@ -1498,6 +1499,35 @@ function SEMResults({ results }: { results: any }) {
     const loadings = estimates.filter((e: any) => e.op === '=~');
     const covariances = estimates.filter((e: any) => e.op === '~~' && e.lhs !== e.rhs);
 
+    // Prepare data for diagram
+    const diagramFactors = useMemo(() => {
+        const factorMap: Record<string, string[]> = {};
+        loadings.forEach((est: any) => {
+            if (!factorMap[est.lhs]) factorMap[est.lhs] = [];
+            factorMap[est.lhs].push(est.rhs);
+        });
+        return Object.entries(factorMap).map(([name, indicators]) => ({ name, indicators }));
+    }, [loadings]);
+
+    const diagramPaths = useMemo(() =>
+        structuralPaths.map((p: any) => ({
+            from: p.rhs,
+            to: p.lhs,
+            beta: p.std || p.est,
+            pvalue: p.pvalue || 0
+        })),
+        [structuralPaths]
+    );
+
+    const diagramLoadings = useMemo(() =>
+        loadings.map((l: any) => ({
+            factor: l.lhs,
+            indicator: l.rhs,
+            loading: l.std || l.est
+        })),
+        [loadings]
+    );
+
     // Helper to color fit indices (same as CFA)
     const getFitColor = (val: number, type: 'high' | 'low') => {
         if (type === 'high') return val > 0.9 ? 'text-green-600' : val > 0.8 ? 'text-orange-500' : 'text-red-500';
@@ -1506,6 +1536,22 @@ function SEMResults({ results }: { results: any }) {
 
     return (
         <div className="space-y-8 font-sans">
+            {/* 0. SEM Path Diagram */}
+            {diagramFactors.length > 0 && (
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-violet-700">SEM Path Diagram</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <SEMPathDiagram
+                            factors={diagramFactors}
+                            structuralPaths={diagramPaths}
+                            factorLoadings={diagramLoadings}
+                        />
+                    </CardContent>
+                </Card>
+            )}
+
             {/* 1. Model Fit Summary */}
             <Card>
                 <CardHeader>
