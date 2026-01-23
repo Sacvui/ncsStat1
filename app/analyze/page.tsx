@@ -38,6 +38,8 @@ export default function AnalyzePage() {
 
     useEffect(() => {
         const supabase = createClient()
+        let channel: any
+
         const checkUser = async () => {
             const { data: { user } } = await supabase.auth.getUser()
 
@@ -52,10 +54,31 @@ export default function AnalyzePage() {
                     .eq('id', user.id)
                     .single()
                 if (profile) setUserProfile(profile)
+
+                // Subscribe to real-time changes
+                channel = supabase
+                    .channel(`profile-${user.id}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'profiles',
+                            filter: `id=eq.${user.id}`,
+                        },
+                        (payload) => {
+                            setUserProfile(payload.new)
+                        }
+                    )
+                    .subscribe()
             }
             setLoading(false)
         }
         checkUser()
+
+        return () => {
+            if (channel) supabase.removeChannel(channel)
+        }
     }, [router])
     // Session State Management
     const {

@@ -23,12 +23,14 @@ export default function EditProfileModal({
     user,
     profile,
     isOpen,
-    onClose
+    onClose,
+    onSuccess
 }: {
     user: any,
     profile: Profile | null,
     isOpen: boolean,
-    onClose: () => void
+    onClose: () => void,
+    onSuccess?: () => void
 }) {
     const supabase = createClient()
     const router = useRouter()
@@ -70,6 +72,7 @@ export default function EditProfileModal({
 
             if (error) throw error
 
+            if (onSuccess) onSuccess()
             setMessage({ text: 'Cập nhật hồ sơ thành công!', type: 'success' })
             router.refresh()
 

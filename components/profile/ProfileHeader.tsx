@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Mail, Shield, Edit2, GraduationCap, Building2, BookOpen } from 'lucide-react'
 import EditProfileModal from './EditProfileModal'
 import { getAvatarUrl } from '@/utils/avatarHelper'
+import { createClient } from '@/utils/supabase/client'
 
 type Profile = {
     id: string
@@ -19,8 +20,39 @@ type Profile = {
     organization?: string | null
 }
 
-export default function ProfileHeader({ user, profile }: { user: any, profile: Profile | null }) {
+export default function ProfileHeader({ user, profile: initialProfile, onUpdate }: { user: any, profile: Profile | null, onUpdate?: () => void }) {
     const [isEditOpen, setIsEditOpen] = useState(false)
+    const [profile, setProfile] = useState<Profile | null>(initialProfile)
+    const supabase = createClient()
+
+    useEffect(() => {
+        setProfile(initialProfile)
+    }, [initialProfile])
+
+    useEffect(() => {
+        if (!user) return
+
+        const channel = supabase
+            .channel(`profile-header-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`,
+                },
+                (payload) => {
+                    setProfile(payload.new as Profile)
+                    if (onUpdate) onUpdate()
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [user, supabase, onUpdate])
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative group">
@@ -96,6 +128,7 @@ export default function ProfileHeader({ user, profile }: { user: any, profile: P
                 profile={profile}
                 isOpen={isEditOpen}
                 onClose={() => setIsEditOpen(false)}
+                onSuccess={onUpdate}
             />
         </div>
     )

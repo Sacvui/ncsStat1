@@ -6,7 +6,7 @@ import { User, LogOut, Settings, ChevronDown, MessageSquare } from 'lucide-react
 import FeedbackModal from './FeedbackModal'
 import { getAvatarUrl } from '@/utils/avatarHelper'
 
-export default function UserMenu({ user }: { user: any }) {
+export default function UserMenu({ user, profile }: { user: any, profile?: any }) {
     const [isOpen, setIsOpen] = useState(false)
     const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
@@ -34,7 +34,7 @@ export default function UserMenu({ user }: { user: any }) {
                 >
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-100 shadow-sm">
                         <img
-                            src={getAvatarUrl(user.user_metadata?.avatar_url)}
+                            src={getAvatarUrl(profile?.avatar_url, user.user_metadata?.avatar_url)}
                             alt="Avatar"
                             className="w-full h-full object-cover"
                         />

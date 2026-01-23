@@ -3,16 +3,61 @@
 import Link from 'next/link'
 import UserMenu from '@/components/UserMenu'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/utils/supabase/client'
 
 interface HeaderProps {
     user: any
+    profile?: any
     centerContent?: React.ReactNode
     rightActions?: React.ReactNode
     hideNav?: boolean
 }
 
-export default function Header({ user, centerContent, rightActions, hideNav = false }: HeaderProps) {
+export default function Header({ user, profile: initialProfile, centerContent, rightActions, hideNav = false }: HeaderProps) {
     const pathname = usePathname()
+    const [profile, setProfile] = useState<any>(initialProfile)
+    const supabase = createClient()
+
+    useEffect(() => {
+        if (!user) return
+
+        const fetchProfile = async () => {
+            const { data } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single()
+            if (data) setProfile(data)
+        }
+
+        if (!initialProfile) {
+            fetchProfile()
+        } else {
+            setProfile(initialProfile)
+        }
+
+        // Subscribe to real-time changes
+        const channel = supabase
+            .channel(`profile-${user.id}`)
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'profiles',
+                    filter: `id=eq.${user.id}`,
+                },
+                (payload) => {
+                    setProfile(payload.new)
+                }
+            )
+            .subscribe()
+
+        return () => {
+            supabase.removeChannel(channel)
+        }
+    }, [initialProfile, user, supabase])
 
     return (
         <header className="bg-white/80 backdrop-blur-md shadow-sm border-b border-slate-200 sticky top-0 z-50">
@@ -57,7 +102,7 @@ export default function Header({ user, centerContent, rightActions, hideNav = fa
                     {rightActions && <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />}
 
                     {user ? (
-                        <UserMenu user={user} />
+                        <UserMenu user={user} profile={profile} />
                     ) : (
                         <Link href="/login" className="px-5 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-all shadow-sm">
                             Đăng nhập
