@@ -1,7 +1,5 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-// Note: jspdf-autotable is usually auto-attached to jsPDF prototype.
-// If type errors occur, might need: import autoTable from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export interface PDFExportOptions {
     title: string;
@@ -84,7 +82,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     (item.alphaIfItemDeleted ?? 0).toFixed(3)
                 ]);
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                     startY: yPos,
                     head: headers,
                     body: data,
@@ -118,7 +116,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 c.vif ? c.vif.toFixed(3) : '-'
             ]);
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: headers,
                 body: data,
@@ -140,7 +138,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     return [`Var ${i + 1} (${columns[i] || ''})`, ...row.map(v => v.toFixed(3))];
                 });
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                     startY: yPos,
                     head: headers,
                     body: data,
@@ -164,7 +162,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
                 const fitData = fitOrder.map(key => [fitLabels[key], fitMeasures[key]?.toFixed(3) || '-']);
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                     startY: yPos,
                     head: fitHeaders,
                     body: fitData,
@@ -192,7 +190,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     e.std_all.toFixed(3)
                 ]);
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                     startY: yPos,
                     head: estHeaders,
                     body: estData,
@@ -219,7 +217,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     (results.kurtosis[i] ?? 0).toFixed(2)
                 ]);
 
-                (doc as any).autoTable({
+                autoTable(doc, {
                     startY: yPos,
                     head: headers,
                     body: data,
@@ -248,7 +246,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 return [rowName, ...rowData];
             });
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: [colHeaders],
                 body: data,
@@ -272,7 +270,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 ['Group 2', results.mean2.toFixed(2), '-']
             ];
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: headers1,
                 body: data1,
@@ -291,7 +289,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 results.effectSize.toFixed(3)
             ]];
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: headers2,
                 body: data2,
@@ -313,7 +311,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 results.etaSquared.toFixed(3)
             ]];
 
-            (doc as any).autoTable({
+            autoTable(doc, {
                 startY: yPos,
                 head: headers,
                 body: data,
@@ -327,7 +325,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             const data = keys.map(k => [k, String(results[k])]);
 
             if (data.length > 0) {
-                (doc as any).autoTable({
+                autoTable(doc, {
                     startY: yPos,
                     head: [['Metric', 'Value']],
                     body: data
