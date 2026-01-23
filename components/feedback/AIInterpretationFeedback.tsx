@@ -1,5 +1,5 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FeedbackService, AIFeedbackData } from '@/lib/feedback-service';
 import { Star, MessageSquarePlus, Check, Send } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/Card';
@@ -11,7 +11,21 @@ interface AIInterpretationFeedbackProps {
 
 export function AIInterpretationFeedback({ analysisType, onClose }: AIInterpretationFeedbackProps) {
     const [submitted, setSubmitted] = useState(false);
+    const [hasAlreadyGivenFeedback, setHasAlreadyGivenFeedback] = useState(false);
     const [data, setData] = useState<Partial<AIFeedbackData>>({});
+
+    // Check if user has already given feedback (for suppression)
+    useEffect(() => {
+        if (FeedbackService.hasGivenAIFeedback()) {
+            setHasAlreadyGivenFeedback(true);
+        }
+    }, []);
+
+    // Don't render if user has already given feedback
+    if (hasAlreadyGivenFeedback) {
+        return null;
+    }
+
 
     const handleSubmit = () => {
         if (!data.accuracy || !data.formatting || !data.statisticalSignificance) {

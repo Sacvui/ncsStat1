@@ -7,7 +7,8 @@ export interface PDFExportOptions {
     results: any;
     columns?: string[];
     filename?: string;
-    chartImages?: string[]; // New: Array of base64 images
+    chartImages?: string[]; // Array of base64 images
+    batchData?: Array<{ title: string; results: any; columns?: string[] }>; // For batch exports (e.g., Cronbach multi-scale)
 }
 
 /**
@@ -25,7 +26,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
         } = options;
 
         // Validate input data
-        if (!results) {
+        if (!results && (!options.batchData || options.batchData.length === 0)) {
             throw new Error('No data to export PDF');
         }
 
@@ -144,8 +145,21 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     body: data,
                     headStyles: { fillColor: [41, 128, 185] as any, fontStyle: 'bold' as any }
                 });
-                yPos = (doc as any).lastAutoTable.finalY + 15;
+                yPos = (doc as any).lastAutoTable.finalY + 10;
             }
+
+            // Interpretative Notes
+            checkPageBreak(30);
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text('Interpretation Guidelines:', 15, yPos);
+            yPos += 5;
+            doc.text('• α ≥ 0.9: Excellent | α ≥ 0.8: Good | α ≥ 0.7: Acceptable | α ≥ 0.6: Questionable | α < 0.6: Poor', 15, yPos);
+            yPos += 4;
+            doc.text('• Item-Total Correlation ≥ 0.3 indicates good item discrimination', 15, yPos);
+            doc.setTextColor(0);
+            doc.setFontSize(10);
+            yPos += 10;
         }
         else if (analysisType === 'ttest-indep' || analysisType === 'ttest') {
             doc.text('Independent Samples T-Test:', 15, yPos);
@@ -189,9 +203,18 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 doc.setFontSize(9);
                 const varMsg = results.varTestP < 0.05 ? "Violated (Welch t-test used)" : "Assumed Equal Variance";
                 doc.text(`* Levene's Test: p = ${results.varTestP.toFixed(3)} (${varMsg})`, 15, yPos);
-                yPos += 15;
+                yPos += 10;
                 doc.setFontSize(10);
             }
+
+            // Interpretative Notes for T-Test
+            checkPageBreak(25);
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text('Effect Size (Cohen\'s d): |d| < 0.2: Negligible | 0.2-0.5: Small | 0.5-0.8: Medium | > 0.8: Large', 15, yPos);
+            doc.setTextColor(0);
+            doc.setFontSize(10);
+            yPos += 10;
         }
         else if (analysisType === 'ttest-paired') {
             doc.text('Paired Samples T-Test:', 15, yPos);
@@ -441,11 +464,34 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 head: [colHeaders],
                 body: data,
                 headStyles: { fillColor: [44, 62, 80] as any, fontStyle: 'bold' as any },
-                styles: { fontSize: 8, font: 'NotoSans' }
+                styles: { fontSize: 8, font: 'NotoSans' },
+                // Heatmap coloring for correlation matrix
+                didParseCell: (hookData: any) => {
+                    if (hookData.section === 'body' && hookData.column.index > 0) {
+                        const cellText = hookData.cell.text[0] || '';
+                        const numericValue = parseFloat(cellText.replace(/\*+/g, ''));
+                        if (!isNaN(numericValue)) {
+                            const absVal = Math.abs(numericValue);
+                            const opacity = Math.min(absVal * 0.8, 0.8); // Scale opacity
+                            if (numericValue > 0) {
+                                // Blue for positive correlations
+                                hookData.cell.styles.fillColor = [66, 133, 244, opacity * 255];
+                            } else if (numericValue < 0) {
+                                // Red for negative correlations
+                                hookData.cell.styles.fillColor = [234, 67, 53, opacity * 255];
+                            }
+                            // Diagonal (1.0) - light gray
+                            if (absVal > 0.99) {
+                                hookData.cell.styles.fillColor = [200, 200, 200];
+                            }
+                        }
+                    }
+                }
             });
-            yPos = (doc as any).lastAutoTable.finalY + 15;
+            yPos = (doc as any).lastAutoTable.finalY + 10;
             doc.setFontSize(8);
-            doc.text('* p < 0.05, ** p < 0.01', 15, yPos);
+            doc.text('* p < 0.05, ** p < 0.01 | Color: Blue = Positive, Red = Negative (intensity = strength)', 15, yPos);
+            yPos += 10;
         }
         else if (results && typeof results === 'object') {
             const keys = Object.keys(results).filter(k => typeof results[k] === 'number' || typeof results[k] === 'string');

@@ -28,6 +28,8 @@ const STORAGE_KEYS = {
     AI_FEEDBACK: 'ncs_feedback_ai',
     APPLICABILITY: 'ncs_feedback_applicability',
     DEMOGRAPHICS_DONE: 'ncs_demographics_done',
+    HAS_GIVEN_AI_FEEDBACK: 'ncs_has_given_ai_feedback',
+    HAS_GIVEN_APPLICABILITY_FEEDBACK: 'ncs_has_given_applicability_feedback',
     GAS_URL: 'ncs_gas_url'
 };
 
@@ -126,6 +128,18 @@ export const FeedbackService = {
         return !!localStorage.getItem(STORAGE_KEYS.DEMOGRAPHICS_DONE);
     },
 
+    // Check if user has already given AI feedback (for suppression)
+    hasGivenAIFeedback: (): boolean => {
+        if (typeof window === 'undefined') return false;
+        return !!localStorage.getItem(STORAGE_KEYS.HAS_GIVEN_AI_FEEDBACK);
+    },
+
+    // Check if user has already given Applicability feedback (for suppression)
+    hasGivenApplicabilityFeedback: (): boolean => {
+        if (typeof window === 'undefined') return false;
+        return !!localStorage.getItem(STORAGE_KEYS.HAS_GIVEN_APPLICABILITY_FEEDBACK);
+    },
+
     saveDemographics: (data: DemographicData) => {
         const payload = {
             userId: FeedbackService.getUserId(), // Local anonymous ID
@@ -161,6 +175,9 @@ export const FeedbackService = {
         existing.push(payload);
         localStorage.setItem(STORAGE_KEYS.AI_FEEDBACK, JSON.stringify(existing));
 
+        // Mark as done for suppression
+        localStorage.setItem(STORAGE_KEYS.HAS_GIVEN_AI_FEEDBACK, 'true');
+
 
         // Sync to Cloud
         FeedbackService.sendToGoogleSheets(payload);
@@ -181,6 +198,9 @@ export const FeedbackService = {
         const existing = JSON.parse(localStorage.getItem(STORAGE_KEYS.APPLICABILITY) || '[]');
         existing.push(payload);
         localStorage.setItem(STORAGE_KEYS.APPLICABILITY, JSON.stringify(existing));
+
+        // Mark as done for suppression
+        localStorage.setItem(STORAGE_KEYS.HAS_GIVEN_APPLICABILITY_FEEDBACK, 'true');
 
 
         // Sync to Cloud
