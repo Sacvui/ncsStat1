@@ -9,7 +9,7 @@ interface AnalysisSelectorProps {
 
 export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: AnalysisSelectorProps) {
     const options = [
-        { id: 'descriptive', title: 'Thống kê mô tả', desc: 'Mean, SD, Min, Max, Median', icon: BarChart2, action: 'run', colors: 'hover:border-indigo-500 hover:bg-indigo-50/30' },
+        { id: 'descriptive-select', title: 'Thống kê mô tả', desc: 'Mean, SD, Min, Max, Median', icon: BarChart2, action: 'select', colors: 'hover:border-indigo-500 hover:bg-indigo-50/30' },
         { id: 'cronbach-select', title: "Cronbach's Alpha", desc: 'Kiểm tra độ tin cậy thang đo', icon: Shield, action: 'select', colors: 'hover:border-blue-500 hover:bg-blue-50/30' },
         { id: 'correlation', title: 'Ma trận tương quan', desc: 'Phân tích mối quan hệ giữa các biến', icon: Network, action: 'run', colors: 'hover:border-purple-500 hover:bg-purple-50/30' },
         { id: 'ttest-select', title: 'Independent T-test', desc: 'So sánh 2 nhóm độc lập', icon: GitCompare, action: 'select', colors: 'hover:border-green-500 hover:bg-green-50/30' },

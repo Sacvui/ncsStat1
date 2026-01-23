@@ -666,6 +666,105 @@ export default function AnalyzePage() {
                         </div>
                     )}
 
+                    {/* Descriptive Statistics Selection */}
+                    {step === 'descriptive-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Thống kê mô tả
+                                </h2>
+                                <p className="text-gray-600">
+                                    Chọn các biến định lượng để tính toán Mean, SD, Min, Max...
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Chọn biến (có thể chọn nhiều):
+                                </p>
+                                <div className="max-h-60 overflow-y-auto space-y-2 mb-6 border rounded p-2">
+                                    {getNumericColumns().map(col => (
+                                        <div key={col} className="flex items-center space-x-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`desc-col-${col}`}
+                                                name="desc-col"
+                                                value={col}
+                                                className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <label htmlFor={`desc-col-${col}`} className="text-sm text-gray-700 select-none cursor-pointer w-full">
+                                                {col}
+                                            </label>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="flex space-x-3 mb-6 text-sm">
+                                    <button
+                                        onClick={() => document.querySelectorAll('input[name="desc-col"]').forEach((el: any) => el.checked = true)}
+                                        className="text-indigo-600 hover:text-indigo-800 font-medium"
+                                    >
+                                        Chọn tất cả
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                        onClick={() => document.querySelectorAll('input[name="desc-col"]').forEach((el: any) => el.checked = false)}
+                                        className="text-gray-500 hover:text-gray-700 font-medium"
+                                    >
+                                        Bỏ chọn
+                                    </button>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        const selectedElements = Array.from(document.querySelectorAll('input[name="desc-col"]:checked'));
+                                        const selectedCols = selectedElements.map(cb => (cb as HTMLInputElement).value);
+
+                                        if (selectedCols.length === 0) {
+                                            setToast({ message: 'Vui lòng chọn ít nhất 1 biến', type: 'error' });
+                                            return;
+                                        }
+
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('descriptive');
+                                        try {
+                                            // Prepare data subset
+                                            // The order of data columns must match selectedCols to align with results
+                                            const numericSubset = data.map(row => selectedCols.map(col => Number(row[col]) || 0));
+
+                                            // Pass the subset
+                                            const result = await runDescriptiveStats(numericSubset);
+
+                                            setResults({
+                                                type: 'descriptive',
+                                                data: result,
+                                                columns: selectedCols // Store columns to map back
+                                            });
+                                            setStep('results');
+                                            setToast({ message: 'Phân tích hoàn tất!', type: 'success' });
+                                        } catch (err) {
+                                            console.error(err);
+                                            setToast({ message: 'Lỗi: ' + (err instanceof Error ? err.message : String(err)), type: 'error' });
+                                        } finally {
+                                            setIsAnalyzing(false);
+                                        }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-50"
+                                >
+                                    {isAnalyzing ? 'Đang xử lý...' : 'Chạy Thống kê mô tả'}
+                                </button>
+                            </div>
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors"
+                            >
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
                     {step === 'cronbach-select' && (
                         <div className="max-w-3xl mx-auto space-y-6">
                             <div className="text-center mb-8">

@@ -111,7 +111,7 @@ export const FeedbackService = {
             });
 
             if (error) {
-                console.error('[Feedback] Supabase Insert Error:', error);
+                console.error('[Feedback] Supabase Insert Error:', error.message, error.details, error.hint);
             } else {
                 console.log('[Feedback] Saved to Supabase');
             }

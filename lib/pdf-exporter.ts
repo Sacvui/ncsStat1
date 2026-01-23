@@ -27,18 +27,56 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             throw new Error('Không có dữ liệu để xuất PDF');
         }
 
+        // ... existing imports
+
+        // Helper to load font
+        const loadVietnameseFont = async (doc: jsPDF) => {
+            try {
+                const response = await fetch('/webr/vfs/usr/share/fonts/NotoSans-Regular.ttf');
+                if (!response.ok) throw new Error('Failed to load font');
+                const buffer = await response.arrayBuffer();
+                const binary = Array.from(new Uint8Array(buffer)).map(b => String.fromCharCode(b)).join("");
+
+                doc.addFileToVFS('NotoSans-Regular.ttf', binary);
+                doc.addFont('NotoSans-Regular.ttf', 'NotoSans', 'normal');
+                doc.setFont('NotoSans');
+            } catch (error) {
+                console.warn('Could not load Vietnamese font, falling back to standard font:', error);
+            }
+        };
+
+        const addBranding = (doc: jsPDF) => {
+            const pageWidth = doc.internal.pageSize.width;
+
+            // Logo/Brand Name
+            doc.setFontSize(24);
+            doc.setTextColor(41, 128, 185); // Blue color
+            doc.setFont('helvetica', 'bold'); // Use bold for logo
+            doc.text('NCS STAT', pageWidth - 20, 20, { align: 'right' });
+
+            // Reset font
+            doc.setFont('NotoSans', 'normal');
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+        };
+
         const doc = new jsPDF();
-        let yPos = 20;
+        await loadVietnameseFont(doc);
+        addBranding(doc);
+
+        let yPos = 30; // Start lower due to branding
 
         // Helper to check page break
         const checkPageBreak = (height: number = 10) => {
             if (yPos + height > 280) {
                 doc.addPage();
+                addBranding(doc); // Re-add branding on new page? Or just page num.
+                // Usually branding is only on first page or header. Let's keep it clean on subsequent pages.
                 yPos = 20;
             }
         };
 
-        // Header
+        // Title
         doc.setFontSize(18);
         doc.setTextColor(40);
         doc.text(title, 14, yPos);
@@ -46,7 +84,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
         doc.setFontSize(10);
         doc.setTextColor(100);
-        doc.text(`Được tạo bởi ncsStat vào ${new Date().toLocaleString('vi-VN')}`, 14, yPos);
+        doc.text(`Ngày tạo: ${new Date().toLocaleString('vi-VN')}`, 14, yPos);
         yPos += 10;
 
         // Line separator
