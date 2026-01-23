@@ -202,28 +202,147 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 });
             }
         }
-        // Generic fallback for others (T-test, ANOVA etc)
+        else if (analysisType === 'descriptive') {
+            doc.text('Thống kê miêu tả (Descriptive Statistics):', 14, yPos);
+            yPos += 10;
+
+            const headers = [['Biến', 'Mean', 'SD', 'Min', 'Max', 'Skew', 'Kurtosis']];
+            // Results structure: { mean: [], sd: [], ... }
+            if (results.mean && results.mean.length > 0) {
+                const data = results.mean.map((_: any, i: number) => [
+                    columns[i] || `Var ${i + 1}`,
+                    (results.mean[i] ?? 0).toFixed(2),
+                    (results.sd[i] ?? 0).toFixed(2),
+                    (results.min[i] ?? 0).toFixed(2),
+                    (results.max[i] ?? 0).toFixed(2),
+                    (results.skew[i] ?? 0).toFixed(2),
+                    (results.kurtosis[i] ?? 0).toFixed(2)
+                ]);
+
+                (doc as any).autoTable({
+                    startY: yPos,
+                    head: headers,
+                    body: data,
+                    theme: 'striped',
+                    headStyles: { fillColor: [44, 62, 80] }
+                });
+                yPos = (doc as any).lastAutoTable.finalY + 15;
+            }
+        }
+        else if (analysisType === 'correlation') {
+            doc.text('Ma trận tương quan (Pearson Correlation):', 14, yPos);
+            yPos += 10;
+
+            // Headers
+            const colHeaders = ['Biến', ...(columns.length > 0 ? columns : Array(results.correlationMatrix.length).fill(0).map((_, i) => `V${i + 1}`))];
+
+            // Generate rows
+            const data = results.correlationMatrix.map((row: number[], i: number) => {
+                const rowName = columns[i] || `V${i + 1}`;
+                const rowData = row.map((val: number, j: number) => {
+                    // Mark significant correlations
+                    const p = results.pValues[i][j];
+                    const sig = p < 0.01 ? '**' : p < 0.05 ? '*' : '';
+                    return val.toFixed(2) + sig;
+                });
+                return [rowName, ...rowData];
+            });
+
+            (doc as any).autoTable({
+                startY: yPos,
+                head: [colHeaders],
+                body: data,
+                theme: 'grid',
+                headStyles: { fillColor: [44, 62, 80] },
+                styles: { fontSize: 8, cellPadding: 2 }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            doc.setFontSize(8);
+            doc.text('* p < 0.05, ** p < 0.01', 14, yPos);
+        }
+        else if (analysisType === 'ttest_indep') {
+            doc.text('Independent Samples T-Test:', 14, yPos);
+            yPos += 10;
+
+            // Group Stats Table
+            const headers1 = [['Nhóm', 'Mean', 'N (Sample)']]; // Simple summary if we had N, but here we have means directly
+            const data1 = [
+                ['Group 1', results.mean1.toFixed(2), '-'],
+                ['Group 2', results.mean2.toFixed(2), '-']
+            ];
+
+            (doc as any).autoTable({
+                startY: yPos,
+                head: headers1,
+                body: data1,
+                theme: 'plain',
+                tableWidth: 80
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+
+            // Test Results
+            const headers2 = [['t', 'df', 'Sig. (2-tailed)', 'Mean Diff', 'Cohen\'s d']];
+            const data2 = [[
+                results.t.toFixed(3),
+                results.df.toFixed(3),
+                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
+                results.meanDiff.toFixed(3),
+                results.effectSize.toFixed(3)
+            ]];
+
+            (doc as any).autoTable({
+                startY: yPos,
+                head: headers2,
+                body: data2,
+                theme: 'striped',
+                headStyles: { fillColor: [52, 152, 219] }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+        }
+        else if (analysisType === 'anova') {
+            doc.text('One-Way ANOVA:', 14, yPos);
+            yPos += 10;
+
+            const headers = [['F', 'df1 (Between)', 'df2 (Within)', 'Sig.', 'Eta Squared']];
+            const data = [[
+                results.F.toFixed(3),
+                results.dfBetween,
+                results.dfWithin,
+                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
+                results.etaSquared.toFixed(3)
+            ]];
+
+            (doc as any).autoTable({
+                startY: yPos,
+                head: headers,
+                body: data,
+                theme: 'striped',
+                headStyles: { fillColor: [155, 89, 182] }
+            });
+        }
+        // Generic fallback for unknown types
         else if (results && typeof results === 'object') {
             const keys = Object.keys(results).filter(k => typeof results[k] === 'number' || typeof results[k] === 'string');
             const data = keys.map(k => [k, String(results[k])]);
 
-            (doc as any).autoTable({
-                startY: yPos,
-                head: [['Metric', 'Value']],
-                body: data
-            });
+            if (data.length > 0) {
+                (doc as any).autoTable({
+                    startY: yPos,
+                    head: [['Metric', 'Value']],
+                    body: data
+                });
+            }
         }
+
 
         doc.save(filename);
     } catch (error) {
         console.error("PDF Export Error:", error);
-        // Simple fallback
     }
 }
 
 // Deprecated html2canvas method (kept for compat if needed, but not used)
 export async function exportWithCharts(elementId: string, filename: string): Promise<void> {
-    // Redirect to text export if possible or throw generic error
-    // For now, empty implementation or simple alert to avoid crash
     console.warn("Screenshot export is disabled due to compatibility issues. Please use Text Export.");
 }
