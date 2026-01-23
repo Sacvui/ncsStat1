@@ -139,7 +139,7 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
                         e.stopPropagation();
                         setIsProcessing(true);
                         try {
-                            const response = await fetch('/sample_data.csv');
+                            const response = await fetch('/sample_data_large.csv');
                             if (!response.ok) throw new Error('Không tìm thấy file mẫu');
                             const text = await response.text();
 
@@ -148,13 +148,13 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
                                 skipEmptyLines: true,
                                 complete: (results) => {
                                     if (results.data && results.data.length > 0) {
-                                        onDataLoaded(results.data, 'sample_data.csv');
+                                        onDataLoaded(results.data, 'sample_data_large.csv');
                                     } else {
                                         setError('File mẫu bị lỗi');
                                     }
                                     setIsProcessing(false);
                                 },
-                                error: (err) => {
+                                error: (err: Error) => {
                                     setError('Lỗi đọc file mẫu: ' + err.message);
                                     setIsProcessing(false);
                                 }
@@ -167,7 +167,7 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
                     disabled={isProcessing}
                     className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
                 >
-                    Không có dữ liệu? Dùng thử dữ liệu mẫu
+                    Không có dữ liệu? Dùng thử dữ liệu mẫu (N=300)
                 </button>
             </div>
 

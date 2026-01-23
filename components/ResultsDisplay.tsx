@@ -95,7 +95,7 @@ export function ResultsDisplay({
     }, [results, analysisType, onProceedToEFA, onProceedToCFA, onProceedToSEM]);
 
     return (
-        <div className="space-y-8">
+        <div id="analysis-results-container" className="space-y-8">
             {display}
 
             {/* R Syntax Viewer */}

@@ -7,6 +7,7 @@ export interface PDFExportOptions {
     results: any;
     columns?: string[];
     filename?: string;
+    chartImages?: string[]; // New: Array of base64 images
 }
 
 /**
@@ -19,7 +20,8 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             analysisType,
             results,
             columns = [],
-            filename = `statviet_${analysisType}_${Date.now()}.pdf`
+            filename = `statviet_${analysisType}_${Date.now()}.pdf`,
+            chartImages = []
         } = options;
 
         // Validate input data
@@ -95,7 +97,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
         let yPos = 55; // Start content below header
 
-        // Page break helper that resets Y but relies on final loop for headers
+        // Page break helper
         const checkPageBreak = (height: number = 20) => {
             if (yPos + height > 270) {
                 doc.addPage();
@@ -105,11 +107,9 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
 
         const commonTableOptions = {
             styles: { font: 'NotoSans', fontSize: 10, cellPadding: 4 },
-            headStyles: { fillColor: [44, 62, 80], fontStyle: 'bold' },
+            headStyles: { fillColor: [44, 62, 80] as any, fontStyle: 'bold' as any },
             theme: 'striped' as const,
             margin: { top: 50 },
-            // We do NOT use didDrawPage for branding to avoid conflicts.
-            // We apply it cleanly at the end.
         };
 
         // --- CONTENT GENERATION ---
@@ -142,9 +142,145 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     startY: yPos,
                     head: headers,
                     body: data,
-                    headStyles: { fillColor: [41, 128, 185], fontStyle: 'bold' as any }
+                    headStyles: { fillColor: [41, 128, 185] as any, fontStyle: 'bold' as any }
                 });
                 yPos = (doc as any).lastAutoTable.finalY + 15;
+            }
+        }
+        else if (analysisType === 'ttest-indep' || analysisType === 'ttest') {
+            doc.text('Independent Samples T-Test:', 15, yPos);
+            yPos += 10;
+
+            const headers1 = [['Nhóm', 'Mean', 'N (Sample)']];
+            const data1 = [
+                ['Group 1', results.mean1.toFixed(2), '-'],
+                ['Group 2', results.mean2.toFixed(2), '-']
+            ];
+
+            autoTable(doc, {
+                ...commonTableOptions,
+                startY: yPos,
+                head: headers1,
+                body: data1,
+                theme: 'plain',
+                tableWidth: 80
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+
+            const headers2 = [['t', 'df', 'Sig. (2-tailed)', 'Mean Diff', 'Cohen\'s d']];
+            const data2 = [[
+                results.t.toFixed(3),
+                results.df.toFixed(3),
+                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
+                results.meanDiff.toFixed(3),
+                results.effectSize.toFixed(3)
+            ]];
+
+            autoTable(doc, {
+                ...commonTableOptions,
+                startY: yPos,
+                head: headers2,
+                body: data2,
+                headStyles: { fillColor: [52, 152, 219] as any, fontStyle: 'bold' as any }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            if (results.varTestP !== undefined) {
+                doc.setFontSize(9);
+                const varMsg = results.varTestP < 0.05 ? "Phương sai không đồng nhất" : "Phương sai đồng nhất";
+                doc.text(`* Kiểm định Levene: p = ${results.varTestP.toFixed(3)} (${varMsg})`, 15, yPos);
+                yPos += 15;
+                doc.setFontSize(10);
+            }
+        }
+        else if (analysisType === 'ttest-paired') {
+            doc.text('Paired Samples T-Test:', 15, yPos);
+            yPos += 10;
+
+            const headers1 = [['Thời điểm', 'Mean']];
+            const data1 = [
+                [`Trước (${columns[0] || 'V1'})`, results.meanBefore.toFixed(2)],
+                [`Sau (${columns[1] || 'V2'})`, results.meanAfter.toFixed(2)]
+            ];
+            autoTable(doc, {
+                ...commonTableOptions, startY: yPos, head: headers1, body: data1, theme: 'plain', tableWidth: 80
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 10;
+
+            const headers2 = [['t', 'df', 'Sig. (2-tailed)', 'Mean Diff', 'Cohen\'s d']];
+            const data2 = [[
+                results.t.toFixed(3),
+                results.df.toFixed(0),
+                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
+                results.meanDiff.toFixed(3),
+                results.effectSize.toFixed(3)
+            ]];
+            autoTable(doc, {
+                ...commonTableOptions, startY: yPos, head: headers2, body: data2,
+                headStyles: { fillColor: [52, 152, 219] as any, fontStyle: 'bold' as any }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+        }
+        else if (analysisType === 'anova') {
+            doc.text('One-Way ANOVA:', 15, yPos);
+            yPos += 10;
+
+            const headers = [['F', 'df1 (Between)', 'df2 (Within)', 'Sig.', 'Eta Squared']];
+            const data = [[
+                results.F.toFixed(3),
+                results.dfBetween,
+                results.dfWithin,
+                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
+                results.etaSquared.toFixed(3)
+            ]];
+
+            autoTable(doc, {
+                ...commonTableOptions,
+                startY: yPos,
+                head: headers,
+                body: data,
+                headStyles: { fillColor: [155, 89, 182] as any, fontStyle: 'bold' as any }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // Group Means
+            if (results.groupMeans) {
+                checkPageBreak(40);
+                doc.text('Trung bình các nhóm (Group Means):', 15, yPos);
+                yPos += 5;
+                const hMeans = [['Nhóm', 'Mean']];
+                const dMeans = columns.map((col, i) => [col, results.groupMeans[i]?.toFixed(3) || '-']);
+                if (results.grandMean) dMeans.push(['Grand Mean', results.grandMean.toFixed(3)]);
+
+                autoTable(doc, { ...commonTableOptions, startY: yPos, head: hMeans, body: dMeans });
+                yPos = (doc as any).lastAutoTable.finalY + 15;
+            }
+        }
+        else if (analysisType === 'chisquare') {
+            doc.text('Chi-Square Test (Independence):', 15, yPos);
+            yPos += 10;
+
+            doc.text(`Chi-Square: ${results.chiSquare.toFixed(3)}`, 15, yPos);
+            yPos += 7;
+            doc.text(`df: ${results.df}`, 15, yPos);
+            yPos += 7;
+            doc.text(`p-value: ${results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3)}`, 15, yPos);
+            yPos += 10;
+
+            doc.text(`Cramer\'s V: ${results.cramersV.toFixed(3)}`, 15, yPos);
+            yPos += 15;
+        }
+        else if (analysisType === 'mann-whitney') {
+            doc.text('Mann-Whitney U Test:', 15, yPos);
+            yPos += 10;
+
+            doc.text(`U Statistic: ${results.uStatistic.toFixed(2)}`, 15, yPos);
+            yPos += 7;
+            doc.text(`p-value: ${results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3)}`, 15, yPos);
+            yPos += 7;
+            if (results.effectSize) {
+                doc.text(`Effect Size (r): ${results.effectSize.toFixed(3)}`, 15, yPos);
+                yPos += 15;
             }
         }
         else if (analysisType === 'regression') {
@@ -175,7 +311,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 startY: yPos,
                 head: headers,
                 body: data,
-                headStyles: { fillColor: [50, 50, 50], fontStyle: 'bold' as any }
+                headStyles: { fillColor: [50, 50, 50] as any, fontStyle: 'bold' as any }
             });
             yPos = (doc as any).lastAutoTable.finalY + 15;
         }
@@ -185,8 +321,14 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             doc.text(`Bartlett Sig: ${results.bartlettP < 0.001 ? '< .001' : results.bartlettP.toFixed(3)}`, 15, yPos);
             yPos += 10;
 
+            if (results.eigenvalues) {
+                const evInfo = results.eigenvalues.slice(0, 8).map((e: number, i: number) => `F${i + 1}: ${e.toFixed(2)}`).join(', ');
+                doc.text(`Eigenvalues: ${evInfo}...`, 15, yPos);
+                yPos += 10;
+            }
+
             if (results.loadings) {
-                const headers = [['Biến', ...Array(results.loadings[0].length).fill(0).map((_, i) => `Factor ${i + 1}`)]];
+                const headers = [['Biến', ...Array(results.loadings[0].length).fill(0).map((_, i) => `F${i + 1}`)]];
                 const data = results.loadings.map((row: number[], i: number) => {
                     return [`Var ${i + 1} (${columns[i] || ''})`, ...row.map(v => v.toFixed(3))];
                 });
@@ -247,7 +389,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     startY: yPos,
                     head: estHeaders,
                     body: estData,
-                    headStyles: { fillColor: [100, 100, 100], fontStyle: 'bold' as any },
+                    headStyles: { fillColor: [100, 100, 100] as any, fontStyle: 'bold' as any },
                     styles: { fontSize: 8, font: 'NotoSans' }
                 });
                 yPos = (doc as any).lastAutoTable.finalY + 15;
@@ -275,7 +417,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                     startY: yPos,
                     head: headers,
                     body: data,
-                    headStyles: { fillColor: [44, 62, 80], fontStyle: 'bold' as any }
+                    headStyles: { fillColor: [44, 62, 80] as any, fontStyle: 'bold' as any }
                 });
                 yPos = (doc as any).lastAutoTable.finalY + 15;
             }
@@ -298,71 +440,12 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
                 startY: yPos,
                 head: [colHeaders],
                 body: data,
-                headStyles: { fillColor: [44, 62, 80], fontStyle: 'bold' as any },
+                headStyles: { fillColor: [44, 62, 80] as any, fontStyle: 'bold' as any },
                 styles: { fontSize: 8, font: 'NotoSans' }
             });
             yPos = (doc as any).lastAutoTable.finalY + 15;
             doc.setFontSize(8);
             doc.text('* p < 0.05, ** p < 0.01', 15, yPos);
-        }
-        else if (analysisType === 'ttest_indep') {
-            doc.text('Independent Samples T-Test:', 15, yPos);
-            yPos += 10;
-
-            const headers1 = [['Nhóm', 'Mean', 'N (Sample)']];
-            const data1 = [
-                ['Group 1', results.mean1.toFixed(2), '-'],
-                ['Group 2', results.mean2.toFixed(2), '-']
-            ];
-
-            autoTable(doc, {
-                ...commonTableOptions,
-                startY: yPos,
-                head: headers1,
-                body: data1,
-                theme: 'plain',
-                tableWidth: 80
-            });
-            yPos = (doc as any).lastAutoTable.finalY + 10;
-
-            const headers2 = [['t', 'df', 'Sig. (2-tailed)', 'Mean Diff', 'Cohen\'s d']];
-            const data2 = [[
-                results.t.toFixed(3),
-                results.df.toFixed(3),
-                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
-                results.meanDiff.toFixed(3),
-                results.effectSize.toFixed(3)
-            ]];
-
-            autoTable(doc, {
-                ...commonTableOptions,
-                startY: yPos,
-                head: headers2,
-                body: data2,
-                headStyles: { fillColor: [52, 152, 219], fontStyle: 'bold' as any }
-            });
-            yPos = (doc as any).lastAutoTable.finalY + 15;
-        }
-        else if (analysisType === 'anova') {
-            doc.text('One-Way ANOVA:', 15, yPos);
-            yPos += 10;
-
-            const headers = [['F', 'df1 (Between)', 'df2 (Within)', 'Sig.', 'Eta Squared']];
-            const data = [[
-                results.F.toFixed(3),
-                results.dfBetween,
-                results.dfWithin,
-                results.pValue < 0.001 ? '< .001' : results.pValue.toFixed(3),
-                results.etaSquared.toFixed(3)
-            ]];
-
-            autoTable(doc, {
-                ...commonTableOptions,
-                startY: yPos,
-                head: headers,
-                body: data,
-                headStyles: { fillColor: [155, 89, 182], fontStyle: 'bold' as any }
-            });
         }
         else if (results && typeof results === 'object') {
             const keys = Object.keys(results).filter(k => typeof results[k] === 'number' || typeof results[k] === 'string');
@@ -377,6 +460,55 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             }
         }
 
+        // --- CHARTS RENDER ---
+        if (chartImages.length > 0) {
+            checkPageBreak(100);
+            doc.addPage();
+            yPos = 50;
+
+            doc.setFontSize(14);
+            doc.setFont('NotoSans', 'bold');
+            doc.text('Biểu đồ trực quan (Charts)', 15, yPos);
+            yPos += 15;
+
+            for (const imgData of chartImages) {
+                const imgWidth = 180;
+                const imgHeight = 90; // Approx 2:1 aspect ratio
+
+                checkPageBreak(imgHeight + 20);
+
+                try {
+                    doc.addImage(imgData, 'PNG', 15, yPos, imgWidth, imgHeight);
+                    yPos += imgHeight + 15;
+                } catch (e) {
+                    console.warn("Could not add image", e);
+                }
+            }
+        }
+
+        // --- CITATION FOOTER (Robust) ---
+        checkPageBreak(50);
+        yPos += 15;
+        doc.setDrawColor(200);
+        doc.line(15, yPos, 196, yPos);
+        yPos += 10;
+
+        doc.setFontSize(9);
+        doc.setFont("times", "italic"); // Use standard font for citation if possible, or fallback
+        doc.setTextColor(80);
+
+        const citation1 = "Dữ liệu được phân tích bằng ngôn ngữ lập trình R (R Core Team, 2023) thông qua nền tảng ncsStat (Le, 2026). Các phân tích độ tin cậy và nhân tố được thực hiện bằng các package psych (Revelle, 2023) và lavaan (Rosseel, 2012).";
+        const citation2 = "Le, P. H. (2026). ncsStat: A Web-Based Statistical Analysis Platform for Psychometric Analysis. Available at https://ncsstat.ncskit.org";
+
+        // Split text to fit width
+        const splitText1 = doc.splitTextToSize(citation1, 180);
+        doc.text(splitText1, 15, yPos);
+        yPos += doc.getTextDimensions(splitText1).h + 5;
+
+        const splitText2 = doc.splitTextToSize(citation2, 180);
+        doc.text(splitText2, 15, yPos);
+
+
         // --- FINAL POST-PROCESSING: APPLY HEADER TO ALL PAGES ---
         const totalPages = doc.getNumberOfPages();
         for (let i = 1; i <= totalPages; i++) {
@@ -390,7 +522,7 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
     }
 }
 
-// Deprecated html2canvas method (kept for compat if needed, but not used)
+// Deprecated html2canvas method
 export async function exportWithCharts(elementId: string, filename: string): Promise<void> {
     console.warn("Screenshot export is disabled due to compatibility issues. Please use Text Export.");
 }

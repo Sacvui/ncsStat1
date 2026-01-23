@@ -474,6 +474,20 @@ export default function AnalyzePage() {
 
             showToast('Đang tạo PDF, vui lòng đợi...', 'info');
 
+            // Capture charts if any
+            const chartImages: string[] = [];
+            const container = document.getElementById('analysis-results-container');
+            if (container) {
+                const canvases = container.querySelectorAll('canvas');
+                canvases.forEach(canvas => {
+                    try {
+                        chartImages.push(canvas.toDataURL('image/png'));
+                    } catch (e) {
+                        console.warn('Canvas capture failed:', e);
+                    }
+                });
+            }
+
             // Handle batch Cronbach export
             if (analysisType === 'cronbach-batch' && multipleResults.length > 0) {
                 for (const r of multipleResults) {
@@ -482,7 +496,8 @@ export default function AnalyzePage() {
                         analysisType: 'cronbach',
                         results: r.data,
                         columns: r.columns,
-                        filename: `cronbach_${r.scaleName.replace(/\s+/g, '_')}_${Date.now()}.pdf`
+                        filename: `cronbach_${r.scaleName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
+                        chartImages: [] // Batch might not easily support charts mapping yet
                     });
                 }
                 showToast(`Đã xuất ${multipleResults.length} file PDF thành công!`, 'success');
@@ -493,7 +508,8 @@ export default function AnalyzePage() {
                     analysisType,
                     results: results?.data || results,
                     columns: results?.columns || [],
-                    filename: `statviet_${analysisType}_${Date.now()}.pdf`
+                    filename: `statviet_${analysisType}_${Date.now()}.pdf`,
+                    chartImages
                 });
                 showToast('Đã xuất PDF thành công!', 'success');
             }
