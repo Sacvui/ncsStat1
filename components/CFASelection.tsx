@@ -62,9 +62,17 @@ export default function CFASelection({ columns, onRunCFA, isAnalyzing, onBack }:
     };
 
     const handleRun = () => {
-        const validFactors = factors.filter(f => f.indicators.length >= 2);
+        const validFactors = factors.filter(f => f.indicators.length >= 3);
+        const totalIndicators = factors.reduce((sum, f) => sum + f.indicators.length, 0);
+
         if (validFactors.length < 1) {
-            alert("Vui lòng định nghĩa ít nhất 1 nhân tố với tối thiểu 2 biến quan sát.");
+            alert("Vui lòng định nghĩa ít nhất 1 nhân tố với tối thiểu 3 biến quan sát.");
+            return;
+        }
+
+        // Require at least 4 indicators total for proper model fit calculation
+        if (totalIndicators < 4) {
+            alert("CFA cần ít nhất 4 biến quan sát để tính toán chỉ số phù hợp mô hình (RMSEA, CFI, TLI).");
             return;
         }
         // Check for empty names
@@ -105,8 +113,8 @@ export default function CFASelection({ columns, onRunCFA, isAnalyzing, onBack }:
                                     <div
                                         key={factor.id}
                                         className={`p-3 rounded-lg border cursor-pointer transition-all ${editingFactorIndex === idx
-                                                ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                                                : 'border-gray-200 hover:border-blue-300'
+                                            ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                                            : 'border-gray-200 hover:border-blue-300'
                                             }`}
                                         onClick={() => setEditingFactorIndex(idx)}
                                     >
