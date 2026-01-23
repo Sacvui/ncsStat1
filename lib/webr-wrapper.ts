@@ -222,24 +222,44 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
 }> {
     const webR = await initWebR();
 
-    const rCode = `
     library(psych)
-    data <- ${arrayToRMatrix(data)}
-    result <- alpha(data)
+    data < - ${ arrayToRMatrix(data) }
+    result < - alpha(data, check.keys = TRUE) # Auto check for reversed items
     
-    # Extract item-total statistics
-    item_stats <- result$item.stats
-    alpha_drop <- result$alpha.drop
+    # Extract item - total statistics
+    item_stats < - result$item.stats
+    alpha_drop < - result$alpha.drop
     
+    # Manually calculate Scale Mean / Var if Item Deleted for accuracy
+    n_items < - ncol(data)
+    scale_mean_del < - numeric(n_items)
+    scale_var_del < - numeric(n_items)
+    
+    # Calculate total scores(assuming data is clean / imputed by alpha function or previous steps)
+    # Note: psych::alpha handles NAs, here we'll assume rowSums matches used data
+    # To be safe, we use the scores from the result object if available, or calc manually
+    
+    # Simple manual loop
+    for (i in 1:n_items) {
+       # Subset data excluding item i
+        sub_data < - data[, -i, drop = FALSE] 
+       # Calculate row sums for this subset
+       sub_scores < - rowSums(sub_data, na.rm = TRUE)
+       scale_mean_del[i] < - mean(sub_scores, na.rm = TRUE)
+        scale_var_del[i] < - var(sub_scores, na.rm = TRUE)
+    }
+
     list(
-      raw_alpha = result$total$raw_alpha,
-      std_alpha = result$total$std.alpha,
-      n_items = ncol(data),
-      # Item-total statistics
-      scale_mean_deleted = alpha_drop$mean,
-      scale_var_deleted = alpha_drop$sd^2,
-      corrected_item_total = item_stats$r.drop,
-      alpha_if_deleted = alpha_drop$raw_alpha
+        raw_alpha = result$total$raw_alpha,
+        std_alpha = result$total$std.alpha,
+        n_items = ncol(data),
+      
+      # Item - total statistics
+      scale_mean_deleted = scale_mean_del,
+        scale_var_deleted = scale_var_del,
+
+        corrected_item_total = item_stats$r.drop,
+        alpha_if_deleted = alpha_drop$raw_alpha
     )
   `;
 
@@ -266,7 +286,7 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
 
     for (let i = 0; i < itemCount; i++) {
         itemTotalStats.push({
-            itemName: `VAR${(i + 1).toString().padStart(2, '0')}`,
+            itemName: `VAR${ (i + 1).toString().padStart(2, '0') } `,
             scaleMeanIfDeleted: scaleMeanDeleted[i] || 0,
             scaleVarianceIfDeleted: scaleVarDeleted[i] || 0,
             correctedItemTotalCorrelation: correctedItemTotal[i] || 0,
@@ -291,6 +311,9 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
 /**
  * Run correlation analysis
  */
+/**
+ * Run correlation analysis
+ */
 export async function runCorrelation(data: number[][]): Promise<{
     correlationMatrix: number[][];
     pValues: number[][];
@@ -301,40 +324,22 @@ export async function runCorrelation(data: number[][]): Promise<{
     const nCols = data[0]?.length || 0;
 
     const rCode = `
-    data <- ${arrayToRMatrix(data)}
+    library(psych)
+    data < - ${ arrayToRMatrix(data) }
     
-    # Use base R cor() function - simpler and no row name issues
-    n <- nrow(data)
-    ncols <- ncol(data)
-    
-    # Correlation matrix
-    corr_matrix <- cor(data, use="pairwise.complete.obs")
-    
-    # Calculate p-values manually using t-test formula
-    p_matrix <- matrix(0, ncols, ncols)
-    for (i in 1:ncols) {
-      for (j in 1:ncols) {
-        if (i == j) {
-          p_matrix[i,j] <- 0
-        } else {
-          r <- corr_matrix[i,j]
-          t_stat <- r * sqrt((n-2)/(1-r^2))
-          p_matrix[i,j] <- 2 * pt(-abs(t_stat), df=n-2)
-        }
-      }
-    }
-    
+    # Use psych:: corr.test for robust pairwise p - values and handling missing data
+    # adjust = "none" matches standard SPSS / Excel output(unadjusted p - values)
+    ct < - corr.test(data, use = "pairwise", method = "pearson", adjust = "none")
+
     list(
-      correlation = as.vector(corr_matrix),
-      p_values = as.vector(p_matrix),
-      n_cols = ncols
+        correlation = as.vector(ct$r),
+        p_values = as.vector(ct$p),
+        n_cols = ncol(data)
     )
-  `;
+        `;
 
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
-
-
 
     const getValue = parseWebRResult(jsResult);
 
@@ -360,63 +365,43 @@ export async function runCorrelation(data: number[][]): Promise<{
 /**
  * Run descriptive statistics
  */
-
-function toArray(val: any): number[] {
-    if (!val) return [];
-    // WebR often returns {values: [...]} structure
-    if (typeof val === 'object' && val.values && Array.isArray(val.values)) {
-        return val.values;
-    }
-    if (Array.isArray(val)) return val;
-    if (typeof val === 'object' && 'length' in val) return Array.from(val);
-    if (typeof val === 'object') {
-        const values = Object.values(val);
-        // If values are numbers, return them
-        if (values.every(v => typeof v === 'number')) {
-            return values as number[];
-        }
-        // If values are objects with 'values' property
-        if (values.length > 0 && typeof values[0] === 'object') {
-            return values.map((v: any) => v?.values?.[0] ?? v ?? 0) as number[];
-        }
-        return values as number[];
-    }
-    return [Number(val)];
-}
-
-/**
- * Run descriptive statistics
- */
 export async function runDescriptiveStats(data: number[][]): Promise<{
     mean: number[];
     sd: number[];
     min: number[];
     max: number[];
     median: number[];
-    N: number;
+    N: number[]; // Valid N per variable
+    skew: number[];
+    kurtosis: number[];
+    se: number[];
 }> {
     const webR = await initWebR();
 
     const rCode = `
-    data <- ${arrayToRMatrix(data)}
+    library(psych)
+    data < - ${ arrayToRMatrix(data) }
+    
+    # Use psych::describe for comprehensive stats(Skew, Kurtosis, SE)
+    desc < - describe(data)
     
     list(
-      mean = colMeans(data, na.rm=TRUE),
-      sd = apply(data, 2, sd, na.rm=TRUE),
-      min = apply(data, 2, min, na.rm=TRUE),
-      max = apply(data, 2, max, na.rm=TRUE),
-      median = apply(data, 2, median, na.rm=TRUE),
-      n = nrow(data)
+        mean = desc$mean,
+        sd = desc$sd,
+        min = desc$min,
+        max = desc$max,
+        median = desc$median,
+        n = desc$n,
+        skew = desc$skew,
+        kurtosis = desc$kurtosis,
+        se = desc$se
     )
-  `;
+            `;
 
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
-
-
     // WebR returns {type:'list', names:[...], values:[{type:'double', values:[...]}, ...]}
-    // We need to extract values by index based on names array
     const getValue = parseWebRResult(jsResult);
 
     const processed = {
@@ -425,10 +410,11 @@ export async function runDescriptiveStats(data: number[][]): Promise<{
         min: getValue('min') || [],
         max: getValue('max') || [],
         median: getValue('median') || [],
-        N: (getValue('n') && getValue('n')[0]) || 0
+        N: getValue('n') || [],
+        skew: getValue('skew') || [],
+        kurtosis: getValue('kurtosis') || [],
+        se: getValue('se') || []
     };
-
-
 
     return processed;
 }
@@ -452,32 +438,32 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     const webR = await initWebR();
 
     const rCode = `
-    group1 <- c(${group1.join(',')})
-    group2 <- c(${group2.join(',')})
+    group1 < - c(${ group1.join(',') })
+    group2 < - c(${ group2.join(',') })
     
     # Check Equal Variance assumption
-    var_test <- var.test(group1, group2)
-    var_equal <- var_test$p.value > 0.05
-    
-    result <- t.test(group1, group2, var.equal = var_equal)
+    var_test < - var.test(group1, group2)
+    var_equal < - var_test$p.value > 0.05
+
+    result < - t.test(group1, group2, var.equal = var_equal)
     
     # Cohen's d effect size
-    pooledSD <- sqrt(((length(group1)-1)*sd(group1)^2 + (length(group2)-1)*sd(group2)^2) / (length(group1)+length(group2)-2))
-    cohensD <- (mean(group1) - mean(group2)) / pooledSD
-    
+    pooledSD < - sqrt(((length(group1) - 1) * sd(group1) ^ 2 + (length(group2) - 1) * sd(group2) ^ 2) / (length(group1) + length(group2) - 2))
+    cohensD < - (mean(group1) - mean(group2)) / pooledSD
+
     list(
-      t = result$statistic,
-      df = result$parameter,
-      pValue = result$p.value,
-      mean1 = mean(group1),
-      mean2 = mean(group2),
-      meanDiff = mean(group1) - mean(group2),
-      ci95Lower = result$conf.int[1],
-      ci95Upper = result$conf.int[2],
-      effectSize = cohensD,
-      varTestP = var_test$p.value
+        t = result$statistic,
+        df = result$parameter,
+        pValue = result$p.value,
+        mean1 = mean(group1),
+        mean2 = mean(group2),
+        meanDiff = mean(group1) - mean(group2),
+        ci95Lower = result$conf.int[1],
+        ci95Upper = result$conf.int[2],
+        effectSize = cohensD,
+        varTestP = var_test$p.value
     )
-    `;
+        `;
 
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
@@ -515,15 +501,23 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
     meanDiff: number;
     ci95Lower: number;
     ci95Upper: number;
+    effectSize: number; // Cohen's d
     rCode: string;
 }> {
     const webR = await initWebR();
 
     const rCode = `
-    before <- c(${before.join(',')})
-    after <- c(${after.join(',')})
+    before < - c(${ before.join(',') })
+    after < - c(${ after.join(',') })
 
-    result <- t.test(before, after, paired = TRUE)
+    result < - t.test(before, after, paired = TRUE)
+    
+    # Calculate Cohen's d for Paired Samples
+    # d = MeanDiff / SD_diff
+    diffs < - before - after
+    mean_diff < - mean(diffs)
+    sd_diff < - sd(diffs)
+    cohens_d < - mean_diff / sd_diff
 
     list(
         t = result$statistic,
@@ -531,9 +525,10 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
         pValue = result$p.value,
         meanBefore = mean(before),
         meanAfter = mean(after),
-        meanDiff = mean(before - after),
+        meanDiff = mean_diff,
         ci95Lower = result$conf.int[1],
-        ci95Upper = result$conf.int[2]
+        ci95Upper = result$conf.int[2],
+        effectSize = cohens_d
     )
   `;
 
@@ -555,6 +550,7 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
         meanDiff: getValue('meanDiff'),
         ci95Lower: getValue('ci95Lower'),
         ci95Upper: getValue('ci95Upper'),
+        effectSize: getValue('effectSize'),
         rCode: rCode
     };
 }
@@ -577,39 +573,39 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
 
     // Build group data for R
     const groupData = groups.map((g, i) =>
-        g.map(v => `c(${v}, ${i + 1})`).join(',')
+        g.map(v => `c(${ v }, ${ i + 1})`).join(',')
     ).join(',');
 
     const rCode = `
     # Create data frame with values and group labels
-    values <- c(${groups.map(g => g.join(',')).join(',')})
-    groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
+values < - c(${ groups.map(g => g.join(',')).join(',') })
+groups < - factor(c(${ groups.map((g, i) => g.map(() => i + 1).join(',')).join(',') }))
     
     # Assumption Check: Bartlett's test for homogeneity of variance
-    bartlett <- bartlett.test(values ~ groups)
+bartlett < - bartlett.test(values ~groups)
     
     # Run ANOVA
-    model <- aov(values ~ groups)
-    result <- summary(model)[[1]]
+model < - aov(values ~groups)
+result < - summary(model)[[1]]
     
     # Calculate eta squared
-    ssb <- result[1, 2]  # Sum of squares between
-    sst <- ssb + result[2, 2]  # Total sum of squares
-    etaSquared <- ssb / sst
+ssb < - result[1, 2]  # Sum of squares between
+sst < - ssb + result[2, 2]  # Total sum of squares
+etaSquared < - ssb / sst
     
     # Group means
-    groupMeans <- tapply(values, groups, mean)
+groupMeans < - tapply(values, groups, mean)
 
-    list(
-        F = result[1, 4],
-        dfBetween = result[1, 1],
-        dfWithin = result[2, 1],
-        pValue = result[1, 5],
-        groupMeans = as.numeric(groupMeans),
-        grandMean = mean(values),
-        etaSquared = etaSquared,
-        bartlettP = bartlett$p.value
-    )
+list(
+    F = result[1, 4],
+    dfBetween = result[1, 1],
+    dfWithin = result[2, 1],
+    pValue = result[1, 5],
+    groupMeans = as.numeric(groupMeans),
+    grandMean = mean(values),
+    etaSquared = etaSquared,
+    bartlettP = bartlett$p.value
+)
     `;
 
     const result = await webR.evalR(rCode);
@@ -648,24 +644,24 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
     // R Code to handle data cleaning and auto-factor detection
     const rCode = `
     # Load psych package
-    library(psych)
+library(psych)
 
     # 1. Prepare Data
-    raw_data <- matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
+raw_data < - matrix(c(${ data.flat().join(',') }), nrow = ${ data.length }, byrow = TRUE)
     
     # 2. Clean Data: Remove rows with NA or Inf
     # Convert to dataframe to handle mixed checks easily, though matrix is fine
-    df <- as.data.frame(raw_data)
-    df_clean <- na.omit(df)
-    # Also filter out Inf if any (simplistic check)
-    df_clean <- df_clean[apply(df_clean, 1, function(x) all(is.finite(x))), ]
-    
-    if (nrow(df_clean) < ncol(df_clean)) {
-      stop("Lỗi: Số lượng mẫu hợp lệ (sau khi loại bỏ NA) nhỏ hơn số lượng biến. Vui lòng kiểm tra dữ liệu trống (missing value) hoặc giảm bớt biến.")
-    }
-    if (nrow(df_clean) < 3) {
-        stop("Quá ít dữ liệu hợp lệ để chạy phân tích.")
-    }
+df < - as.data.frame(raw_data)
+df_clean < - na.omit(df)
+    # Also filter out Inf if any(simplistic check)
+    df_clean < - df_clean[apply(df_clean, 1, function (x) all(is.finite(x))), ]
+
+if (nrow(df_clean) < ncol(df_clean)) {
+    stop("Lỗi: Số lượng mẫu hợp lệ (sau khi loại bỏ NA) nhỏ hơn số lượng biến. Vui lòng kiểm tra dữ liệu trống (missing value) hoặc giảm bớt biến.")
+}
+if (nrow(df_clean) < 3) {
+    stop("Quá ít dữ liệu hợp lệ để chạy phân tích.")
+}
 
     # 3. Calculate Correlation Matrix & Eigenvalues
     # Check for zero variance
@@ -673,27 +669,27 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
         stop("Biến có phương sai bằng 0 (hằng số). Hãy loại bỏ biến này.")
     }
 
-    cor_mat <- cor(df_clean)
-    eigenvalues <- eigen(cor_mat)$values
+cor_mat < - cor(df_clean)
+eigenvalues < - eigen(cor_mat)$values
 
-    # 4. Determine Number of Factors (if auto)
-    n_factors_run <- ${nFactors}
-    if (n_factors_run <= 0) {
-        n_factors_run <- sum(eigenvalues > 1)
-        if (n_factors_run < 1) n_factors_run <- 1 # Fallback
-    }
+    # 4. Determine Number of Factors(if auto)
+    n_factors_run < - ${ nFactors }
+if (n_factors_run <= 0) {
+    n_factors_run < - sum(eigenvalues > 1)
+    if (n_factors_run < 1) n_factors_run < - 1 # Fallback
+}
 
     # 5. KMO and Bartlett on Cleaned Data
-    kmo_result <- tryCatch(KMO(df_clean), error = function(e) list(MSA = 0))
-    bartlett_result <- tryCatch(cortest.bartlett(cor_mat, n = nrow(df_clean)), error = function(e) list(p.value = 1))
+kmo_result < - tryCatch(KMO(df_clean), error = function (e) list(MSA = 0))
+bartlett_result < - tryCatch(cortest.bartlett(cor_mat, n = nrow(df_clean)), error = function (e) list(p.value = 1))
     
     # 6. Run EFA
-    # fa() handles the correlation matrix or raw data. Raw data is better for scores but here we want loadings.
-    # Using 'pa' (Principal Axis) and 'varimax' as requested.
-    efa_result <- fa(df_clean, nfactors = n_factors_run, rotate = "varimax", fm = "pa")
+    # fa() handles the correlation matrix or raw data.Raw data is better for scores but here we want loadings.
+    # Using 'pa'(Principal Axis) and 'varimax' as requested.
+    efa_result<- fa(df_clean, nfactors = n_factors_run, rotate = "varimax", fm = "pa")
 
-    list(
-        kmo = if(is.numeric(kmo_result$MSA)) kmo_result$MSA[1] else 0,
+list(
+    kmo = if (is.numeric(kmo_result$MSA)) kmo_result$MSA[1] else 0,
         bartlett_p = bartlett_result$p.value,
         loadings = efa_result$loadings,
         communalities = efa_result$communalities,
@@ -701,7 +697,7 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
         eigenvalues = eigenvalues,
         n_factors_used = n_factors_run
     )
-  `;
+`;
 
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
@@ -726,11 +722,11 @@ export async function runEFA(data: number[][], nFactors: number): Promise<{
  */
 function validateData(data: number[][], minVars: number = 1, functionName: string = 'Analysis'): void {
     if (!data || data.length === 0) {
-        throw new Error(`${functionName}: Dữ liệu trống`);
+        throw new Error(`${ functionName }: Dữ liệu trống`);
     }
 
     if (data[0].length < minVars) {
-        throw new Error(`${functionName}: Cần ít nhất ${minVars} biến`);
+        throw new Error(`${ functionName }: Cần ít nhất ${ minVars } biến`);
     }
 
     // Check for invalid values (NaN, Infinity)
@@ -739,7 +735,7 @@ function validateData(data: number[][], minVars: number = 1, functionName: strin
     );
 
     if (hasInvalid) {
-        throw new Error(`${functionName}: Dữ liệu chứa giá trị không hợp lệ(NaN hoặc Infinity)`);
+        throw new Error(`${ functionName }: Dữ liệu chứa giá trị không hợp lệ(NaN hoặc Infinity)`);
     }
 
     // Check for constant columns (zero variance)
@@ -747,7 +743,7 @@ function validateData(data: number[][], minVars: number = 1, functionName: strin
         const values = data.map(row => row[col]);
         const allSame = values.every(v => v === values[0]);
         if (allSame) {
-            throw new Error(`${functionName}: Biến thứ ${col + 1} có giá trị không đổi(variance = 0)`);
+            throw new Error(`${ functionName }: Biến thứ ${ col + 1 } có giá trị không đổi(variance = 0)`);
         }
     }
 }
@@ -793,89 +789,89 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
 
     // Construct R command
     const rCode = `
-    data_mat <- ${arrayToRMatrix(data)}
-    df <- as.data.frame(data_mat)
+data_mat < - ${ arrayToRMatrix(data) }
+df < - as.data.frame(data_mat)
     # Assign names
-    colnames(df) <- c(${names.map(n => `"${n}"`).join(',')})
+colnames(df) < - c(${ names.map(n => `"${n}"`).join(',') })
     
     # Formula: First col ~ . (all others)
-    y_name <- colnames(df)[1]
-    f_str <- paste(sprintf("\`%s\`", y_name), "~ .")
-    f <- as.formula(f_str)
+y_name < - colnames(df)[1]
+f_str < - paste(sprintf("\`%s\`", y_name), "~ .")
+f < - as.formula(f_str)
 
-    model <- lm(f, data = df)
-    s <- summary(model)
+model < - lm(f, data = df)
+s < - summary(model)
     
     # Extract Coefficients
-    coefs <- coef(s)
+coefs < - coef(s)
     
     # Extract Model Fit
-    fstat <- s$fstatistic
+fstat < - s$fstatistic
     
-    # Calculate p-value for F-statistic
+    # Calculate p - value for F - statistic
     if (is.null(fstat)) {
-        f_val <- 0
-        df_num <- 0
-        df_denom <- 0
-        f_p_value <- 1
+        f_val < - 0
+        df_num < - 0
+        df_denom < - 0
+        f_p_value < - 1
     } else {
-        f_val <- fstat[1]
-        df_num <- fstat[2]
-        df_denom <- fstat[3]
-        f_p_value <- pf(f_val, df_num, df_denom, lower.tail = FALSE)
+        f_val < - fstat[1]
+        df_num < - fstat[2]
+        df_denom < - fstat[3]
+        f_p_value < - pf(f_val, df_num, df_denom, lower.tail = FALSE)
     }
 
-    # CALCULATE VIF (Manual method)
-    vif_vals <- tryCatch({
-        # Exclude dependent variable (1st column) to get predictors
-        x_data <- df[, -1, drop = FALSE]
-        n_vars <- ncol(x_data)
-        vifs <- numeric(n_vars)
+    # CALCULATE VIF(Manual method)
+vif_vals < - tryCatch({
+        # Exclude dependent variable(1st column) to get predictors
+        x_data<- df[, -1, drop = FALSE]
+        n_vars < - ncol(x_data)
+        vifs < - numeric(n_vars)
         
         if (n_vars > 1) {
-            for (i in 1:n_vars) {
+    for (i in 1:n_vars) {
                 # Regress x_i on other x's
-                r_model <- lm(x_data[, i] ~ ., data = x_data[, -i, drop = FALSE])
-                r2 <- summary(r_model)$r.squared
-                if (r2 >= 0.9999) {
-                    vifs[i] <- 999.99 
-                } else {
-                    vifs[i] <- 1 / (1 - r2)
-                }
-            }
+        r_model < - lm(x_data[, i] ~ ., data = x_data[, -i, drop = FALSE])
+        r2 < - summary(r_model)$r.squared
+        if (r2 >= 0.9999) {
+            vifs[i] < - 999.99
         } else {
-            vifs[1] <- 1.0
+            vifs[i] < - 1 / (1 - r2)
         }
-        vifs
-    }, error = function(e) numeric(0))
+    }
+} else {
+    vifs[1] < - 1.0
+}
+vifs
+    }, error = function (e) numeric(0))
 
-    # Normality of Residuals (Shapiro-Wilk)
-    normality_p <- tryCatch({
-        shapiro.test(residuals(model))$p.value
-    }, error = function(e) 0)
+    # Normality of Residuals(Shapiro - Wilk)
+normality_p < - tryCatch({
+    shapiro.test(residuals(model))$p.value
+}, error = function (e) 0)
 
-    list(
-        coef_names = rownames(coefs),
-        estimates = coefs[, 1],
-        std_errors = coefs[, 2],
-        t_values = coefs[, 3],
-        p_values = coefs[, 4],
-    
-        r_squared = s$r.squared,
-        adj_r_squared = s$adj.r.squared,
-        f_stat = f_val,
-        df_num = df_num,
-        df_denom = df_denom,
-        f_p_value = f_p_value,
-        sigma = s$sigma,
-    
-        fitted_values = fitted(model),
-        residuals = residuals(model),
-        actual_values = df[, 1],
-    
-        vifs = vif_vals,
-        normality_p = normality_p
-    )
+list(
+    coef_names = rownames(coefs),
+    estimates = coefs[, 1],
+    std_errors = coefs[, 2],
+    t_values = coefs[, 3],
+    p_values = coefs[, 4],
+
+    r_squared = s$r.squared,
+    adj_r_squared = s$adj.r.squared,
+    f_stat = f_val,
+    df_num = df_num,
+    df_denom = df_denom,
+    f_p_value = f_p_value,
+    sigma = s$sigma,
+
+    fitted_values = fitted(model),
+    residuals = residuals(model),
+    actual_values = df[, 1],
+
+    vifs = vif_vals,
+    normality_p = normality_p
+)
     `;
 
     const result = await webR.evalR(rCode);
@@ -928,27 +924,27 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
     }
 
     // Build Equation
-    let equationStr = `${interceptVal.toFixed(3)} `;
+    let equationStr = `${ interceptVal.toFixed(3) } `;
 
     for (const coef of coefficients) {
         if (coef.term === '(Intercept)') continue;
         const val = coef.estimate;
         const sign = val >= 0 ? ' + ' : ' - ';
-        const cleanTerm = coef.term.replace(/`/g, '');
-        equationStr += `${sign}${Math.abs(val).toFixed(3)}*${cleanTerm}`;
+        const cleanTerm = coef.term.replace(/`/ g, '');
+equationStr += `${sign}${Math.abs(val).toFixed(3)}*${cleanTerm}`;
     }
 
-    return {
-        coefficients,
-        modelFit,
-        equation: equationStr,
-        chartData: {
-            fitted: fittedValues,
-            residuals: residuals,
-            actual: actualValues
-        },
-        rCode: rCode
-    };
+return {
+    coefficients,
+    modelFit,
+    equation: equationStr,
+    chartData: {
+        fitted: fittedValues,
+        residuals: residuals,
+        actual: actualValues
+    },
+    rCode: rCode
+};
 }
 
 /**
@@ -1009,12 +1005,17 @@ export async function runMannWhitneyU(
  * Run Chi-Square Test of Independence
  * Expects data as an array of rows, each row has 2 values [cat1, cat2]
  */
+/**
+ * Run Chi-Square Test of Independence
+ * Expects data as an array of rows, each row has 2 values [cat1, cat2]
+ */
 export async function runChiSquare(data: any[][]): Promise<{
     statistic: number;
     df: number;
     pValue: number;
     observed: { data: number[][]; rows: string[]; cols: string[] };
     expected: { data: number[][]; rows: string[]; cols: string[] };
+    cramersV: number; // Effect Size
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -1039,12 +1040,23 @@ export async function runChiSquare(data: any[][]): Promise<{
     # We'll use standard first.
     test <- chisq.test(tbl)
     
+    # Calculate Cramer's V (Effect Size)
+    chisq_val <- test$statistic
+    n <- sum(tbl)
+    k <- min(nrow(tbl), ncol(tbl))
+    cramers_v <- 0
+    # Formula: V = sqrt(chisq / (n * (min(r,c)-1)))
+    if (min(dim(tbl)) > 1) {
+        cramers_v <- sqrt(chisq_val / (n * (min(dim(tbl)) - 1)))
+    }
+    
     list(
        statistic = test$statistic,
        parameter = test$parameter, # df
        p_value = test$p.value,
        observed = as.matrix(test$observed),
        expected = as.matrix(test$expected),
+       cramers_v = cramers_v,
        
        # Dimnames
        row_names = rownames(tbl),
@@ -1072,14 +1084,6 @@ export async function runChiSquare(data: any[][]): Promise<{
 
     // Reconstruct 2D arrays
     const reconstruct = (vals: number[], rows: number, cols: number) => {
-        const res = [];
-        // R stores by column, so we read carefuly? No, wait. 
-        // as.vector(matrix) is column-major: col1, then col2.
-        // We want to reconstruct row by row?
-        // Let's assume correct logic:
-        //  for r
-        //    for c
-        //      val = vals[r + c*nRows]
         const resMatrix = [];
         for (let r = 0; r < rows; r++) {
             const rowArr = [];
@@ -1105,6 +1109,7 @@ export async function runChiSquare(data: any[][]): Promise<{
             rows: rowNames,
             cols: colNames
         },
+        cramersV: getValue('cramers_v')?.[0] || 0,
         rCode
     };
 }

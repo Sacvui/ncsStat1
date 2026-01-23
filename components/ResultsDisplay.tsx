@@ -72,7 +72,7 @@ export function ResultsDisplay({
             case 'sem':
                 return <SEMResults results={results} />;
             case 'mann-whitney':
-                return <MannWhitneyResults results={results} />;
+                return <MannWhitneyResults results={results} columns={results.columns || []} />;
             case 'chisquare':
                 return <ChiSquareResults results={results} />;
             case 'descriptive':
@@ -568,6 +568,8 @@ function DescriptiveResults({ results, columns }: { results: any; columns: strin
                                 <th className="py-3 px-4 font-semibold text-right text-gray-700">Max</th>
                                 <th className="py-3 px-4 font-semibold text-right text-gray-700">Mean</th>
                                 <th className="py-3 px-4 font-semibold text-right text-gray-700">SD</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">Skewness</th>
+                                <th className="py-3 px-4 font-semibold text-right text-gray-700">Kurtosis</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -579,6 +581,8 @@ function DescriptiveResults({ results, columns }: { results: any; columns: strin
                                     <td className="py-3 px-4 text-right text-gray-600">{(results.max && results.max[idx] !== undefined) ? results.max[idx].toFixed(3) : '-'}</td>
                                     <td className="py-3 px-4 text-right text-gray-900 font-bold">{(results.mean && results.mean[idx] !== undefined) ? results.mean[idx].toFixed(3) : '-'}</td>
                                     <td className="py-3 px-4 text-right text-gray-600">{(results.sd && results.sd[idx] !== undefined) ? results.sd[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-3 px-4 text-right text-gray-600">{(results.skewness && results.skewness[idx] !== undefined) ? results.skewness[idx].toFixed(3) : '-'}</td>
+                                    <td className="py-3 px-4 text-right text-gray-600">{(results.kurtosis && results.kurtosis[idx] !== undefined) ? results.kurtosis[idx].toFixed(3) : '-'}</td>
                                 </tr>
                             ))}
                         </tbody>
@@ -705,6 +709,10 @@ function PairedTTestResults({ results, columns }: { results: any; columns: strin
                                 <td className="py-2 font-medium">95% CI</td>
                                 <td className="py-2 text-right">[{results.ci95Lower?.toFixed(3)}, {results.ci95Upper?.toFixed(3)}]</td>
                             </tr>
+                            <tr>
+                                <td className="py-2 font-medium">Cohen&apos;s d (Effect Size)</td>
+                                <td className="py-2 text-right">{results.effectSize?.toFixed(3)}</td>
+                            </tr>
                         </tbody>
                     </table>
                 </CardContent>
@@ -714,7 +722,7 @@ function PairedTTestResults({ results, columns }: { results: any; columns: strin
                 <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
                 <p className="text-sm text-gray-800">
                     {significant
-                        ? `Có sự thay đổi có ý nghĩa thống kê giữa trước (${columns[0]}) và sau (${columns[1]}) (p = ${pValue?.toFixed(4)} < 0.05). Trung bình thay đổi ${results.meanDiff > 0 ? 'giảm' : 'tăng'} ${Math.abs(results.meanDiff)?.toFixed(3)} đơn vị.`
+                        ? `Có sự thay đổi có ý nghĩa thống kê giữa trước (${columns[0]}) và sau (${columns[1]}) (p = ${pValue?.toFixed(4)} < 0.05). Trung bình thay đổi ${results.meanDiff > 0 ? 'giảm' : 'tăng'} ${Math.abs(results.meanDiff)?.toFixed(3)} đơn vị. Cohen's d = ${results.effectSize?.toFixed(2)} cho thấy ${Math.abs(results.effectSize) > 0.8 ? 'hiệu ứng lớn' : Math.abs(results.effectSize) > 0.5 ? 'hiệu ứng trung bình' : 'hiệu ứng nhỏ'}.`
                         : `Không có sự thay đổi có ý nghĩa thống kê giữa trước và sau (p = ${pValue?.toFixed(4)} >= 0.05).`
                     }
                 </p>
@@ -1174,6 +1182,15 @@ function ChiSquareResults({ results }: { results: any }) {
                         </div>
                     </div>
                 </div>
+                {results.cramersV !== undefined && (
+                    <div className="mt-6 text-center">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">Cramer&apos;s V (Effect Size)</div>
+                        <div className="text-2xl font-bold text-teal-800">{results.cramersV.toFixed(3)}</div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            {results.cramersV > 0.5 ? '(Hiệu ứng mạnh)' : results.cramersV > 0.3 ? '(Hiệu ứng trung bình)' : '(Hiệu ứng yếu)'}
+                        </p>
+                    </div>
+                )}
                 <p className="text-sm text-gray-600 mt-4 text-center italic">
                     {pValue < 0.05
                         ? 'Có mối liên hệ có ý nghĩa thống kê giữa hai biến (H0 bị bác bỏ).'
@@ -1236,31 +1253,36 @@ function ChiSquareResults({ results }: { results: any }) {
     );
 }
 
-function MannWhitneyResults({ results }: { results: any }) {
+function MannWhitneyResults({ results, columns }: { results: any; columns: string[] }) {
     if (!results) return null;
-    const { statistic, pValue, method, groupStats } = results;
+    const { statistic, pValue, median1, median2, effectSize } = results;
+    const significant = pValue < 0.05;
 
     return (
         <div className="space-y-8 font-sans">
             <div className="bg-white border-t-2 border-b-2 border-cyan-600 p-6">
                 <h3 className="text-lg font-bold uppercase tracking-widest border-b-2 border-cyan-600 inline-block pb-1 mb-4 text-cyan-800">
-                    {method}
+                    Mann-Whitney U Test
                 </h3>
-                <div className="grid grid-cols-2 gap-6 text-center max-w-2xl mx-auto">
+                <div className="grid grid-cols-3 gap-6 text-center max-w-2xl mx-auto">
                     <div className="p-4 bg-cyan-50 rounded">
                         <div className="text-sm text-gray-500 uppercase font-semibold mb-1">Statistic (W)</div>
                         <div className="text-2xl font-bold text-cyan-700">{statistic}</div>
                     </div>
                     <div className="p-4 bg-cyan-50 rounded">
                         <div className="text-sm text-gray-500 uppercase font-semibold mb-1">p-value</div>
-                        <div className={`text-xl font-bold ${pValue < 0.05 ? 'text-green-600' : 'text-red-500'}`}>
-                            {pValue < 0.001 ? '< .001' : pValue.toFixed(4)}
+                        <div className={`text-xl font-bold ${significant ? 'text-green-600' : 'text-gray-600'}`}>
+                            {pValue < 0.001 ? '< .001' : pValue.toFixed(4)} {significant && '***'}
                         </div>
+                    </div>
+                    <div className="p-4 bg-cyan-50 rounded">
+                        <div className="text-sm text-gray-500 uppercase font-semibold mb-1">Effect Size (r)</div>
+                        <div className="text-2xl font-bold text-cyan-700">{effectSize?.toFixed(3)}</div>
                     </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-4 text-center italic">
-                    {pValue < 0.05
-                        ? 'Có sự khác biệt có ý nghĩa thống kê giữa hai nhóm (H0 bị bác bỏ).'
+                    {significant
+                        ? 'Có sự khác biệt có ý nghĩa thống kê về phân phối giữa hai nhóm (H0 bị bác bỏ).'
                         : 'Không có sự khác biệt có ý nghĩa thống kê giữa hai nhóm (Chưa đủ bằng chứng bác bỏ H0).'}
                 </p>
             </div>
@@ -1275,12 +1297,14 @@ function MannWhitneyResults({ results }: { results: any }) {
                         </tr>
                     </thead>
                     <tbody>
-                        {groupStats.groups.map((g: string, i: number) => (
-                            <tr key={i} className="border-b border-gray-100">
-                                <td className="py-2 font-medium">{g}</td>
-                                <td className="py-2 text-right font-bold text-gray-700">{groupStats.medians[i].toFixed(3)}</td>
-                            </tr>
-                        ))}
+                        <tr className="border-b border-gray-100">
+                            <td className="py-2 font-medium">{columns[0] || 'Group 1'}</td>
+                            <td className="py-2 text-right font-bold text-gray-700">{median1?.toFixed(3)}</td>
+                        </tr>
+                        <tr className="border-b border-gray-100">
+                            <td className="py-2 font-medium">{columns[1] || 'Group 2'}</td>
+                            <td className="py-2 text-right font-bold text-gray-700">{median2?.toFixed(3)}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
