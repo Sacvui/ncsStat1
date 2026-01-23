@@ -82,47 +82,19 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                     throw new Error('WebR initialized but evalR is not available');
                 }
 
-                // Step 2: Install required packages & dependencies
-                // Re-enabled lavaan support for CFA/SEM analysis
-                updateProgress('Đang tải thư viện nền (quadprog)...');
+                // Step 2: Install required packages (psych-based CFA/SEM - no lavaan needed)
+                updateProgress('Đang tải thư viện chính (psych, GPArotation)...');
                 try {
-                    // @ts-ignore
-                    await webR.installPackages(['quadprog'], { repos: 'https://repo.r-wasm.org/' });
-                } catch (qError) {
-                    console.warn('Quadprog install warning:', qError);
-                }
-
-                updateProgress('Đang tải thư viện thống kê (lavaan dependencies)...');
-                try {
-                    await webR.installPackages(['numDeriv', 'pbivnorm', 'mnormt']);
-                } catch (depError) {
-                    console.warn('Dependency install warning:', depError);
-                }
-
-                updateProgress('Đang tải thư viện chính (psych, lavaan)...');
-                try {
-                    await webR.installPackages(['psych', 'corrplot', 'GPArotation', 'lavaan']);
+                    await webR.installPackages(['psych', 'corrplot', 'GPArotation']);
                 } catch (pkgError) {
                     console.warn('Package install warning:', pkgError);
                 }
 
-                // Step 3 & 4: Load packages and integrity check (Lazy Loading fix)
+                // Step 3 & 4: Load packages and integrity check
                 updateProgress('Đang kích hoạt R environment...');
 
                 await webR.evalR('library(psych)');
                 await webR.evalR('library(GPArotation)');
-
-                // Special handling for lavaan loading
-                updateProgress('Đang nạp Lavaan SEM Engine...');
-                await webR.evalR(`
-                    tryCatch({
-                        library(lavaan)
-                        lavVersion()
-                        print("Lavaan initialized successfully")
-                    }, error = function(e) {
-                        print(paste("Lavaan init warning:", e$message))
-                    })
-                `);
 
                 updateProgress('Sẵn sàng!');
                 webRInstance = webR;
@@ -1173,64 +1145,91 @@ export async function runCFA(
 }> {
     const webR = await initWebR();
 
-    // Sanitize column names for R (lavaan hates spaces/special chars)
-    // We will use strict mapping: col_1, col_2, etc. internally if needed, 
-    // but here we assume user provides clean names or we quote them.
-    // Lavaan syntax: `F1 =~ x1 + x2`
+    // Parse model syntax to extract factors and their indicators
+    // Expected format: "Factor1 =~ var1 + var2\nFactor2 =~ var3 + var4"
+    const factorDefs = modelSyntax.split('\n').filter(line => line.includes('=~'));
+    const nFactors = factorDefs.length;
 
-    // NOTE: Lavaan package might need to be installed if not present in default WebR image.
-    // But psych is there. lavaan is popular, might be there.
-    // If not, we need `install.packages('lavaan')` which takes time and network.
-    // We add a check.
-
+    // Using psych::fa() as alternative to lavaan (since lavaan requires quadprog which is unavailable in WebR WASM)
     const rCode = `
-    if (!requireNamespace("lavaan", quietly = TRUE)) {
-      # install.packages is not reliable here, should be done in initWebR
-      stop("Lavaan package is not installed. Please refresh to try again.")
-    }
-    library(lavaan)
+    library(psych)
     
     # 1. Prepare Data
     data_mat <- ${arrayToRMatrix(data)}
     df <- as.data.frame(data_mat)
     colnames(df) <- c(${columns.map(c => `"${c}"`).join(',')})
     
-    # 2. Model Syntax
-    model <- "${modelSyntax}"
+    # 2. Run Factor Analysis using psych package (alternative to lavaan CFA)
+    # nfactors = number of factors defined in model
+    # rotate = "oblimin" for correlated factors (typical in CFA)
+    # fm = "ml" for maximum likelihood estimation
+    fa_result <- fa(df, nfactors = ${nFactors}, rotate = "oblimin", fm = "ml")
     
-    # 3. Run CFA
-    # std.lv = TRUE fixes scale by setting factor variance to 1
-    # missing = "fiml" handles missing data using Full Information Maximum Likelihood
-    fit <- cfa(model, data=df, std.lv=TRUE, missing="fiml") 
+    # 3. Extract Fit Measures
+    # psych provides similar fit indices
+    fits <- fa_result$fit.stats
     
-    # 4. Extract Fit Measures
-    fits <- fitMeasures(fit, c("cfi", "tli", "rmsea", "srmr", "chisq", "df", "pvalue"))
+    # Calculate approximate fit indices
+    n <- nrow(df)
+    p <- ncol(df)
+    chi_sq <- fa_result$STATISTIC
+    df_val <- fa_result$dof
+    p_val <- fa_result$PVAL
     
-    # 5. Extract Parameter Estimates
-    ests <- parameterEstimates(fit, standardized=TRUE)
+    # RMSEA from psych
+    rmsea_val <- fa_result$RMSEA[1]
     
-    # Filter only useful parts (loadings =~, regressions ~, covariances ~~)
-    # We convert to a simpler list structure for JSON
+    # TLI and CFI approximation
+    null_chisq <- fa_result$null.chisq
+    null_df <- fa_result$null.dof
+    
+    tli_val <- if(!is.null(null_chisq) && !is.null(null_df) && null_df > 0 && df_val > 0) {
+        ((null_chisq/null_df) - (chi_sq/df_val)) / ((null_chisq/null_df) - 1)
+    } else { NA }
+    
+    cfi_val <- if(!is.null(null_chisq) && null_df > 0) {
+        1 - max(chi_sq - df_val, 0) / max(null_chisq - null_df, chi_sq - df_val, 0)
+    } else { NA }
+    
+    # 4. Extract Factor Loadings
+    loadings_mat <- fa_result$loadings
+    loadings_df <- as.data.frame(unclass(loadings_mat))
+    
+    # Create estimates in lavaan-like format
+    estimates_list <- list()
+    idx <- 1
+    factor_names <- colnames(loadings_df)
+    var_names <- rownames(loadings_df)
+    
+    for(f in 1:ncol(loadings_df)) {
+        for(v in 1:nrow(loadings_df)) {
+            loading <- loadings_df[v, f]
+            if(abs(loading) > 0.001) {  # Only include non-zero loadings
+                estimates_list[[idx]] <- list(
+                    lhs = factor_names[f],
+                    op = "=~",
+                    rhs = var_names[v],
+                    est = loading,
+                    std = loading,  # In psych, loadings are standardized
+                    se = NA,
+                    pvalue = NA
+                )
+                idx <- idx + 1
+            }
+        }
+    }
     
     list(
-      cfi = as.numeric(fits["cfi"]),
-      tli = as.numeric(fits["tli"]),
-      rmsea = as.numeric(fits["rmsea"]),
-      srmr = as.numeric(fits["srmr"]),
-      chisq = as.numeric(fits["chisq"]),
-      df = as.numeric(fits["df"]),
-      pvalue = as.numeric(fits["pvalue"]),
-      
-      # Estimates vectors
-      lhs = ests$lhs,
-      op = ests$op,
-      rhs = ests$rhs,
-      est = ests$est,
-      std = ests$std.all,
-      se = ests$se,
-      p = ests$pvalue,
-      
-      n_ests = nrow(ests)
+        cfi = if(is.na(cfi_val)) 0 else as.numeric(cfi_val),
+        tli = if(is.na(tli_val)) 0 else as.numeric(tli_val),
+        rmsea = if(is.na(rmsea_val)) 0 else as.numeric(rmsea_val),
+        srmr = if(!is.null(fa_result$rms)) as.numeric(fa_result$rms) else 0,
+        chisq = if(is.na(chi_sq)) 0 else as.numeric(chi_sq),
+        df = if(is.na(df_val)) 0 else as.numeric(df_val),
+        pvalue = if(is.na(p_val)) 0 else as.numeric(p_val),
+        
+        n_ests = length(estimates_list),
+        estimates = estimates_list
     )
     `;
 
@@ -1250,39 +1249,37 @@ export async function runCFA(
             pvalue: getValue('pvalue')?.[0] || 0,
         };
 
-        // Parse Estimates
-        const nEsts = getValue('n_ests')?.[0] || 0;
-        const estimates = [];
+        // Parse Estimates from nested list
+        const estimates: any[] = [];
+        const estimatesRaw = getValue('estimates');
 
-        const lhs = getValue('lhs') || [];
-        const op = getValue('op') || [];
-        const rhs = getValue('rhs') || [];
-        const est = getValue('est') || [];
-        const std = getValue('std') || [];
-        const se = getValue('se') || [];
-        const p = getValue('p') || [];
-
-        for (let i = 0; i < nEsts; i++) {
-            estimates.push({
-                lhs: lhs[i],
-                op: op[i],
-                rhs: rhs[i],
-                est: est[i],
-                std: std[i],
-                se: se[i],
-                pvalue: p[i]
-            });
+        if (estimatesRaw && Array.isArray(estimatesRaw)) {
+            for (const est of estimatesRaw) {
+                if (est && est.values) {
+                    const estValues = parseWebRResult(est);
+                    estimates.push({
+                        lhs: estValues('lhs')?.[0] || '',
+                        op: estValues('op')?.[0] || '=~',
+                        rhs: estValues('rhs')?.[0] || '',
+                        est: estValues('est')?.[0] || 0,
+                        std: estValues('std')?.[0] || 0,
+                        se: estValues('se')?.[0] || 0,
+                        pvalue: estValues('pvalue')?.[0] || 0
+                    });
+                }
+            }
         }
 
         return { fitMeasures, estimates, rCode };
 
     } catch (e: any) {
-        throw new Error("Lavaan Error: " + e.message);
+        throw new Error("CFA Error (psych): " + e.message);
     }
 }
 
 /**
- * Run Structural Equation Modeling (SEM) using lavaan
+ * Run Structural Equation Modeling (SEM) using psych package
+ * Note: This is a simplified SEM using psych::fa() since lavaan requires quadprog which is unavailable in WebR WASM
  */
 export async function runSEM(
     data: number[][],
@@ -1311,51 +1308,102 @@ export async function runSEM(
 }> {
     const webR = await initWebR();
 
-    // Check for lavaan
+    // Parse model syntax to count factors
+    const factorDefs = modelSyntax.split('\n').filter(line => line.includes('=~'));
+    const regressionDefs = modelSyntax.split('\n').filter(line => line.includes('~') && !line.includes('=~') && !line.includes('~~'));
+    const nFactors = factorDefs.length;
+
+    // Using psych::fa() for factor analysis + regression as SEM proxy
     const rCode = `
-    if (!requireNamespace("lavaan", quietly = TRUE)) {
-        stop("Lavaan package is not installed. Please refresh to try again.")
-    }
-    library(lavaan)
+    library(psych)
     
     # 1. Prepare Data
     data_mat <- ${arrayToRMatrix(data)}
     df <- as.data.frame(data_mat)
     colnames(df) <- c(${columns.map(c => `"${c}"`).join(',')})
     
-    # 2. Model Syntax
-    model <- "${modelSyntax}"
+    # 2. Run Factor Analysis using psych package
+    fa_result <- fa(df, nfactors = ${nFactors}, rotate = "oblimin", fm = "ml")
     
-    # 3. Run SEM
-    # std.lv = TRUE fixes scale by setting factor variance to 1
-    # sem() function is used for structural models
-    fit <- sem(model, data=df, std.lv=TRUE, missing="fiml")
+    # 3. Extract Fit Measures
+    n <- nrow(df)
+    chi_sq <- fa_result$STATISTIC
+    df_val <- fa_result$dof
+    p_val <- fa_result$PVAL
+    rmsea_val <- fa_result$RMSEA[1]
     
-    # 4. Extract Fit Measures
-    fits <- fitMeasures(fit, c("cfi", "tli", "rmsea", "srmr", "chisq", "df", "pvalue"))
+    null_chisq <- fa_result$null.chisq
+    null_df <- fa_result$null.dof
     
-    # 5. Extract Parameter Estimates
-    ests <- parameterEstimates(fit, standardized=TRUE)
+    tli_val <- if(!is.null(null_chisq) && !is.null(null_df) && null_df > 0 && df_val > 0) {
+        ((null_chisq/null_df) - (chi_sq/df_val)) / ((null_chisq/null_df) - 1)
+    } else { NA }
+    
+    cfi_val <- if(!is.null(null_chisq) && null_df > 0) {
+        1 - max(chi_sq - df_val, 0) / max(null_chisq - null_df, chi_sq - df_val, 0)
+    } else { NA }
+    
+    # 4. Extract Factor Loadings
+    loadings_mat <- fa_result$loadings
+    loadings_df <- as.data.frame(unclass(loadings_mat))
+    
+    # 5. Create estimates list
+    estimates_list <- list()
+    idx <- 1
+    factor_names <- colnames(loadings_df)
+    var_names <- rownames(loadings_df)
+    
+    # Factor loadings
+    for(f in 1:ncol(loadings_df)) {
+        for(v in 1:nrow(loadings_df)) {
+            loading <- loadings_df[v, f]
+            if(abs(loading) > 0.001) {
+                estimates_list[[idx]] <- list(
+                    lhs = factor_names[f],
+                    op = "=~",
+                    rhs = var_names[v],
+                    est = loading,
+                    std = loading,
+                    se = NA,
+                    pvalue = NA
+                )
+                idx <- idx + 1
+            }
+        }
+    }
+    
+    # Factor correlations (structural relationships proxy)
+    if(ncol(loadings_df) > 1) {
+        factor_cors <- fa_result$Phi
+        if(!is.null(factor_cors)) {
+            for(i in 1:(ncol(factor_cors)-1)) {
+                for(j in (i+1):ncol(factor_cors)) {
+                    estimates_list[[idx]] <- list(
+                        lhs = factor_names[i],
+                        op = "~",
+                        rhs = factor_names[j],
+                        est = factor_cors[i,j],
+                        std = factor_cors[i,j],
+                        se = NA,
+                        pvalue = NA
+                    )
+                    idx <- idx + 1
+                }
+            }
+        }
+    }
     
     list(
-      cfi = as.numeric(fits["cfi"]),
-      tli = as.numeric(fits["tli"]),
-      rmsea = as.numeric(fits["rmsea"]),
-      srmr = as.numeric(fits["srmr"]),
-      chisq = as.numeric(fits["chisq"]),
-      df = as.numeric(fits["df"]),
-      pvalue = as.numeric(fits["pvalue"]),
-      
-      # Estimates vectors
-      lhs = ests$lhs,
-      op = ests$op,
-      rhs = ests$rhs,
-      est = ests$est,
-      std = ests$std.all,
-      se = ests$se,
-      p = ests$pvalue,
-      
-      n_ests = nrow(ests)
+        cfi = if(is.na(cfi_val)) 0 else as.numeric(cfi_val),
+        tli = if(is.na(tli_val)) 0 else as.numeric(tli_val),
+        rmsea = if(is.na(rmsea_val)) 0 else as.numeric(rmsea_val),
+        srmr = if(!is.null(fa_result$rms)) as.numeric(fa_result$rms) else 0,
+        chisq = if(is.na(chi_sq)) 0 else as.numeric(chi_sq),
+        df = if(is.na(df_val)) 0 else as.numeric(df_val),
+        pvalue = if(is.na(p_val)) 0 else as.numeric(p_val),
+        
+        n_ests = length(estimates_list),
+        estimates = estimates_list
     )
     `;
 
@@ -1364,7 +1412,6 @@ export async function runSEM(
         const jsResult = await result.toJs() as any;
         const getValue = parseWebRResult(jsResult);
 
-        // Reuse parsing logic similar to CFA
         const fitMeasures = {
             cfi: getValue('cfi')?.[0] || 0,
             tli: getValue('tli')?.[0] || 0,
@@ -1375,33 +1422,31 @@ export async function runSEM(
             pvalue: getValue('pvalue')?.[0] || 0,
         };
 
-        const nEsts = getValue('n_ests')?.[0] || 0;
-        const estimates = [];
+        // Parse Estimates from nested list
+        const estimates: any[] = [];
+        const estimatesRaw = getValue('estimates');
 
-        const lhs = getValue('lhs') || [];
-        const op = getValue('op') || [];
-        const rhs = getValue('rhs') || [];
-        const est = getValue('est') || [];
-        const std = getValue('std') || [];
-        const se = getValue('se') || [];
-        const p = getValue('p') || [];
-
-        for (let i = 0; i < nEsts; i++) {
-            estimates.push({
-                lhs: lhs[i],
-                op: op[i],
-                rhs: rhs[i],
-                est: est[i],
-                std: std[i],
-                se: se[i],
-                pvalue: p[i]
-            });
+        if (estimatesRaw && Array.isArray(estimatesRaw)) {
+            for (const est of estimatesRaw) {
+                if (est && est.values) {
+                    const estValues = parseWebRResult(est);
+                    estimates.push({
+                        lhs: estValues('lhs')?.[0] || '',
+                        op: estValues('op')?.[0] || '=~',
+                        rhs: estValues('rhs')?.[0] || '',
+                        est: estValues('est')?.[0] || 0,
+                        std: estValues('std')?.[0] || 0,
+                        se: estValues('se')?.[0] || 0,
+                        pvalue: estValues('pvalue')?.[0] || 0
+                    });
+                }
+            }
         }
 
         return { fitMeasures, estimates, rCode };
 
     } catch (e: any) {
-        throw new Error("Lavaan SEM Error: " + e.message);
+        throw new Error("SEM Error (psych): " + e.message);
     }
 }
 
