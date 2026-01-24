@@ -2,89 +2,159 @@
 
 **"Democratizing Data Science for Vietnamese Researchers"**
 
-[https://ncsstat.vercel.app](https://ncsstat.vercel.app)
+🔗 **Live App:** [https://stat.ncskit.org](https://stat.ncskit.org)
+
+📄 **Version:** 1.2.0 (Stable Release)
 
 ---
 
 ## 📄 Giới Thiệu
 
-**ncsStat** là một nền tảng phân tích thống kê mã nguồn mở, chạy trực tiếp trên trình duyệt web, được thiết kế đặc biệt cho Nghiên cứu sinh và Giảng viên tại Việt Nam.
+**ncsStat** là nền tảng phân tích thống kê mã nguồn mở, chạy trực tiếp trên trình duyệt web, được thiết kế đặc biệt cho Nghiên cứu sinh và Giảng viên tại Việt Nam.
 
-Dự án sử dụng công nghệ **WebR (WebAssembly)** để chạy ngôn ngữ R ngay trên trình duyệt người dùng, đảm bảo:
-- 🔒 **Bảo mật tuyệt đối:** Dữ liệu không bao giờ rời khỏi máy tính của bạn.
-- ⚡ **Tốc độ cao:** Không có độ trễ mạng khi xử lý.
-- 💸 **Miễn phí:** Không cần bản quyền đắt đỏ như SPSS/AMOS.
-- 🧠 **AI hỗ trợ:** Tự động giải thích kết quả bằng tiếng Việt.
+### Điểm nổi bật:
+- 🔒 **Bảo mật tuyệt đối:** Dữ liệu xử lý 100% client-side, không upload lên server
+- ⚡ **Tốc độ cao:** WebAssembly R runtime, không độ trễ mạng
+- 💸 **Miễn phí hoàn toàn:** Thay thế SPSS/AMOS đắt đỏ
+- 🧠 **AI hỗ trợ:** Gemini AI tự động giải thích kết quả bằng tiếng Việt
+- 🌐 **Đa ngôn ngữ:** Hỗ trợ Tiếng Việt và English
 
 ---
 
 ## 🚀 Tính Năng Chính
 
 ### 1. Phân Tích Đa Dạng
-Hỗ trợ đầy đủ các phương pháp cho nghiên cứu Khoa học Xã hội:
-- **Độ tin cậy:** Cronbach's Alpha (với gợi ý loại bỏ biến)
-- **Khám phá:** Exploratory Factor Analysis (EFA), PCA
-- **Khẳng định:** Confirmatory Factor Analysis (CFA), SEM
-- **So sánh:** T-test, ANOVA, Mann-Whitney U, Chi-Square
-- **Dự báo:** Hồi quy tuyến tính, Tương quan
 
-### 2. Workflow Mode (Mới) 🎯
-Chế độ hướng dẫn từng bước thông minh:
-- Tự động gợi ý chuyển từ Cronbach's Alpha → EFA khi dữ liệu đạt chuẩn.
-- Gợi ý từ EFA → CFA khi cấu trúc nhân tố rõ ràng.
-- Gợi ý từ CFA → SEM khi mô hình phù hợp (Fit Indices tốt).
+| Nhóm | Phương pháp | Chi tiết |
+|------|-------------|----------|
+| **Độ tin cậy** | Cronbach's Alpha | Item-total stats, Alpha if deleted, Likert 1-5/1-7 |
+| **Tương quan** | Pearson, Spearman, Kendall | Ma trận r + p-values |
+| **So sánh nhóm** | T-test (độc lập, ghép cặp) | Shapiro-Wilk, Levene's, Cohen's d |
+| **ANOVA** | One-Way ANOVA | Tukey HSD post-hoc, Eta² |
+| **Khám phá** | EFA | KMO, Bartlett, Varimax/Oblimin |
+| **Khẳng định** | CFA | CFI, TLI, RMSEA, SRMR |
+| **Mô hình** | SEM | Structural paths, Fit indices |
+| **Hồi quy** | Linear Regression | VIF, R², Shapiro residuals |
+| **Phi tham số** | Mann-Whitney U, Chi-Square | Effect size (r, Cramér's V) |
+| **Mô tả** | Descriptive Stats | Mean, SD, Skew, Kurtosis, SE |
 
-### 3. AI Interpretation 🤖
-- Tự động viết nhận xét, đánh giá kết quả bằng ngôn ngữ tự nhiên.
-- Giải thích các chỉ số phức tạp (CFI, RMSEA, P-value) cho người không chuyên.
+### 2. Kiểm định Giả định (Assumption Tests) ✅
 
----
+Tự động kiểm tra các giả định thống kê:
+- **Shapiro-Wilk:** Kiểm tra phân phối chuẩn
+- **Levene's Test:** Kiểm tra đồng nhất phương sai
+- **Residual Normality:** Phân phối chuẩn của phần dư
 
-## 📚 Hướng Dẫn Trích Dẫn (Citation)
+### 3. Workflow Mode (Trợ lý thông minh) 🎯
 
-Khi sử dụng **ncsStat** cho luận văn, luận án hoặc bài báo khoa học, vui lòng trích dẫn như sau để đảm bảo tính học thuật:
+Hướng dẫn từng bước phân tích:
+- Cronbach's Alpha → EFA (khi độ tin cậy đạt)
+- EFA → CFA (khi cấu trúc nhân tố rõ ràng)
+- CFA → SEM (khi mô hình phù hợp)
 
-### Trong phần Phương pháp nghiên cứu:
-> "Dữ liệu được phân tích bằng ngôn ngữ lập trình R (R Core Team, 2023) thông qua nền tảng **ncsStat** (Nguyen, 2026). Các phân tích độ tin cậy và nhân tố được thực hiện bằng các package `psych` (Revelle, 2023) và `lavaan` (Rosseel, 2012)."
+### 4. AI Interpretation 🤖
 
-### Trong Danh mục Tài liệu tham khảo:
-**Tiếng Việt:**
-> Nguyễn Văn A (2026). *ncsStat: Nền tảng phân tích thống kê trực tuyến cho nghiên cứu sinh Việt Nam*. Truy cập tại https://ncsstat.vercel.app
-
-**English:**
-> Nguyen, V. A. (2026). *ncsStat: A Web-Based Statistical Analysis Platform for Psychometric Analysis*. Available at https://ncsstat.vercel.app
+- Tự động viết nhận xét, đánh giá kết quả
+- Giải thích các chỉ số phức tạp (CFI, RMSEA, p-value)
+- Ngôn ngữ học thuật chuẩn paper
 
 ---
 
 ## 🛠️ Công Nghệ
 
-- **Frontend:** Next.js 14, React, TypeScript, Tailwind CSS
-- **Statistical Engine:** WebR (WebAssembly R)
-- **R Packages:** `psych`, `lavaan`, `stats`, `base`
-- **AI:** Google Gemini API
+| Layer | Stack |
+|-------|-------|
+| **Frontend** | Next.js 14, React 18, TypeScript |
+| **Styling** | Tailwind CSS, Lucide Icons |
+| **R Engine** | WebR (WebAssembly R) |
+| **R Packages** | `psych`, `GPArotation`, `corrplot` |
+| **AI** | Google Gemini 2.0 Flash |
+| **Auth** | Supabase Auth (Google, ORCID, LinkedIn) |
+| **Database** | Supabase PostgreSQL |
+| **Hosting** | Vercel Edge Network |
 
 ---
 
-## 📦 Cài Đặt (Local Development)
+## 📚 Hướng Dẫn Trích Dẫn (Citation)
 
-Nếu bạn muốn chạy source code trên máy cá nhân:
+Khi sử dụng **ncsStat** cho luận văn, luận án hoặc bài báo, vui lòng trích dẫn:
+
+### Trong phần Phương pháp:
+> "Dữ liệu được phân tích bằng ngôn ngữ R (R Core Team, 2024) thông qua nền tảng **ncsStat** (Le, 2026). Các phân tích độ tin cậy và nhân tố sử dụng package `psych` (Revelle, 2024)."
+
+### Trong Danh mục Tài liệu tham khảo:
+
+**APA Format:**
+> Le, P. H. (2026). *ncsStat: A Web-Based Statistical Analysis Platform for Vietnamese Researchers*. https://stat.ncskit.org
+
+**Tiếng Việt:**
+> Lê Phúc Hải (2026). *ncsStat: Nền tảng phân tích thống kê trực tuyến cho nghiên cứu sinh Việt Nam*. Truy cập từ https://stat.ncskit.org
+
+---
+
+## 📦 Cài Đặt Local
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/your-username/statviet.git
+git clone https://github.com/hailp1/ncsStat2.git
+cd ncsStat2
 
 # 2. Install dependencies
 npm install
 
-# 3. Run dev server
+# 3. Setup environment
+cp .env.example .env.local
+# Edit .env.local with your API keys
+
+# 4. Run dev server
 npm run dev
 ```
 
-Truy cập `http://localhost:3000` để bắt đầu.
+Truy cập `http://localhost:3000`
+
+### Environment Variables cần thiết:
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_key
+NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key
+```
+
+---
+
+## 📂 Cấu trúc Project
+
+```
+ncsStat/
+├── app/                    # Next.js App Router
+│   ├── analyze/            # Trang phân tích chính
+│   ├── login/              # Đăng nhập OAuth
+│   ├── profile/            # Hồ sơ người dùng
+│   └── admin/              # Quản trị
+├── components/             # React Components
+│   ├── layout/             # Header, Footer
+│   ├── ui/                 # Reusable UI components
+│   └── results/            # Hiển thị kết quả
+├── lib/
+│   ├── webr-wrapper.ts     # R statistical functions
+│   ├── i18n.ts             # Internationalization
+│   └── pdf-exporter.ts     # PDF export
+├── paper/                  # Publication documents
+│   └── R_CODE_REFERENCE.md # R code documentation
+└── utils/supabase/         # Supabase client
+```
 
 ---
 
 ## 📝 License
 
-Dự án được phát hành dưới giấy phép MIT License.
-Copyright © 2026 ncsStat Team.
+MIT License © 2026 Le Phuc Hai
+
+---
+
+## 🙏 Acknowledgments
+
+- **WebR Project:** https://docs.r-wasm.org/
+- **psych R Package:** William Revelle
+- **Next.js:** Vercel Team
+- **Supabase:** Open source Firebase alternative
