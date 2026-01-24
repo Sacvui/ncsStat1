@@ -169,6 +169,7 @@ function arrayToRMatrix(data: number[][]): string {
 
 /**
  * Run Cronbach's Alpha analysis with SPSS-style Item-Total Statistics
+ * Also includes McDonald's Omega (ω) for more robust reliability
  * @param data - 2D array of numeric data
  * @param likertMin - Minimum valid value (default: 1)
  * @param likertMax - Maximum valid value (default: 5)
@@ -181,6 +182,8 @@ export async function runCronbachAlpha(
     alpha: number;
     rawAlpha: number;
     standardizedAlpha: number;
+    omega: number; // McDonald's Omega (total)
+    omegaHierarchical: number; // Omega hierarchical (general factor)
     nItems: number | string;
     likertRange: { min: number; max: number };
     itemTotalStats: {
@@ -207,7 +210,21 @@ export async function runCronbachAlpha(
     # Run Cronbach's Alpha with auto key checking for reversed items
     result <- alpha(data, check.keys = TRUE)
     
-    # Extract item-total statistics - USE BUILT-IN VALUES (no manual for loop needed!)
+    # === McDonald's Omega (more robust than Alpha) ===
+    # omega() requires at least 3 items
+    omega_result <- tryCatch({
+        if (ncol(data) >= 3) {
+            om <- omega(data, nfactors = 1, plot = FALSE, warnings = FALSE)
+            list(
+                omega_total = om$omega.tot,
+                omega_h = om$omega_h
+            )
+        } else {
+            list(omega_total = NA, omega_h = NA)
+        }
+    }, error = function(e) list(omega_total = NA, omega_h = NA))
+    
+    # Extract item-total statistics - USE BUILT-IN VALUES
     item_stats <- result$item.stats
     alpha_drop <- result$alpha.drop
     n_items <- ncol(data)
@@ -220,6 +237,8 @@ export async function runCronbachAlpha(
     list(
         raw_alpha = result$total$raw_alpha,
         std_alpha = result$total$std.alpha,
+        omega_total = omega_result$omega_total,
+        omega_h = omega_result$omega_h,
         n_items = n_items,
         likert_min = valid_min,
         likert_max = valid_max,
@@ -240,13 +259,13 @@ export async function runCronbachAlpha(
     const result = await webR.evalR(rCode);
     const jsResult = await result.toJs() as any;
 
-
-
     // WebR list parsing helper
     const getValue = parseWebRResult(jsResult);
 
     const rawAlpha = getValue('raw_alpha')?.[0] || 0;
     const stdAlpha = getValue('std_alpha')?.[0] || 0;
+    const omegaTotal = getValue('omega_total')?.[0] || 0;
+    const omegaH = getValue('omega_h')?.[0] || 0;
     const nItems = getValue('n_items')?.[0] || 'N/A';
 
     // Parse item-total statistics
@@ -268,12 +287,12 @@ export async function runCronbachAlpha(
         });
     }
 
-
-
     return {
         alpha: rawAlpha,
         rawAlpha: rawAlpha,
         standardizedAlpha: stdAlpha,
+        omega: omegaTotal,
+        omegaHierarchical: omegaH,
         nItems: nItems,
         likertRange: { min: likertMin, max: likertMax },
         itemTotalStats: itemTotalStats,
@@ -605,7 +624,9 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     etaSquared: number;
     assumptionCheckP: number; // Levene's test P-value
     normalityResidP: number; // Shapiro-Wilk on residuals
+    methodUsed: string; // 'Classic ANOVA' or 'Welch ANOVA'
     postHoc: { comparison: string; diff: number; pAdj: number }[]; // Tukey HSD
+    postHocWarning: string; // Warning if using Tukey after Welch
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -630,12 +651,48 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     levene_model <- aov(deviations ~ groups)
     levene_p <- summary(levene_model)[[1]][1, 5]
     
-    # === MAIN ANOVA ===
-    model <- aov(values ~ groups)
-    result <- summary(model)[[1]]
+    # === DECISION: Classic vs Welch ANOVA ===
+    if (levene_p < 0.05) {
+        # Variance NOT homogeneous -> Use Welch ANOVA (robust)
+        welch_result <- oneway.test(values ~ groups, var.equal = FALSE)
+        f_stat <- welch_result$statistic
+        df_between <- welch_result$parameter[1]
+        df_within <- welch_result$parameter[2]
+        p_val <- welch_result$p.value
+        method_used <- "Welch ANOVA"
+        
+        # Eta squared for Welch - use approximate formula
+        # omega^2 = (F - 1) / (F + (N-k)/(k-1) + 1) as alternative
+        n_total <- length(values)
+        k <- length(unique(groups))
+        eta_squared <- (f_stat * df_between) / (f_stat * df_between + df_within)
+        
+        # For normality, use pooled residuals from classic model
+        model <- aov(values ~ groups)
+        resids <- residuals(model)
+        
+        # Post-hoc warning for Welch
+        posthoc_warning <- "Cảnh báo: Tukey HSD có thể không chính xác khi phương sai không đồng nhất. Nên dùng Games-Howell."
+    } else {
+        # Variance homogeneous -> Use Classic ANOVA
+        model <- aov(values ~ groups)
+        result_sum <- summary(model)[[1]]
+        f_stat <- result_sum[1, 4]
+        df_between <- result_sum[1, 1]
+        df_within <- result_sum[2, 1]
+        p_val <- result_sum[1, 5]
+        method_used <- "Classic ANOVA"
+        
+        # Eta squared for classic ANOVA
+        ssb <- result_sum[1, 2]
+        sst <- ssb + result_sum[2, 2]
+        eta_squared <- ssb / sst
+        
+        resids <- residuals(model)
+        posthoc_warning <- ""
+    }
     
     # 2. Normality of Residuals
-    resids <- residuals(model)
     shapiro_resid_p <- tryCatch({
         if (length(resids) >= 3 && length(resids) <= 5000) {
             shapiro.test(resids)$p.value
@@ -644,30 +701,28 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         }
     }, error = function(e) NA)
     
-    # Calculate eta squared
-    ssb <- result[1, 2] # Sum of squares between
-    sst <- ssb + result[2, 2] # Total sum of squares
-    etaSquared <- ssb / sst
-    
     # Group means
     groupMeans <- tapply(values, groups, mean)
     
-    # === POST-HOC: Tukey HSD ===
-    tukey_result <- TukeyHSD(model)$groups
+    # === POST-HOC: Tukey HSD (always use classic model) ===
+    model_for_tukey <- aov(values ~ groups)
+    tukey_result <- TukeyHSD(model_for_tukey)$groups
     tukey_comparisons <- rownames(tukey_result)
     tukey_diffs <- tukey_result[, "diff"]
     tukey_padj <- tukey_result[, "p adj"]
 
     list(
-        F = result[1, 4],
-        dfBetween = result[1, 1],
-        dfWithin = result[2, 1],
-        pValue = result[1, 5],
+        F = f_stat,
+        dfBetween = df_between,
+        dfWithin = df_within,
+        pValue = p_val,
         groupMeans = as.numeric(groupMeans),
         grandMean = mean(values),
-        etaSquared = etaSquared,
+        etaSquared = eta_squared,
         leveneP = levene_p,
         normalityResidP = if(is.na(shapiro_resid_p)) -1 else shapiro_resid_p,
+        methodUsed = method_used,
+        postHocWarning = posthoc_warning,
         tukeyComparisons = tukey_comparisons,
         tukeyDiffs = tukey_diffs,
         tukeyPAdj = tukey_padj
@@ -703,13 +758,16 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         etaSquared: getValue('etaSquared')?.[0] || 0,
         assumptionCheckP: getValue('leveneP')?.[0] || 0,
         normalityResidP: getValue('normalityResidP')?.[0] || 0,
+        methodUsed: getValue('methodUsed')?.[0] || 'Classic ANOVA',
         postHoc: postHoc,
+        postHocWarning: getValue('postHocWarning')?.[0] || '',
         rCode
     };
 }
 
 /**
  * Run Exploratory Factor Analysis (EFA)
+ * Includes Parallel Analysis for optimal factor number detection
  */
 export async function runEFA(data: number[][], nFactors: number, rotation: string = 'varimax'): Promise<{
     kmo: number;
@@ -719,6 +777,8 @@ export async function runEFA(data: number[][], nFactors: number, rotation: strin
     structure: number[][];
     eigenvalues: number[];
     nFactorsUsed: number;
+    nFactorsSuggested: number; // From Parallel Analysis
+    factorMethod: string; // 'parallel' or 'kaiser' or 'user'
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -732,42 +792,59 @@ export async function runEFA(data: number[][], nFactors: number, rotation: strin
     raw_data <- matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
     
     # 2. Clean Data: Remove rows with NA or Inf
-    # Convert to dataframe to handle mixed checks easily, though matrix is fine
     df <- as.data.frame(raw_data)
     df_clean <- na.omit(df)
-    # Also filter out Inf if any (simplistic check)
     df_clean <- df_clean[apply(df_clean, 1, function(x) all(is.finite(x))), ]
 
     if (nrow(df_clean) < ncol(df_clean)) {
-        stop("Lỗi: Số lượng mẫu hợp lệ (sau khi loại bỏ NA) nhỏ hơn số lượng biến. Vui lòng kiểm tra dữ liệu trống (missing value) hoặc giảm bớt biến.")
+        stop("Lỗi: Số lượng mẫu hợp lệ nhỏ hơn số lượng biến.")
     }
     if (nrow(df_clean) < 3) {
         stop("Quá ít dữ liệu hợp lệ để chạy phân tích.")
     }
 
     # 3. Calculate Correlation Matrix & Eigenvalues
-    # Check for zero variance
     if (any(apply(df_clean, 2, sd) == 0)) {
-        stop("Biến có phương sai bằng 0 (hằng số). Hãy loại bỏ biến này.")
+        stop("Biến có phương sai bằng 0. Hãy loại bỏ biến này.")
     }
 
     cor_mat <- cor(df_clean)
     eigenvalues <- eigen(cor_mat)$values
 
-    # 4. Determine Number of Factors (if auto)
-    n_factors_run <- ${nFactors}
-    if (n_factors_run <= 0) {
-        n_factors_run <- sum(eigenvalues > 1)
-        if (n_factors_run < 1) n_factors_run <- 1 # Fallback
-    }
+    # 4. PARALLEL ANALYSIS - Gold Standard for factor detection
+    n_factors_parallel <- tryCatch({
+        pa <- fa.parallel(df_clean, fm = "pa", fa = "fa", plot = FALSE, 
+                         n.iter = 20, quant = 0.95)
+        pa$nfact
+    }, error = function(e) NA)
+    
+    # Kaiser criterion (eigenvalue > 1) as fallback
+    n_factors_kaiser <- sum(eigenvalues > 1)
+    if (n_factors_kaiser < 1) n_factors_kaiser <- 1
 
-    # 5. KMO and Bartlett on Cleaned Data
+    # Determine final factor count
+    n_factors_run <- ${nFactors}
+    factor_method <- "user"
+    
+    if (n_factors_run <= 0) {
+        # Auto-detect: prefer Parallel Analysis, fallback to Kaiser
+        if (!is.na(n_factors_parallel) && n_factors_parallel >= 1) {
+            n_factors_run <- n_factors_parallel
+            factor_method <- "parallel"
+        } else {
+            n_factors_run <- n_factors_kaiser
+            factor_method <- "kaiser"
+        }
+    }
+    
+    if (n_factors_run < 1) n_factors_run <- 1
+
+    # 5. KMO and Bartlett
     kmo_result <- tryCatch(KMO(df_clean), error = function(e) list(MSA = 0))
-    bartlett_result <- tryCatch(cortest.bartlett(cor_mat, n = nrow(df_clean)), error = function(e) list(p.value = 1))
+    bartlett_result <- tryCatch(cortest.bartlett(cor_mat, n = nrow(df_clean)), 
+                                error = function(e) list(p.value = 1))
     
     # 6. Run EFA
-    # fa() handles the correlation matrix or raw data. Raw data is better for scores but here we want loadings.
-    # Using 'pa' (Principal Axis) and selected rotation.
     rotation_method <- "${rotation}"
     efa_result <- fa(df_clean, nfactors = n_factors_run, rotate = rotation_method, fm = "pa")
 
@@ -778,7 +855,9 @@ export async function runEFA(data: number[][], nFactors: number, rotation: strin
         communalities = efa_result$communalities,
         structure = efa_result$Structure,
         eigenvalues = eigenvalues,
-        n_factors_used = n_factors_run
+        n_factors_used = n_factors_run,
+        n_factors_suggested = if(is.na(n_factors_parallel)) n_factors_kaiser else n_factors_parallel,
+        factor_method = factor_method
     )
     `;
 
@@ -796,6 +875,8 @@ export async function runEFA(data: number[][], nFactors: number, rotation: strin
         structure: parseMatrix(getValue('structure'), nFactorsUsed),
         eigenvalues: getValue('eigenvalues') || [],
         nFactorsUsed: nFactorsUsed,
+        nFactorsSuggested: getValue('n_factors_suggested')?.[0] || nFactorsUsed,
+        factorMethod: getValue('factor_method')?.[0] || 'user',
         rCode
     };
 }
@@ -840,10 +921,11 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
     coefficients: {
         term: string;
         estimate: number;
+        stdBeta: number; // Standardized Beta coefficient
         stdError: number;
         tValue: number;
         pValue: number;
-        vif?: number; // Added VIF
+        vif?: number; // VIF for multicollinearity
     }[];
     modelFit: {
         rSquared: number;
@@ -933,9 +1015,20 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
         shapiro.test(residuals(model))$p.value
     }, error = function(e) 0)
 
+    # === STANDARDIZED BETA (for comparing predictor importance) ===
+    # Formula: beta_std = b * (sd_x / sd_y)
+    std_betas <- tryCatch({
+        b <- coefs[-1, 1]  # Exclude intercept
+        x_data <- df[, -1, drop = FALSE]
+        sx <- sapply(x_data, sd, na.rm = TRUE)
+        sy <- sd(df[, 1], na.rm = TRUE)
+        c(NA, b * sx / sy)  # NA for intercept, then betas
+    }, error = function(e) rep(NA, nrow(coefs)))
+
     list(
         coef_names = rownames(coefs),
         estimates = coefs[, 1],
+        std_betas = std_betas,
         std_errors = coefs[, 2],
         t_values = coefs[, 3],
         p_values = coefs[, 4],
@@ -963,6 +1056,7 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
     const getValue = parseWebRResult(jsResult);
     const coefNames = getValue('coef_names') || [];
     const estimates = getValue('estimates') || [];
+    const stdBetas = getValue('std_betas') || [];
     const stdErrors = getValue('std_errors') || [];
     const tValues = getValue('t_values') || [];
     const pValues = getValue('p_values') || [];
@@ -999,6 +1093,7 @@ export async function runLinearRegression(data: number[][], names: string[]): Pr
         coefficients.push({
             term: coefNames[i],
             estimate: estimates[i],
+            stdBeta: stdBetas[i] || 0,
             stdError: stdErrors[i],
             tValue: tValues[i],
             pValue: pValues[i],
@@ -1087,10 +1182,7 @@ export async function runMannWhitneyU(
 /**
  * Run Chi-Square Test of Independence
  * Expects data as an array of rows, each row has 2 values [cat1, cat2]
- */
-/**
- * Run Chi-Square Test of Independence
- * Expects data as an array of rows, each row has 2 values [cat1, cat2]
+ * Includes Fisher's Exact test for 2x2 tables and warnings for expected < 5
  */
 export async function runChiSquare(data: any[][]): Promise<{
     statistic: number;
@@ -1099,13 +1191,13 @@ export async function runChiSquare(data: any[][]): Promise<{
     observed: { data: number[][]; rows: string[]; cols: string[] };
     expected: { data: number[][]; rows: string[]; cols: string[] };
     cramersV: number; // Effect Size
+    fisherPValue: number | null; // Fisher's Exact test p-value (for 2x2 tables)
+    warning: string; // Warning if expected < 5
     rCode: string;
 }> {
     const webR = await initWebR();
 
     // Serialize data for R
-    // We treat everything as string for categorical analysis
-    // flatten
     const flatData = data.flat().map(v => `"${String(v).replace(/"/g, '\\"')}"`).join(',');
     const nRows = data.length;
 
@@ -1115,20 +1207,34 @@ export async function runChiSquare(data: any[][]): Promise<{
     df_raw <- matrix(raw_vec, nrow = ${nRows}, byrow = TRUE)
     
     # Create Table
-    # table(RowVar, ColVar)
     tbl <- table(df_raw[,1], df_raw[,2])
     
     # Run Chi-Square
-    # simulate.p.value=TRUE makes it robust for small samples, but standard is fine unless warning.
-    # We'll use standard first.
     test <- chisq.test(tbl)
+    
+    # === CHECK ASSUMPTION: Expected cell counts ===
+    n_cells_below_5 <- sum(test$expected < 5)
+    pct_cells_below_5 <- n_cells_below_5 / length(test$expected) * 100
+    
+    warning_msg <- ""
+    if (pct_cells_below_5 > 20) {
+        warning_msg <- paste0("Cảnh báo: ", round(pct_cells_below_5, 1), 
+                              "% số ô có giá trị kỳ vọng < 5. Kết quả Chi-Square có thể không chính xác.")
+    }
+    
+    # === FISHER'S EXACT TEST (for 2x2 tables) ===
+    fisher_p <- NA
+    if (nrow(tbl) == 2 && ncol(tbl) == 2) {
+        fisher_result <- tryCatch({
+            fisher.test(tbl)$p.value
+        }, error = function(e) NA)
+        fisher_p <- fisher_result
+    }
     
     # Calculate Cramer's V (Effect Size)
     chisq_val <- test$statistic
     n <- sum(tbl)
-    k <- min(nrow(tbl), ncol(tbl))
     cramers_v <- 0
-    # Formula: V = sqrt(chisq / (n * (min(r,c)-1)))
     if (min(dim(tbl)) > 1) {
         cramers_v <- sqrt(chisq_val / (n * (min(dim(tbl)) - 1)))
     }
@@ -1140,6 +1246,8 @@ export async function runChiSquare(data: any[][]): Promise<{
        observed = as.matrix(test$observed),
        expected = as.matrix(test$expected),
        cramers_v = cramers_v,
+       fisher_p = fisher_p,
+       warning_msg = warning_msg,
        
        # Dimnames
        row_names = rownames(tbl),
@@ -1164,6 +1272,7 @@ export async function runChiSquare(data: any[][]): Promise<{
     const nC = getValue('n_cols')?.[0] || 0;
     const obsVals = getValue('obs_vals') || [];
     const expVals = getValue('exp_vals') || [];
+    const fisherP = getValue('fisher_p')?.[0];
 
     // Reconstruct 2D arrays
     const reconstruct = (vals: number[], rows: number, cols: number) => {
@@ -1193,6 +1302,8 @@ export async function runChiSquare(data: any[][]): Promise<{
             cols: colNames
         },
         cramersV: getValue('cramers_v')?.[0] || 0,
+        fisherPValue: (fisherP !== undefined && !isNaN(fisherP)) ? fisherP : null,
+        warning: getValue('warning_msg')?.[0] || '',
         rCode
     };
 }
@@ -1533,6 +1644,239 @@ export async function runSEM(
     }
 }
 
+/**
+ * Run Logistic Regression (Binary outcome 0/1)
+ * data: Matrix where first column is Binary DV (0/1), others are IVs
+ * names: Array of variable names [Y, X1, X2...]
+ */
+export async function runLogisticRegression(data: number[][], names: string[]): Promise<{
+    coefficients: {
+        term: string;
+        estimate: number; // Log-odds (B)
+        oddsRatio: number; // exp(B)
+        stdError: number;
+        zValue: number;
+        pValue: number;
+    }[];
+    modelFit: {
+        nullDeviance: number;
+        residualDeviance: number;
+        aic: number;
+        pseudoR2: number; // McFadden's R²
+        accuracy: number; // Classification accuracy
+    };
+    confusionMatrix: {
+        truePositive: number;
+        trueNegative: number;
+        falsePositive: number;
+        falseNegative: number;
+    };
+    rCode: string;
+}> {
+    const webR = await initWebR();
 
+    const rCode = `
+    data_mat <- matrix(c(${data.flat().join(',')}), nrow = ${data.length}, byrow = TRUE)
+    df <- as.data.frame(data_mat)
+    colnames(df) <- c(${names.map(n => `"${n}"`).join(',')})
+    
+    # Ensure DV is binary (0/1)
+    y_name <- colnames(df)[1]
+    df[[y_name]] <- as.factor(df[[y_name]])
+    
+    # Formula: First col ~ . (all others)
+    f_str <- paste(sprintf("\\\`%s\\\`", y_name), "~ .")
+    f <- as.formula(f_str)
+    
+    # Fit Logistic Regression
+    model <- glm(f, data = df, family = binomial(link = "logit"))
+    s <- summary(model)
+    
+    # Coefficients
+    coefs <- s$coefficients
+    odds_ratios <- exp(coefs[, 1])
+    
+    # Model Fit
+    null_dev <- model$null.deviance
+    resid_dev <- model$deviance
+    aic_val <- model$aic
+    
+    # McFadden's Pseudo R²
+    pseudo_r2 <- 1 - (resid_dev / null_dev)
+    
+    # Predictions & Confusion Matrix
+    probs <- predict(model, type = "response")
+    preds <- ifelse(probs > 0.5, 1, 0)
+    actual <- as.numeric(as.character(df[[y_name]]))
+    
+    tp <- sum(preds == 1 & actual == 1)
+    tn <- sum(preds == 0 & actual == 0)
+    fp <- sum(preds == 1 & actual == 0)
+    fn <- sum(preds == 0 & actual == 1)
+    accuracy <- (tp + tn) / length(actual)
+    
+    list(
+        coef_names = rownames(coefs),
+        estimates = coefs[, 1],
+        odds_ratios = odds_ratios,
+        std_errors = coefs[, 2],
+        z_values = coefs[, 3],
+        p_values = coefs[, 4],
+        
+        null_deviance = null_dev,
+        residual_deviance = resid_dev,
+        aic = aic_val,
+        pseudo_r2 = pseudo_r2,
+        accuracy = accuracy,
+        
+        tp = tp, tn = tn, fp = fp, fn = fn
+    )
+    `;
 
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
 
+    const coefNames = getValue('coef_names') || [];
+    const estimates = getValue('estimates') || [];
+    const oddsRatios = getValue('odds_ratios') || [];
+    const stdErrors = getValue('std_errors') || [];
+    const zValues = getValue('z_values') || [];
+    const pValues = getValue('p_values') || [];
+
+    const coefficients = [];
+    for (let i = 0; i < coefNames.length; i++) {
+        coefficients.push({
+            term: coefNames[i],
+            estimate: estimates[i] || 0,
+            oddsRatio: oddsRatios[i] || 1,
+            stdError: stdErrors[i] || 0,
+            zValue: zValues[i] || 0,
+            pValue: pValues[i] || 1
+        });
+    }
+
+    return {
+        coefficients,
+        modelFit: {
+            nullDeviance: getValue('null_deviance')?.[0] || 0,
+            residualDeviance: getValue('residual_deviance')?.[0] || 0,
+            aic: getValue('aic')?.[0] || 0,
+            pseudoR2: getValue('pseudo_r2')?.[0] || 0,
+            accuracy: getValue('accuracy')?.[0] || 0
+        },
+        confusionMatrix: {
+            truePositive: getValue('tp')?.[0] || 0,
+            trueNegative: getValue('tn')?.[0] || 0,
+            falsePositive: getValue('fp')?.[0] || 0,
+            falseNegative: getValue('fn')?.[0] || 0
+        },
+        rCode
+    };
+}
+
+/**
+ * Run Kruskal-Wallis Test (Non-parametric ANOVA)
+ * For comparing 3+ groups when normality is violated
+ */
+export async function runKruskalWallis(groups: number[][]): Promise<{
+    statistic: number; // Chi-squared
+    df: number;
+    pValue: number;
+    groupMedians: number[];
+    effectSize: number; // Epsilon squared
+    rCode: string;
+}> {
+    const webR = await initWebR();
+
+    const rCode = `
+    values <- c(${groups.map(g => g.join(',')).join(',')})
+    groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
+    
+    # Kruskal-Wallis Test
+    test <- kruskal.test(values ~ groups)
+    
+    # Group Medians
+    groupMedians <- tapply(values, groups, median)
+    
+    # Effect Size: Epsilon squared = H / (n - 1)
+    n <- length(values)
+    epsilon_sq <- test$statistic / (n - 1)
+    
+    list(
+        statistic = test$statistic,
+        df = test$parameter,
+        p_value = test$p.value,
+        group_medians = as.numeric(groupMedians),
+        effect_size = epsilon_sq
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    return {
+        statistic: getValue('statistic')?.[0] || 0,
+        df: getValue('df')?.[0] || 0,
+        pValue: getValue('p_value')?.[0] || 0,
+        groupMedians: getValue('group_medians') || [],
+        effectSize: getValue('effect_size')?.[0] || 0,
+        rCode
+    };
+}
+
+/**
+ * Run Wilcoxon Signed-Rank Test (Non-parametric paired)
+ * For comparing paired samples when normality is violated
+ */
+export async function runWilcoxonSignedRank(before: number[], after: number[]): Promise<{
+    statistic: number; // V
+    pValue: number;
+    medianBefore: number;
+    medianAfter: number;
+    medianDiff: number;
+    effectSize: number; // r = Z / sqrt(N)
+    rCode: string;
+}> {
+    const webR = await initWebR();
+
+    const rCode = `
+    before <- c(${before.join(',')})
+    after <- c(${after.join(',')})
+    
+    # Wilcoxon Signed-Rank Test (paired)
+    test <- wilcox.test(before, after, paired = TRUE, conf.int = TRUE)
+    
+    # Effect Size: r = Z / sqrt(N)
+    n <- length(before)
+    z_score <- qnorm(test$p.value / 2)
+    effect_r <- abs(z_score) / sqrt(n)
+    
+    # Difference
+    diffs <- before - after
+    
+    list(
+        statistic = test$statistic,
+        p_value = test$p.value,
+        median_before = median(before),
+        median_after = median(after),
+        median_diff = median(diffs),
+        effect_size = effect_r
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    return {
+        statistic: getValue('statistic')?.[0] || 0,
+        pValue: getValue('p_value')?.[0] || 0,
+        medianBefore: getValue('median_before')?.[0] || 0,
+        medianAfter: getValue('median_after')?.[0] || 0,
+        medianDiff: getValue('median_diff')?.[0] || 0,
+        effectSize: getValue('effect_size')?.[0] || 0,
+        rCode
+    };
+}
