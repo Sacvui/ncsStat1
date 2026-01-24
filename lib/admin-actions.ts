@@ -1,7 +1,8 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { recordTokenTransaction, POINTS_CONFIG } from './token-service';
+import { recordTokenTransaction } from './token-service';
+import { POINTS_CONFIG } from './points-config';
 
 // Get admin dashboard statistics - OPTIMIZED with parallel queries
 export async function getAdminDashboardStats() {
