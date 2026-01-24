@@ -75,7 +75,9 @@ export const translations = {
             privacy: 'Chính sách bảo mật',
             docs: 'Tài liệu hướng dẫn',
             status: 'Trạng thái hệ thống',
-            operational: 'Đang hoạt động tốt'
+            operational: 'Đang hoạt động tốt',
+            aboutTitle: 'About Hai Rong Choi',
+            aboutDesc: 'Deep in the noise of data lies a silent truth. I did not build this tool to complicate your research, but to simplify your path to discovery. It is forged from sleepless nights and a relentless pursuit of precision—a humble offering to those who seek clarity in a chaotic world. I am just a wanderer in the realm of numbers, but here, I have paved the way for you.'
         },
         // Analyze Page
         analyze: {
@@ -165,7 +167,9 @@ export const translations = {
             privacy: 'Privacy Policy',
             docs: 'Documentation',
             status: 'System Status',
-            operational: 'Operational'
+            operational: 'Operational',
+            aboutTitle: 'About Hai Rong Choi',
+            aboutDesc: 'Deep in the noise of data lies a silent truth. I did not build this tool to complicate your research, but to simplify your path to discovery. It is forged from sleepless nights and a relentless pursuit of precision—a humble offering to those who seek clarity in a chaotic world. I am just a wanderer in the realm of numbers, but here, I have paved the way for you.'
         },
         // Analyze Page
         analyze: {

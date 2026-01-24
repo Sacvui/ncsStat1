@@ -204,6 +204,30 @@ export default function DocsPage() {
                 </div>
             </div>
 
+            {/* Intro - Hai Rong Choi */}
+            <div className="max-w-5xl mx-auto px-6 pt-10 pb-4">
+                <div className="bg-white rounded-2xl p-8 border border-indigo-100 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-2 h-full bg-indigo-600"></div>
+                    <div className="relative z-10">
+                        <h3 className="text-2xl font-bold text-slate-900 mb-4 flex items-center gap-3">
+                            <span className="text-indigo-600">Hai Rong Choi</span> greets you.
+                        </h3>
+                        <div className="space-y-4 text-slate-700 leading-relaxed text-lg font-light">
+                            <p>
+                                Welcome to the sanctuary of rigorous analysis. This documentation is not merely a manual; it is a testament to the precision that defines <strong className="font-semibold text-slate-900">ncsStat</strong>.
+                            </p>
+                            <p>
+                                Every function here has been battle-tested against standard academic benchmarks to ensure that your results are unassailable. Research is a lonely path, but here, you walk with certainty. Let us walk through the tools that will empower your thesis.
+                            </p>
+                        </div>
+                    </div>
+                    {/* Decorative Watermark */}
+                    <div className="absolute -bottom-10 -right-10 text-slate-50 opacity-10 transform -rotate-12 pointer-events-none">
+                        <Code className="w-64 h-64" />
+                    </div>
+                </div>
+            </div>
+
             <div className="max-w-5xl mx-auto px-6 py-8">
                 {/* Quick Links */}
                 <div className="bg-white rounded-xl border shadow-sm p-6 mb-8">
