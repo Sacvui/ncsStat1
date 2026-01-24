@@ -16,6 +16,7 @@ import {
 import { Code, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { AIInterpretation } from './AIInterpretation';
+import { TemplateInterpretation } from './TemplateInterpretation';
 import SEMPathDiagram from './SEMPathDiagram';
 
 ChartJS.register(
@@ -104,6 +105,14 @@ export function ResultsDisplay({
                 <RSyntaxViewer code={results.rCode} />
             )}
 
+            {/* Template-based Interpretation (INSTANT, FREE) */}
+            <TemplateInterpretation
+                analysisType={analysisType}
+                results={results}
+                scaleName={results?.scaleName || 'Thang đo'}
+            />
+
+            {/* AI Interpretation (Optional Premium - requires API key) */}
             <AIInterpretation analysisType={analysisType} results={results} userProfile={userProfile} />
         </div>
     );
