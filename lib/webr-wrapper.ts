@@ -67,11 +67,26 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         initPromise = (async () => {
             try {
+                // Mobile-friendly config: Ensure PostMessage channel and service worker
                 const webR = new WebR({
-                    channelType: 1, // PostMessage channel
+                    channelType: 1, // PostMessage channel (safest for cross-origin)
+                    serviceWorkerUrl: '/webr-serviceworker.js'
                 });
 
                 updateProgress('R-Engine Loading...');
+
+                // Ensure ServiceWorker is registered (critical for mobile/COOP)
+                if ('serviceWorker' in navigator) {
+                    try {
+                        const registration = await navigator.serviceWorker.register('/webr-serviceworker.js');
+                        await navigator.serviceWorker.ready;
+                        console.log('WebR ServiceWorker ready:', registration.scope);
+                    } catch (swError) {
+                        console.warn('ServiceWorker registration failed:', swError);
+                        // Don't crash, WebR might still work in some modes, but likely will fail later
+                    }
+                }
+
                 await webR.init();
 
                 // Step 1: Set correct WASM Repo (Priority: 1. Core WASM, 2. R-Universe for missing binaries like quadprog)
