@@ -82,9 +82,10 @@ export function interpretCronbachAlpha(params: {
     const citations = ['Nunnally, J. C. (1978). Psychometric theory (2nd ed.). McGraw-Hill.'];
 
     if (alpha >= 0.7) {
-        summary = `Kết quả kiểm định độ tin cậy cho thang đo "${scaleName}" (gồm ${nItems} biến quan sát) cho thấy hệ số Cronbach's Alpha đạt α = ${alphaStr}. Kết quả này thỏa mãn điều kiện khuyến nghị (α ≥ .70), chứng tỏ thang đo có độ tin cậy nội tại tốt và phù hợp cho các phân tích tiếp theo.`;
+        summary = `Kết quả kiểm định độ tin cậy cho thang đo "${scaleName}" (gồm ${nItems} biến quan sát) cho thấy hệ số Cronbach's Alpha đạt α = ${alphaStr}${omega && omega > 0 ? ` và McDonald's Omega đạt ω = ${formatCoef(omega)}` : ''}. Kết quả này thỏa mãn điều kiện khuyến nghị (${omega ? 'các chỉ số' : 'α'} ≥ .70), chứng tỏ thang đo có độ tin cậy nội tại tốt và phù hợp cho các phân tích tiếp theo.`;
     } else if (alpha >= 0.6) {
         summary = `Hệ số Cronbach's Alpha của thang đo "${scaleName}" là α = ${alphaStr}. Mặc dù giá trị này thấp hơn ngưỡng .70 nhưng vẫn nằm trong mức chấp nhận được đối với các nghiên cứu mang tính khám phá.`;
+        if (omega) summary += ` Hệ số McDonald's Omega là ω = ${formatCoef(omega)}.`;
         citations.push('Hair, J. F., et al. (2010). Multivariate data analysis (7th ed.). Pearson.');
     } else {
         summary = `Thang đo "${scaleName}" có hệ số Cronbach's Alpha là α = ${alphaStr} (< .60). Thang đo này không đảm bảo độ tin cậy và cần được điều chỉnh lại cấu trúc.`;

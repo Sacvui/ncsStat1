@@ -562,28 +562,11 @@ function CronbachResults({ results, columns, onProceedToEFA, scaleName }: { resu
             )}
 
             {/* Interpretation Section */}
-            <div className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 p-6 rounded-lg">
-                <h4 className="font-bold mb-4 text-indigo-900 uppercase text-xs tracking-wider">Đánh Giá &amp; Khuyến Nghị</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div>
-                        <div className="text-sm font-medium mb-2 text-indigo-700">Độ tin cậy thang đo:</div>
-                        <div className={`text-3xl font-bold ${alpha >= 0.7 ? 'text-green-600' : 'text-orange-600'}`}>
-                            {alpha >= 0.9 ? 'Xuất sắc' :
-                                alpha >= 0.8 ? 'Tốt' :
-                                    alpha >= 0.7 ? 'Chấp nhận được' :
-                                        alpha >= 0.6 ? 'Khá' : 'Kém'}
-                        </div>
-                    </div>
-                    <div>
-                        <div className="text-sm font-medium mb-2 text-indigo-700">Khuyến nghị:</div>
-                        <p className="text-sm text-gray-700 leading-relaxed font-medium">
-                            {alpha >= 0.7
-                                ? 'Thang đo đảm bảo độ tin cậy. Có thể sử dụng cho các phân tích tiếp theo.'
-                                : 'Cần xem xét loại bỏ biến quan sát rác hoặc kiểm tra lại cấu trúc thang đo.'}
-                        </p>
-                    </div>
-                </div>
-            </div>
+            <TemplateInterpretation
+                analysisType="cronbach"
+                results={results}
+                scaleName={scaleName || 'Thang đo'}
+            />
 
             {/* Workflow: Next Step Button */}
             {goodItems.length >= 4 && onProceedToEFA && (

@@ -1702,6 +1702,7 @@ export default function AnalyzePage() {
                                     onProceedToCFA={handleProceedToCFA}
                                     onProceedToSEM={handleProceedToSEM}
                                     userProfile={userProfile}
+                                    scaleName={results.scaleName}
                                 />
                             )}
 
