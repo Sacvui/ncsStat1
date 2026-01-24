@@ -7,141 +7,173 @@ export const translations = {
     vi: {
         // Header
         nav: {
-            analyze: 'Phân tích',
-            profile: 'Hồ sơ',
+            analyze: 'Phân tích Dữ liệu',
+            profile: 'Hồ sơ Nghiên cứu',
             login: 'Đăng nhập',
             logout: 'Đăng xuất'
         },
         // Hero Section
         hero: {
-            badge: 'V1.2.0: Phiên bản ổn định',
-            title: 'Phân tích dữ liệu',
-            subtitle: 'Dành cho nhà nghiên cứu',
-            description: 'Công cụ thống kê trực tuyến mạnh mẽ, thay thế SPSS/R. Miễn phí, không cài đặt, bảo mật tuyệt đối.',
-            cta: 'Bắt đầu phân tích ngay',
-            learn: 'Tìm hiểu tính năng'
+            badge: 'V1.2.0: Stable Release',
+            title: 'Giải pháp Thống kê',
+            subtitle: 'Chuẩn khoa học cho Nghiên cứu sinh',
+            description: 'Nền tảng phân tích dữ liệu chuyên sâu, tích hợp R-Engine mạnh mẽ và Trợ lý AI. Chính xác tuyệt đối, bảo mật tối đa, không cần cài đặt.',
+            cta: 'Bắt đầu Nghiên cứu',
+            learn: 'Quy trình hoạt động'
+        },
+        // Workflow (New)
+        workflow: {
+            title: 'Quy trình 3 Bước Đơn giản',
+            step1: {
+                title: 'Tải dữ liệu',
+                desc: 'Hỗ trợ định dạng Excel/CSV. Hệ thống tự động kiểm tra và chuẩn hóa cấu trúc dữ liệu.'
+            },
+            step2: {
+                title: 'Chọn kiểm định',
+                desc: 'Menu phân tích trực quan, đầy đủ các phương pháp từ EFA, CFA đến mô hình SEM phức tạp.'
+            },
+            step3: {
+                title: 'Nhận báo cáo',
+                desc: 'Kết quả chi tiết chuẩn APA, biểu đồ chuyên nghiệp và được AI giải thích ý nghĩa.'
+            }
         },
         // Features
         features: {
             speed: {
-                title: 'Tốc độ & Tiện lợi',
-                desc: 'Chạy trực tiếp trên trình duyệt web với công nghệ WebAssembly. Không cần cài đặt phần mềm nặng nề.'
+                title: 'Hiệu suất Vượt trội',
+                desc: 'Vận hành trực tiếp trên trình duyệt với công nghệ WebAssembly tiên tiến. Tốc độ xử lý nhanh chóng, ổn định.'
             },
             ai: {
-                title: 'Trợ lý Thông minh',
-                desc: 'Tích hợp AI giải thích kết quả bằng tiếng Việt, giúp bạn hiểu rõ ý nghĩa số liệu.'
+                title: 'Trợ lý Nghiên cứu AI',
+                desc: 'Tự động phân tích và diễn giải kết quả số liệu. Phát hiện vấn đề và đề xuất giải pháp tối ưu cho bài nghiên cứu.'
             },
             security: {
-                title: 'Bảo mật Dữ liệu',
-                desc: 'Cơ chế Client-side 100%. Dữ liệu của bạn nằm yên trên máy tính, không bao giờ được gửi lên máy chủ.'
+                title: 'Bảo mật Cấp cao',
+                desc: 'Kiến trúc Zero-Knowledge. Dữ liệu được xử lý cục bộ 100% tại thiết bị người dùng (Client-side), đảm bảo sự riêng tư tuyệt đối.'
             }
         },
         // Methods
         methods: {
-            title: 'Phương pháp Phân tích',
-            subtitle: 'Hỗ trợ đầy đủ các kiểm định từ cơ bản đến nâng cao cho luận văn/luận án của bạn.',
-            reliability: 'Độ tin cậy',
-            efa: 'Khám phá EFA',
-            cfa: 'Khẳng định CFA',
-            sem: 'Mô hình SEM',
-            regression: 'Hồi quy',
-            comparison: 'So sánh nhóm',
-            correlation: 'Tương quan',
+            title: 'Hệ thống Phương pháp Phân tích',
+            subtitle: 'Bộ công cụ toàn diện hỗ trợ đầy đủ các kiểm định thống kê cho Luận văn và Luận án Tiến sĩ.',
+            reliability: 'Độ tin cậy thang đo',
+            efa: 'Phân tích nhân tố EFA',
+            cfa: 'Mô hình đo lường CFA',
+            sem: 'Mô hình cấu trúc SEM',
+            regression: 'Phân tích Hồi quy',
+            comparison: 'Kiểm định so sánh',
+            correlation: 'Phân tích Tương quan',
             nonparam: 'Phi tham số'
         },
         // Footer
         footer: {
-            terms: 'Điều khoản',
-            privacy: 'Bảo mật',
-            docs: 'Hướng dẫn',
-            status: 'Trạng thái',
-            operational: 'Hoạt động'
+            terms: 'Điều khoản sử dụng',
+            privacy: 'Chính sách bảo mật',
+            docs: 'Tài liệu hướng dẫn',
+            status: 'Trạng thái hệ thống',
+            operational: 'Đang hoạt động tốt'
         },
         // Analyze Page
         analyze: {
             steps: {
-                upload: 'Tải dữ liệu',
+                upload: 'Dữ liệu',
                 profile: 'Kiểm tra',
                 analyze: 'Phân tích',
                 results: 'Kết quả'
             },
             upload: {
-                title: 'Tải lên dữ liệu của bạn',
-                desc: 'Hỗ trợ file CSV và Excel (.xlsx, .xls)'
+                title: 'Nhập dữ liệu nghiên cứu',
+                desc: 'Hỗ trợ định dạng chuẩn .csv và .xlsx'
             },
-            selectMethod: 'Chọn phương pháp phân tích',
-            processing: 'Đang phân tích...',
-            complete: 'Phân tích hoàn thành!'
+            selectMethod: 'Lựa chọn phương pháp kiểm định',
+            processing: 'Đang xử lý dữ liệu...',
+            complete: 'Phân tích hoàn tất'
         }
     },
     en: {
         // Header
         nav: {
-            analyze: 'Analyze',
-            profile: 'Profile',
+            analyze: 'Data Analysis',
+            profile: 'Researcher Profile',
             login: 'Login',
             logout: 'Logout'
         },
         // Hero Section
         hero: {
             badge: 'V1.2.0: Stable Release',
-            title: 'Data Analysis',
-            subtitle: 'For Researchers',
-            description: 'Powerful online statistical tool, replacing SPSS/R. Free, no installation, absolutely secure.',
-            cta: 'Start Analyzing Now',
-            learn: 'Explore Features'
+            title: 'Advanced Statistics',
+            subtitle: 'Scientific Standard for Researchers',
+            description: 'Professional data analysis platform powered by R-Engine and AI Assistant. Absolute accuracy, maximum security, zero installation.',
+            cta: 'Start Researching',
+            learn: 'How it works'
+        },
+        // Workflow (New)
+        workflow: {
+            title: 'Simple 3-Step Workflow',
+            step1: {
+                title: 'Import Data',
+                desc: 'Support Excel/CSV formats. Automatic data structure validation and normalization.'
+            },
+            step2: {
+                title: 'Select Analysis',
+                desc: 'Intuitive menu covering all methods from EFA, CFA to complex SEM models.'
+            },
+            step3: {
+                title: 'Get Report',
+                desc: 'Detailed APA-standard results, professional charts, and AI-powered interpretation.'
+            }
         },
         // Features
         features: {
             speed: {
-                title: 'Speed & Convenience',
-                desc: 'Runs directly in your browser with WebAssembly technology. No heavy software installation needed.'
+                title: 'High Performance',
+                desc: 'Runs directly in-browser via advanced WebAssembly technology. Fast, stable, and efficient processing.'
             },
             ai: {
-                title: 'Smart Assistant',
-                desc: 'AI-powered output interpretation in Vietnamese, helping you understand statistical results.'
+                title: 'AI Research Assistant',
+                desc: 'Automated analysis and interpretation of statistical results. Identifies issues and proposes optimal solutions.'
             },
             security: {
-                title: 'Data Security',
-                desc: '100% client-side processing. Your data stays on your computer, never uploaded to our servers.'
+                title: 'High-Level Security',
+                desc: 'Zero-Knowledge architecture. Data is processed 100% locally on your device (Client-side), ensuring absolute privacy.'
             }
         },
         // Methods
         methods: {
-            title: 'Analysis Methods',
-            subtitle: 'Full support for basic to advanced statistical tests for your thesis/dissertation.',
-            reliability: 'Reliability',
+            title: 'Analysis Methodology System',
+            subtitle: 'Comprehensive toolkit supporting all statistical tests for Theses and Dissertations.',
+            reliability: 'Scale Reliability',
             efa: 'Exploratory EFA',
             cfa: 'Confirmatory CFA',
-            sem: 'SEM Model',
-            regression: 'Regression',
-            comparison: 'Group Comparison',
-            correlation: 'Correlation',
-            nonparam: 'Non-parametric'
+            sem: 'Structural SEM',
+            regression: 'Regression Analysis',
+            comparison: 'Hypothesis Testing',
+            correlation: 'Correlation Analysis',
+            nonparam: 'Non-parametric Tests'
         },
         // Footer
         footer: {
-            terms: 'Terms',
-            privacy: 'Privacy',
-            docs: 'Docs',
-            status: 'Status',
+            terms: 'Terms of Service',
+            privacy: 'Privacy Policy',
+            docs: 'Documentation',
+            status: 'System Status',
             operational: 'Operational'
         },
         // Analyze Page
         analyze: {
             steps: {
-                upload: 'Upload Data',
+                upload: 'Data Import',
                 profile: 'Review',
-                analyze: 'Analyze',
-                results: 'Results'
+                analyze: 'Analysis',
+                results: 'Reporting'
             },
             upload: {
-                title: 'Upload your data',
-                desc: 'Supports CSV and Excel files (.xlsx, .xls)'
+                title: 'Import your dataset',
+                desc: 'Supports standard .csv and .xlsx formats'
             },
-            selectMethod: 'Select analysis method',
-            processing: 'Analyzing...',
-            complete: 'Analysis complete!'
+            selectMethod: 'Select Analysis Method',
+            processing: 'Processing data...',
+            complete: 'Analysis Complete'
         }
     }
 } as const;
