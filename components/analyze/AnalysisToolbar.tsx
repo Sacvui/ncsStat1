@@ -23,9 +23,9 @@ export default function AnalysisToolbar({
         <div className="flex items-center gap-3 md:gap-6 overflow-x-auto no-scrollbar max-w-full">
             {/* File Info */}
             {filename ? (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium shrink-0">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span className="truncate max-w-[120px] xl:max-w-[200px]">{filename}</span>
+                <div className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg border border-slate-200 text-slate-700 text-sm font-medium shrink-0 max-w-[100px] md:max-w-[200px]">
+                    <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                    <span className="truncate">{filename}</span>
                 </div>
             ) : (
                 <div className="text-slate-400 text-sm italic items-center gap-2 hidden lg:flex shrink-0">

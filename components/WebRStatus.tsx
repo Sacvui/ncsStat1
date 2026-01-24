@@ -13,18 +13,18 @@ export function WebRStatus() {
 
     if (status.isReady) {
         return (
-            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full">
-                <CheckCircle className="w-4 h-4" />
-                <span>R Engine sẵn sàng</span>
+            <div className="flex items-center gap-2 text-sm text-green-600 bg-green-50 px-3 py-1 rounded-full whitespace-nowrap">
+                <CheckCircle className="w-4 h-4 shrink-0" />
+                <span className="hidden md:inline">R Engine Ready</span>
             </div>
         );
     }
 
     if (status.isLoading) {
         return (
-            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>{status.progress || 'Đang tải...'}</span>
+            <div className="flex items-center gap-2 text-sm text-blue-600 bg-blue-50 px-3 py-1 rounded-full whitespace-nowrap max-w-[150px] md:max-w-none overflow-hidden">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <span className="truncate">{status.progress || 'Loading...'}</span>
             </div>
         );
     }
