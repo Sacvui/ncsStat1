@@ -1,4 +1,4 @@
-'use server';
+// ORCID OAuth utility functions - no 'use server' needed
 
 /**
  * ORCID OAuth Authentication Service
