@@ -1880,3 +1880,202 @@ export async function runWilcoxonSignedRank(before: number[], after: number[]): 
         rCode
     };
 }
+
+/**
+ * Run Mediation Analysis (Baron & Kenny method with Sobel test)
+ * Tests whether M mediates the relationship between X and Y
+ * 
+ * Model: X → M → Y (with possible direct effect X → Y)
+ * 
+ * @param x - Independent variable (predictor)
+ * @param m - Mediator variable
+ * @param y - Dependent variable (outcome)
+ */
+export async function runMediationAnalysis(
+    x: number[],
+    m: number[],
+    y: number[]
+): Promise<{
+    // Path coefficients
+    pathA: { estimate: number; se: number; pValue: number }; // X → M
+    pathB: { estimate: number; se: number; pValue: number }; // M → Y (controlling X)
+    pathC: { estimate: number; se: number; pValue: number }; // X → Y (total effect)
+    pathCprime: { estimate: number; se: number; pValue: number }; // X → Y (direct, controlling M)
+
+    // Effects
+    indirectEffect: number; // a * b
+    totalEffect: number; // c
+    directEffect: number; // c'
+    proportionMediated: number; // indirect / total
+
+    // Sobel Test
+    sobelZ: number;
+    sobelP: number;
+
+    // Bootstrap CI for indirect effect (if available)
+    bootstrapCI: { lower: number; upper: number } | null;
+
+    // Interpretation
+    mediationType: 'full' | 'partial' | 'none';
+
+    rCode: string;
+}> {
+    const webR = await initWebR();
+
+    const rCode = `
+    x <- c(${x.join(',')})
+    m <- c(${m.join(',')})
+    y <- c(${y.join(',')})
+    
+    # === BARON & KENNY STEPS ===
+    
+    # Step 1: Path c (Total Effect) - X predicts Y
+    model_c <- lm(y ~ x)
+    sum_c <- summary(model_c)
+    path_c <- coef(sum_c)[2, 1]
+    path_c_se <- coef(sum_c)[2, 2]
+    path_c_p <- coef(sum_c)[2, 4]
+    
+    # Step 2: Path a - X predicts M
+    model_a <- lm(m ~ x)
+    sum_a <- summary(model_a)
+    path_a <- coef(sum_a)[2, 1]
+    path_a_se <- coef(sum_a)[2, 2]
+    path_a_p <- coef(sum_a)[2, 4]
+    
+    # Step 3: Paths b and c' - M predicts Y controlling for X
+    model_bc <- lm(y ~ x + m)
+    sum_bc <- summary(model_bc)
+    path_b <- coef(sum_bc)[3, 1]  # M coefficient
+    path_b_se <- coef(sum_bc)[3, 2]
+    path_b_p <- coef(sum_bc)[3, 4]
+    path_cprime <- coef(sum_bc)[2, 1]  # X coefficient (direct effect)
+    path_cprime_se <- coef(sum_bc)[2, 2]
+    path_cprime_p <- coef(sum_bc)[2, 4]
+    
+    # === INDIRECT EFFECT ===
+    indirect_effect <- path_a * path_b
+    total_effect <- path_c
+    direct_effect <- path_cprime
+    
+    # Proportion mediated
+    prop_mediated <- 0
+    if (abs(total_effect) > 0.0001) {
+        prop_mediated <- indirect_effect / total_effect
+    }
+    
+    # === SOBEL TEST ===
+    # SE of indirect effect: sqrt(b²*SEa² + a²*SEb²)
+    sobel_se <- sqrt(path_b^2 * path_a_se^2 + path_a^2 * path_b_se^2)
+    sobel_z <- indirect_effect / sobel_se
+    sobel_p <- 2 * (1 - pnorm(abs(sobel_z)))
+    
+    # === BOOTSTRAP CI (simplified - 1000 iterations) ===
+    n <- length(x)
+    n_boot <- 1000
+    boot_indirect <- numeric(n_boot)
+    
+    set.seed(123)
+    for (i in 1:n_boot) {
+        idx <- sample(1:n, n, replace = TRUE)
+        x_b <- x[idx]
+        m_b <- m[idx]
+        y_b <- y[idx]
+        
+        a_b <- coef(lm(m_b ~ x_b))[2]
+        b_b <- coef(lm(y_b ~ x_b + m_b))[3]
+        boot_indirect[i] <- a_b * b_b
+    }
+    
+    boot_ci_lower <- quantile(boot_indirect, 0.025, na.rm = TRUE)
+    boot_ci_upper <- quantile(boot_indirect, 0.975, na.rm = TRUE)
+    
+    # === MEDIATION TYPE ===
+    # Full: c' not significant, indirect significant
+    # Partial: both c' and indirect significant
+    # None: indirect not significant
+    mediation_type <- "none"
+    if (sobel_p < 0.05) {
+        if (path_cprime_p >= 0.05) {
+            mediation_type <- "full"
+        } else {
+            mediation_type <- "partial"
+        }
+    }
+    
+    list(
+        path_a = path_a,
+        path_a_se = path_a_se,
+        path_a_p = path_a_p,
+        
+        path_b = path_b,
+        path_b_se = path_b_se,
+        path_b_p = path_b_p,
+        
+        path_c = path_c,
+        path_c_se = path_c_se,
+        path_c_p = path_c_p,
+        
+        path_cprime = path_cprime,
+        path_cprime_se = path_cprime_se,
+        path_cprime_p = path_cprime_p,
+        
+        indirect_effect = indirect_effect,
+        total_effect = total_effect,
+        direct_effect = direct_effect,
+        prop_mediated = prop_mediated,
+        
+        sobel_z = sobel_z,
+        sobel_p = sobel_p,
+        
+        boot_ci_lower = as.numeric(boot_ci_lower),
+        boot_ci_upper = as.numeric(boot_ci_upper),
+        
+        mediation_type = mediation_type
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    return {
+        pathA: {
+            estimate: getValue('path_a')?.[0] || 0,
+            se: getValue('path_a_se')?.[0] || 0,
+            pValue: getValue('path_a_p')?.[0] || 1
+        },
+        pathB: {
+            estimate: getValue('path_b')?.[0] || 0,
+            se: getValue('path_b_se')?.[0] || 0,
+            pValue: getValue('path_b_p')?.[0] || 1
+        },
+        pathC: {
+            estimate: getValue('path_c')?.[0] || 0,
+            se: getValue('path_c_se')?.[0] || 0,
+            pValue: getValue('path_c_p')?.[0] || 1
+        },
+        pathCprime: {
+            estimate: getValue('path_cprime')?.[0] || 0,
+            se: getValue('path_cprime_se')?.[0] || 0,
+            pValue: getValue('path_cprime_p')?.[0] || 1
+        },
+
+        indirectEffect: getValue('indirect_effect')?.[0] || 0,
+        totalEffect: getValue('total_effect')?.[0] || 0,
+        directEffect: getValue('direct_effect')?.[0] || 0,
+        proportionMediated: getValue('prop_mediated')?.[0] || 0,
+
+        sobelZ: getValue('sobel_z')?.[0] || 0,
+        sobelP: getValue('sobel_p')?.[0] || 1,
+
+        bootstrapCI: {
+            lower: getValue('boot_ci_lower')?.[0] || 0,
+            upper: getValue('boot_ci_upper')?.[0] || 0
+        },
+
+        mediationType: (getValue('mediation_type')?.[0] || 'none') as 'full' | 'partial' | 'none',
+
+        rCode
+    };
+}
