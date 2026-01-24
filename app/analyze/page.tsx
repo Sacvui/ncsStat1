@@ -30,6 +30,7 @@ import { FeedbackService } from '@/lib/feedback-service';
 import { getSupabase } from '@/utils/supabase/client';
 import Header from '@/components/layout/Header'
 import AnalysisToolbar from '@/components/analyze/AnalysisToolbar';
+import SaveProjectModal from '@/components/analyze/SaveProjectModal';
 
 export default function AnalyzePage() {
     const router = useRouter()
@@ -81,6 +82,7 @@ export default function AnalyzePage() {
     // Feedback State
     const [showDemographics, setShowDemographics] = useState(false);
     const [showApplicability, setShowApplicability] = useState(false);
+    const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
 
     // Workflow Mode State
     const [previousAnalysis, setPreviousAnalysis] = useState<PreviousAnalysisData | null>(null);
@@ -580,6 +582,7 @@ export default function AnalyzePage() {
                             showToast('Đã xóa dữ liệu phiên làm việc', 'info');
                         }}
                         filename={filename}
+                        onSave={() => setIsSaveModalOpen(true)}
                     />
                 }
             />

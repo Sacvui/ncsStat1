@@ -1,6 +1,6 @@
 'use client'
 
-import { Eye, EyeOff, Trash2, FileText, Settings, Shield } from 'lucide-react'
+import { Eye, EyeOff, Trash2, FileText, Settings, Shield, Save, PlusCircle, FolderOpen } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { WebRStatus } from '@/components/WebRStatus'
 import { AISettings } from '@/components/VariableSelector'
@@ -10,13 +10,15 @@ interface ToolbarProps {
     setIsPrivateMode: (v: boolean) => void
     clearSession: () => void
     filename: string | null
+    onSave: () => void
 }
 
 export default function AnalysisToolbar({
     isPrivateMode,
     setIsPrivateMode,
     clearSession,
-    filename
+    filename,
+    onSave
 }: ToolbarProps) {
     return (
         <div className="flex items-center gap-3 md:gap-6 overflow-x-auto no-scrollbar max-w-full">
@@ -56,16 +58,27 @@ export default function AnalysisToolbar({
 
                 <AISettings />
 
+                <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block" />
+
+                <button
+                    onClick={onSave}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded-lg text-xs font-medium transition-colors"
+                >
+                    <Save className="w-3.5 h-3.5" />
+                    <span className="hidden lg:inline">Lưu dự án</span>
+                </button>
+
                 <button
                     onClick={() => {
-                        if (confirm('Bạn có chắc chắn muốn xóa toàn bộ dữ liệu phiên làm việc?')) {
+                        if (confirm('Bạn có chắc chắn muốn xóa dữ liệu hiện tại để bắt đầu phân tích mới?')) {
                             clearSession();
                         }
                     }}
-                    className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Xóa phiên làm việc"
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-xs font-medium transition-colors"
+                    title="Bắt đầu phân tích mới"
                 >
-                    <Trash2 className="w-4 h-4" />
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span className="hidden lg:inline">Phân tích mới</span>
                 </button>
             </div>
         </div>
