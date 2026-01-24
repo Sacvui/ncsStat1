@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if profile already exists with this email
-        const { data: existingByEmail } = await supabaseAdmin
+        const { data: existingByEmail } = await getSupabaseAdmin()
             .from('profiles')
             .select('id, orcid_id, full_name')
             .eq('email', email)
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
 
         if (existingByEmail) {
             // Update existing profile with ORCID
-            const { error: updateError } = await supabaseAdmin
+            const { error: updateError } = await getSupabaseAdmin()
                 .from('profiles')
                 .update({
                     orcid_id: orcid,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Check if profile exists with this ORCID
-        const { data: existingByOrcid } = await supabaseAdmin
+        const { data: existingByOrcid } = await getSupabaseAdmin()
             .from('profiles')
             .select('id')
             .eq('orcid_id', orcid)
@@ -89,13 +89,13 @@ export async function POST(request: NextRequest) {
 
         if (existingByOrcid) {
             // Update last_active
-            await supabaseAdmin
+            await getSupabaseAdmin()
                 .from('profiles')
                 .update({ last_active: new Date().toISOString() })
                 .eq('id', existingByOrcid.id);
 
             // Get email for existing ORCID user to generate magic link
-            const { data: orcidProfile } = await supabaseAdmin
+            const { data: orcidProfile } = await getSupabaseAdmin()
                 .from('profiles')
                 .select('email')
                 .eq('id', existingByOrcid.id)
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         }
 
         // The trigger will auto-create profile, but we need to add orcid_id
-        const { error: orcidUpdateError } = await supabaseAdmin
+        const { error: orcidUpdateError } = await getSupabaseAdmin()
             .from('profiles')
             .update({
                 orcid_id: orcid,
