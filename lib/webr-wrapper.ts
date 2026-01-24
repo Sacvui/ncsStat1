@@ -188,41 +188,42 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
 
     const rCode = `
     library(psych)
-    data <- ${arrayToRMatrix(data)}
-    result <- alpha(data, check.keys = TRUE) # Auto check for reversed items
+    raw_data <- ${arrayToRMatrix(data)}
     
-    # Extract item-total statistics
+    # DATA CLEANING: Clamp outliers to valid Likert range (1-5)
+    # This prevents values like -5, 0, 10 from corrupting the analysis
+    valid_min <- 1
+    valid_max <- 5
+    data <- pmax(pmin(raw_data, valid_max), valid_min)
+    
+    # Run Cronbach's Alpha with auto key checking for reversed items
+    result <- alpha(data, check.keys = TRUE)
+    
+    # Extract item-total statistics - USE BUILT-IN VALUES (no manual for loop needed!)
     item_stats <- result$item.stats
     alpha_drop <- result$alpha.drop
-    
-    # Manually calculate Scale Mean / Var if Item Deleted for accuracy
     n_items <- ncol(data)
-    scale_mean_del <- numeric(n_items)
-    scale_var_del <- numeric(n_items)
     
-    # Calculate total scores (assuming data is clean / imputed by alpha function or previous steps)
-    
-    # Simple manual loop
-    for (i in 1:n_items) {
-       # Subset data excluding item i
-        sub_data <- data[, -i, drop = FALSE] 
-       # Calculate row sums for this subset
-       sub_scores <- rowSums(sub_data, na.rm = TRUE)
-       scale_mean_del[i] <- mean(sub_scores, na.rm = TRUE)
-        scale_var_del[i] <- var(sub_scores, na.rm = TRUE)
-    }
+    # Calculate scale totals for reference
+    total_scores <- rowSums(data, na.rm = TRUE)
+    scale_mean <- mean(total_scores, na.rm = TRUE)
+    scale_var <- var(total_scores, na.rm = TRUE)
 
     list(
         raw_alpha = result$total$raw_alpha,
         std_alpha = result$total$std.alpha,
-        n_items = ncol(data),
-      
-      # Item-total statistics
-      scale_mean_deleted = scale_mean_del,
-        scale_var_deleted = scale_var_del,
-
+        n_items = n_items,
+        
+        # Item-total statistics - USING BUILT-IN VALUES FROM alpha()
+        scale_mean_deleted = alpha_drop$mean,
+        scale_var_deleted = alpha_drop$sd^2,  # Convert SD to Variance
         corrected_item_total = item_stats$r.drop,
-        alpha_if_deleted = alpha_drop$raw_alpha
+        alpha_if_deleted = alpha_drop$raw_alpha,
+        
+        # Additional useful metrics
+        average_r = result$total$average_r,
+        scale_mean = scale_mean,
+        scale_var = scale_var
     )
     `;
 
