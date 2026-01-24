@@ -132,7 +132,7 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
                 </label>
             </div>
 
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center space-y-2">
                 <button
                     onClick={async (e) => {
                         e.preventDefault();
@@ -167,7 +167,46 @@ export function FileUpload({ onDataLoaded }: FileUploadProps) {
                     disabled={isProcessing}
                     className="text-sm text-blue-600 hover:text-blue-800 hover:underline font-medium"
                 >
-                    Không có dữ liệu? Dùng thử dữ liệu mẫu (N=300)
+                    Dùng thử dữ liệu mẫu (N=300)
+                </button>
+
+                <span className="text-gray-300 mx-2">|</span>
+
+                <button
+                    onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsProcessing(true);
+                        try {
+                            const response = await fetch('/test_data_sem_cfa.csv');
+                            if (!response.ok) throw new Error('Không tìm thấy file test SEM/CFA');
+                            const text = await response.text();
+
+                            Papa.parse(text, {
+                                header: true,
+                                skipEmptyLines: true,
+                                complete: (results) => {
+                                    if (results.data && results.data.length > 0) {
+                                        onDataLoaded(results.data, 'test_data_sem_cfa.csv');
+                                    } else {
+                                        setError('File test bị lỗi');
+                                    }
+                                    setIsProcessing(false);
+                                },
+                                error: (err: Error) => {
+                                    setError('Lỗi đọc file test: ' + err.message);
+                                    setIsProcessing(false);
+                                }
+                            });
+                        } catch (err: any) {
+                            setError('Lỗi tải file test: ' + (err.message || err));
+                            setIsProcessing(false);
+                        }
+                    }}
+                    disabled={isProcessing}
+                    className="text-sm text-purple-600 hover:text-purple-800 hover:underline font-medium"
+                >
+                    Test SEM/CFA (N=500, 8 constructs)
                 </button>
             </div>
 
