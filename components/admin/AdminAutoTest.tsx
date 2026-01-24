@@ -17,6 +17,22 @@ interface AdminAutoTestProps {
     onTestComplete?: (results: TestResult[]) => void;
 }
 
+/**
+ * Helper function to convert array of row objects to number[][] matrix
+ * @param data - Array of row objects (e.g., [{ col1: 1, col2: 2 }, ...])
+ * @param columns - Column names to extract
+ * @returns number[][] matrix where each row contains values from specified columns
+ */
+function extractColumnsAsMatrix(data: any[], columns: string[]): number[][] {
+    return data.map(row =>
+        columns.map(col => {
+            const val = row[col];
+            const num = typeof val === 'number' ? val : parseFloat(val);
+            return isNaN(num) ? 0 : num; // Replace NaN with 0 for robustness
+        })
+    );
+}
+
 export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
     const [isRunning, setIsRunning] = useState(false);
     const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -114,18 +130,18 @@ export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
 
                 switch (analysisId) {
                     case 'descriptive':
-                        // Run descriptive for first scale
-                        result = await runDescriptiveStats(
-                            data,
-                            TEST_DATA_SCALES[0].items
-                        );
+                        // Run descriptive for first scale - extract columns as matrix
+                        const descColumns = TEST_DATA_SCALES[0].items;
+                        const descMatrix = extractColumnsAsMatrix(data, descColumns);
+                        result = await runDescriptiveStats(descMatrix);
                         break;
 
                     case 'cronbach':
-                        // Run Cronbach for all scales
+                        // Run Cronbach for all scales - extract columns as matrix
                         const cronbachResults = [];
                         for (const scale of TEST_DATA_SCALES) {
-                            const r = await runCronbachAlpha(data, scale.items, scale.name, 1, 5);
+                            const cronMatrix = extractColumnsAsMatrix(data, scale.items);
+                            const r = await runCronbachAlpha(cronMatrix, 1, 5);
                             cronbachResults.push({
                                 scale: scale.name,
                                 alpha: r.alpha,
@@ -138,18 +154,22 @@ export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
                     case 'correlation':
                         // Run correlation on composite scores (first item of each scale)
                         const corrVars = TEST_DATA_SCALES.map(s => s.items[0]);
-                        result = await runCorrelation(data, corrVars);
+                        const corrMatrix = extractColumnsAsMatrix(data, corrVars);
+                        result = await runCorrelation(corrMatrix, 'pearson');
                         break;
 
                     case 'efa':
-                        // Run EFA on all items
+                        // Run EFA on all items - auto-detect factors (nFactors=0)
                         const efaVars = TEST_DATA_SCALES.flatMap(s => s.items);
-                        result = await runEFA(data, efaVars, 'promax', 8, 1, 5);
+                        const efaMatrix = extractColumnsAsMatrix(data, efaVars);
+                        result = await runEFA(efaMatrix, 0, 'promax');
                         break;
 
                     case 'cfa':
-                        // Run CFA with default model
-                        result = await runCFA(data, DEFAULT_CFA_MODEL.syntax);
+                        // Run CFA with default model - need columns and syntax
+                        const cfaVars = TEST_DATA_SCALES.flatMap(s => s.items);
+                        const cfaMatrix = extractColumnsAsMatrix(data, cfaVars);
+                        result = await runCFA(cfaMatrix, cfaVars, DEFAULT_CFA_MODEL.syntax);
                         break;
 
                     case 'regression':
@@ -158,9 +178,11 @@ export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
                         break;
 
                     case 'sem':
-                        // Run SEM with default model
+                        // Run SEM with default model - need columns and syntax
+                        const semVars = TEST_DATA_SCALES.flatMap(s => s.items);
+                        const semMatrix = extractColumnsAsMatrix(data, semVars);
                         const semSyntax = DEFAULT_SEM_MODEL.measurementModel + '\n' + DEFAULT_SEM_MODEL.structuralModel;
-                        result = await runSEM(data, semSyntax);
+                        result = await runSEM(semMatrix, semVars, semSyntax);
                         break;
 
                     default:
