@@ -169,12 +169,20 @@ function arrayToRMatrix(data: number[][]): string {
 
 /**
  * Run Cronbach's Alpha analysis with SPSS-style Item-Total Statistics
+ * @param data - 2D array of numeric data
+ * @param likertMin - Minimum valid value (default: 1)
+ * @param likertMax - Maximum valid value (default: 5)
  */
-export async function runCronbachAlpha(data: number[][]): Promise<{
+export async function runCronbachAlpha(
+    data: number[][],
+    likertMin: number = 1,
+    likertMax: number = 5
+): Promise<{
     alpha: number;
     rawAlpha: number;
     standardizedAlpha: number;
     nItems: number | string;
+    likertRange: { min: number; max: number };
     itemTotalStats: {
         itemName: string;
         scaleMeanIfDeleted: number;
@@ -190,10 +198,10 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
     library(psych)
     raw_data <- ${arrayToRMatrix(data)}
     
-    # DATA CLEANING: Clamp outliers to valid Likert range (1-5)
-    # This prevents values like -5, 0, 10 from corrupting the analysis
-    valid_min <- 1
-    valid_max <- 5
+    # DATA CLEANING: Clamp outliers to valid Likert range (configurable)
+    # This prevents invalid values from corrupting the analysis
+    valid_min <- ${likertMin}
+    valid_max <- ${likertMax}
     data <- pmax(pmin(raw_data, valid_max), valid_min)
     
     # Run Cronbach's Alpha with auto key checking for reversed items
@@ -213,6 +221,8 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
         raw_alpha = result$total$raw_alpha,
         std_alpha = result$total$std.alpha,
         n_items = n_items,
+        likert_min = valid_min,
+        likert_max = valid_max,
         
         # Item-total statistics - USING BUILT-IN VALUES FROM alpha()
         scale_mean_deleted = alpha_drop$mean,
@@ -265,6 +275,7 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
         rawAlpha: rawAlpha,
         standardizedAlpha: stdAlpha,
         nItems: nItems,
+        likertRange: { min: likertMin, max: likertMax },
         itemTotalStats: itemTotalStats,
         rCode: rCode
     };
