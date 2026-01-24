@@ -1880,6 +1880,16 @@ export default function AnalyzePage() {
                     // or we assume completing Q8 is mandatory for the "Value" (Export).
                 }}
             />
+
+            {/* Save Project Modal */}
+            <SaveProjectModal
+                isOpen={isSaveModalOpen}
+                onClose={() => setIsSaveModalOpen(false)}
+                data={data}
+                results={results}
+                analysisType={analysisType}
+                step={step}
+            />
         </div >
     );
 }
