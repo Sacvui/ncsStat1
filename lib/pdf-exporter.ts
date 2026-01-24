@@ -201,6 +201,73 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             doc.setFontSize(10);
             yPos += 10;
         }
+        else if (analysisType === 'cronbach-batch') {
+            // BATCH CRONBACH - All scales in one PDF
+            const batchResults = results.batchResults || [];
+
+            // Summary Table
+            doc.setFontSize(14);
+            doc.text(`Tổng hợp ${batchResults.length} thang đo`, 15, yPos);
+            yPos += 10;
+
+            const summaryHeaders = [['Thang đo', 'Số items', "Cronbach's Alpha", 'Đánh giá']];
+            const summaryData = batchResults.map((r: any) => {
+                const alpha = r.alpha || r.rawAlpha || 0;
+                const evalText = alpha >= 0.9 ? 'Excellent' : alpha >= 0.8 ? 'Good' : alpha >= 0.7 ? 'Acceptable' : alpha >= 0.6 ? 'Questionable' : 'Poor';
+                return [r.scaleName, r.nItems || '-', alpha.toFixed(3), evalText];
+            });
+
+            autoTable(doc, {
+                ...commonTableOptions,
+                startY: yPos,
+                head: summaryHeaders,
+                body: summaryData,
+                headStyles: { fillColor: [41, 128, 185] as any, fontStyle: 'bold' as any }
+            });
+            yPos = (doc as any).lastAutoTable.finalY + 15;
+
+            // Detailed tables for each scale
+            for (const r of batchResults) {
+                checkPageBreak(80);
+                doc.setFontSize(12);
+                doc.setFont('NotoSans', 'bold');
+                doc.text(`${r.scaleName}`, 15, yPos);
+                doc.setFont('NotoSans', 'normal');
+                yPos += 7;
+
+                const alpha = r.alpha || r.rawAlpha || 0;
+                doc.text(`Alpha: ${alpha.toFixed(3)}`, 15, yPos);
+                yPos += 7;
+
+                if (r.itemTotalStats && r.itemTotalStats.length > 0) {
+                    const headers = [['Variable', 'Corrected Item-Total', 'Alpha if Deleted']];
+                    const data = r.itemTotalStats.map((item: any, idx: number) => [
+                        r.columns?.[idx] || item.itemName || `Item ${idx + 1}`,
+                        (item.correctedItemTotalCorrelation ?? 0).toFixed(3),
+                        (item.alphaIfItemDeleted ?? 0).toFixed(3)
+                    ]);
+
+                    autoTable(doc, {
+                        ...commonTableOptions,
+                        startY: yPos,
+                        head: headers,
+                        body: data,
+                        headStyles: { fillColor: [52, 73, 94] as any, fontStyle: 'bold' as any },
+                        styles: { fontSize: 9, font: 'NotoSans' }
+                    });
+                    yPos = (doc as any).lastAutoTable.finalY + 10;
+                }
+            }
+
+            // Interpretation guide
+            checkPageBreak(30);
+            doc.setFontSize(8);
+            doc.setTextColor(100);
+            doc.text('• α ≥ 0.9: Excellent | α ≥ 0.8: Good | α ≥ 0.7: Acceptable | α ≥ 0.6: Questionable | α < 0.6: Poor', 15, yPos);
+            doc.setTextColor(0);
+            doc.setFontSize(10);
+            yPos += 10;
+        }
         else if (analysisType === 'ttest-indep' || analysisType === 'ttest') {
             doc.text('Independent Samples T-Test:', 15, yPos);
             yPos += 10;

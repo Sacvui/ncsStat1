@@ -27,6 +27,10 @@ function LoginForm() {
 
         try {
             const supabase = createClientOnly()
+
+            // Clear any existing session first to prevent wrong user issue
+            await supabase.auth.signOut()
+
             const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/analyze')}`
 
             const { error } = await supabase.auth.signInWithOAuth({

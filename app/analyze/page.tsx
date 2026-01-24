@@ -454,19 +454,31 @@ export default function AnalyzePage() {
                 });
             }
 
-            // Handle batch Cronbach export
+            // Handle batch Cronbach export - SINGLE FILE with all scales
             if (analysisType === 'cronbach-batch' && multipleResults.length > 0) {
-                for (const r of multipleResults) {
-                    await exportToPDF({
-                        title: `Cronbach's Alpha - ${r.scaleName}`,
-                        analysisType: 'cronbach',
-                        results: r.data,
-                        columns: r.columns,
-                        filename: `cronbach_${r.scaleName.replace(/\s+/g, '_')}_${Date.now()}.pdf`,
-                        chartImages: [] // Batch might not easily support charts mapping yet
-                    });
-                }
-                showToast(`Đã xuất ${multipleResults.length} file PDF thành công!`, 'success');
+                // Combine all results into single PDF
+                const combinedTitle = `Cronbach's Alpha - Phân tích ${multipleResults.length} thang đo`;
+                const combinedResults = {
+                    batchResults: multipleResults.map(r => ({
+                        scaleName: r.scaleName,
+                        alpha: r.data.alpha || r.data.rawAlpha,
+                        rawAlpha: r.data.rawAlpha,
+                        standardizedAlpha: r.data.standardizedAlpha,
+                        nItems: r.data.nItems,
+                        itemTotalStats: r.data.itemTotalStats,
+                        columns: r.columns
+                    }))
+                };
+
+                await exportToPDF({
+                    title: combinedTitle,
+                    analysisType: 'cronbach-batch',
+                    results: combinedResults,
+                    columns: [],
+                    filename: `cronbach_batch_${multipleResults.length}_scales_${Date.now()}.pdf`,
+                    chartImages: []
+                });
+                showToast(`Đã xuất 1 file PDF tổng hợp ${multipleResults.length} thang đo!`, 'success');
             } else {
                 // Single result export
                 await exportToPDF({
