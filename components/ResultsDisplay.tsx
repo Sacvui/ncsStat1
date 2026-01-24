@@ -494,14 +494,24 @@ function CronbachResults({ results, columns, onProceedToEFA, scaleName }: { resu
                     <table className="w-full text-left text-sm">
                         <thead>
                             <tr className="border-b border-gray-200">
-                                <th className="py-2 pr-4 font-semibold">Cronbach&apos;s Alpha</th>
-                                <th className="py-2 pr-4 font-semibold">N of Items</th>
+                                <th className="py-2 pr-4 font-semibold text-gray-700">Measure</th>
+                                <th className="py-2 pr-4 font-semibold text-gray-700">Value</th>
+                                <th className="py-2 pr-4 font-semibold text-gray-700 pl-4 border-l border-gray-100">N of Items</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 pr-4 font-medium">Cronbach&apos;s Alpha</td>
                                 <td className="py-2 pr-4">{alpha.toFixed(3)}</td>
-                                <td className="py-2 pr-4">{nItems}</td>
+                                <td className="py-2 pr-4 row-span-3 align-middle border-l border-gray-100 pl-4">{nItems}</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 pr-4 font-medium">McDonald&apos;s Omega (Total)</td>
+                                <td className="py-2 pr-4">{results.omega ? results.omega.toFixed(3) : '-'}</td>
+                            </tr>
+                            <tr>
+                                <td className="py-2 pr-4 font-medium text-gray-400 text-xs">Omega Hierarchical</td>
+                                <td className="py-2 pr-4 text-gray-400 text-xs">{results.omegaHierarchical ? results.omegaHierarchical.toFixed(3) : '-'}</td>
                             </tr>
                         </tbody>
                     </table>
