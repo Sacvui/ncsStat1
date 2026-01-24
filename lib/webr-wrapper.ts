@@ -402,7 +402,9 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     ci95Lower: number;
     ci95Upper: number;
     effectSize: number; // Cohen's d
-    varTestP: number; // Variance homogeneity
+    varTestP: number; // Variance homogeneity (Levene's)
+    normalityP1: number; // Shapiro-Wilk p-value for group 1
+    normalityP2: number; // Shapiro-Wilk p-value for group 2
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -411,23 +413,40 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
     group1 <- c(${group1.join(',')})
     group2 <- c(${group2.join(',')})
     
-    # Levene's Test (Brown-Forsythe method - Median)
-    # 1. Calculate medians
+    # === ASSUMPTION TESTS ===
+    
+    # 1. Normality Test (Shapiro-Wilk) for each group
+    # Note: Shapiro-Wilk requires 3 <= n <= 5000
+    shapiro_p1 <- tryCatch({
+        if (length(group1) >= 3 && length(group1) <= 5000) {
+            shapiro.test(group1)$p.value
+        } else {
+            NA  # Cannot compute
+        }
+    }, error = function(e) NA)
+    
+    shapiro_p2 <- tryCatch({
+        if (length(group2) >= 3 && length(group2) <= 5000) {
+            shapiro.test(group2)$p.value
+        } else {
+            NA
+        }
+    }, error = function(e) NA)
+    
+    # 2. Levene's Test (Brown-Forsythe method - Median)
     med1 <- median(group1)
     med2 <- median(group2)
-    
-    # 2. Calculate absolute deviations
     z1 <- abs(group1 - med1)
     z2 <- abs(group2 - med2)
-    
-    # 3. ANOVA on deviations
     z_val <- c(z1, z2)
     g_fac <- factor(c(rep(1, length(z1)), rep(2, length(z2))))
     levene_test <- oneway.test(z_val ~ g_fac, var.equal = TRUE)
     levene_p <- levene_test$p.value
     
+    # Use Welch's t-test if variances unequal
     var_equal <- levene_p > 0.05
 
+    # === MAIN T-TEST ===
     result <- t.test(group1, group2, var.equal = var_equal)
     
     # Cohen's d effect size
@@ -444,7 +463,9 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
         ci95Lower = result$conf.int[1],
         ci95Upper = result$conf.int[2],
         effectSize = cohensD,
-        leveneP = levene_p
+        leveneP = levene_p,
+        normalityP1 = if(is.na(shapiro_p1)) -1 else shapiro_p1,
+        normalityP2 = if(is.na(shapiro_p2)) -1 else shapiro_p2
     )
     `;
 
@@ -467,7 +488,9 @@ export async function runTTestIndependent(group1: number[], group2: number[]): P
         ci95Lower: getValue('ci95Lower'),
         ci95Upper: getValue('ci95Upper'),
         effectSize: getValue('effectSize'),
-        varTestP: getValue('leveneP'), // Updated from varTestP
+        varTestP: getValue('leveneP'),
+        normalityP1: getValue('normalityP1'),
+        normalityP2: getValue('normalityP2'),
         rCode: rCode
     };
 }
@@ -485,6 +508,7 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
     ci95Lower: number;
     ci95Upper: number;
     effectSize: number; // Cohen's d
+    normalityDiffP: number; // Shapiro-Wilk on difference scores
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -493,11 +517,23 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
     before <- c(${before.join(',')})
     after <- c(${after.join(',')})
 
+    # Calculate difference scores
+    diffs <- before - after
+    
+    # === ASSUMPTION TEST ===
+    # Normality of DIFFERENCE scores (key assumption for paired t-test)
+    shapiro_diff_p <- tryCatch({
+        if (length(diffs) >= 3 && length(diffs) <= 5000) {
+            shapiro.test(diffs)$p.value
+        } else {
+            NA
+        }
+    }, error = function(e) NA)
+
+    # === MAIN T-TEST ===
     result <- t.test(before, after, paired = TRUE)
     
-    # Calculate Cohen's d for Paired Samples
-    # d = MeanDiff / SD_diff
-    diffs <- before - after
+    # Cohen's d for Paired Samples: d = MeanDiff / SD_diff
     mean_diff <- mean(diffs)
     sd_diff <- sd(diffs)
     cohens_d <- mean_diff / sd_diff
@@ -511,7 +547,8 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
         meanDiff = mean_diff,
         ci95Lower = result$conf.int[1],
         ci95Upper = result$conf.int[2],
-        effectSize = cohens_d
+        effectSize = cohens_d,
+        normalityDiffP = if(is.na(shapiro_diff_p)) -1 else shapiro_diff_p
     )
     `;
 
@@ -534,10 +571,10 @@ export async function runTTestPaired(before: number[], after: number[]): Promise
         ci95Lower: getValue('ci95Lower'),
         ci95Upper: getValue('ci95Upper'),
         effectSize: getValue('effectSize'),
+        normalityDiffP: getValue('normalityDiffP'),
         rCode: rCode
     };
 }
-
 /**
  * Run One-Way ANOVA
  */
@@ -549,29 +586,22 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     groupMeans: number[];
     grandMean: number;
     etaSquared: number;
-    assumptionCheckP: number; // Bartlett's test P-value
+    assumptionCheckP: number; // Levene's test P-value
+    normalityResidP: number; // Shapiro-Wilk on residuals
+    postHoc: { comparison: string; diff: number; pAdj: number }[]; // Tukey HSD
     rCode: string;
 }> {
     const webR = await initWebR();
-
-    // Build group data for R
-    const groupData = groups.map((g, i) =>
-        g.map(v => `c(${v}, ${i + 1})`).join(',')
-    ).join(',');
 
     const rCode = `
     # Create data frame with values and group labels
     values <- c(${groups.map(g => g.join(',')).join(',')})
     groups <- factor(c(${groups.map((g, i) => g.map(() => i + 1).join(',')).join(',')}))
     
-    # Assumption Check: Levene's Test (Brown-Forsythe - Median) for Homogeneity of Variance
-    # Manual implementation since 'car' package might be heavy
+    # === ASSUMPTION TESTS ===
     
-    # 1. Calculate group medians
+    # 1. Levene's Test (Brown-Forsythe - Median) for Homogeneity of Variance
     group_medians <- tapply(values, groups, median)
-    
-    # 2. Calculate absolute deviations |x - median|
-    # We map through groups
     deviations <- numeric(length(values))
     group_indices <- as.numeric(groups)
     
@@ -580,13 +610,22 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         deviations[i] <- abs(values[i] - group_medians[g_idx])
     }
     
-    # 3. Run ANOVA on deviations
     levene_model <- aov(deviations ~ groups)
     levene_p <- summary(levene_model)[[1]][1, 5]
     
-    # Run Main ANOVA
+    # === MAIN ANOVA ===
     model <- aov(values ~ groups)
     result <- summary(model)[[1]]
+    
+    # 2. Normality of Residuals
+    resids <- residuals(model)
+    shapiro_resid_p <- tryCatch({
+        if (length(resids) >= 3 && length(resids) <= 5000) {
+            shapiro.test(resids)$p.value
+        } else {
+            NA
+        }
+    }, error = function(e) NA)
     
     # Calculate eta squared
     ssb <- result[1, 2] # Sum of squares between
@@ -595,6 +634,12 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     
     # Group means
     groupMeans <- tapply(values, groups, mean)
+    
+    # === POST-HOC: Tukey HSD ===
+    tukey_result <- TukeyHSD(model)$groups
+    tukey_comparisons <- rownames(tukey_result)
+    tukey_diffs <- tukey_result[, "diff"]
+    tukey_padj <- tukey_result[, "p adj"]
 
     list(
         F = result[1, 4],
@@ -604,7 +649,11 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         groupMeans = as.numeric(groupMeans),
         grandMean = mean(values),
         etaSquared = etaSquared,
-        bartlettP = levene_p
+        leveneP = levene_p,
+        normalityResidP = if(is.na(shapiro_resid_p)) -1 else shapiro_resid_p,
+        tukeyComparisons = tukey_comparisons,
+        tukeyDiffs = tukey_diffs,
+        tukeyPAdj = tukey_padj
     )
     `;
 
@@ -612,6 +661,20 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
     const jsResult = await result.toJs() as any;
 
     const getValue = parseWebRResult(jsResult);
+
+    // Parse Tukey HSD results
+    const comparisons = getValue('tukeyComparisons') || [];
+    const diffs = getValue('tukeyDiffs') || [];
+    const pAdjs = getValue('tukeyPAdj') || [];
+
+    const postHoc: { comparison: string; diff: number; pAdj: number }[] = [];
+    for (let i = 0; i < comparisons.length; i++) {
+        postHoc.push({
+            comparison: comparisons[i] || `${i + 1}`,
+            diff: diffs[i] || 0,
+            pAdj: pAdjs[i] || 1
+        });
+    }
 
     return {
         F: getValue('F')?.[0] || 0,
@@ -621,7 +684,9 @@ export async function runOneWayANOVA(groups: number[][]): Promise<{
         groupMeans: getValue('groupMeans') || [],
         grandMean: getValue('grandMean')?.[0] || 0,
         etaSquared: getValue('etaSquared')?.[0] || 0,
-        assumptionCheckP: getValue('bartlettP')?.[0] || 0,
+        assumptionCheckP: getValue('leveneP')?.[0] || 0,
+        normalityResidP: getValue('normalityResidP')?.[0] || 0,
+        postHoc: postHoc,
         rCode
     };
 }
