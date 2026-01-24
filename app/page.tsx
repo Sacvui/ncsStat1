@@ -19,7 +19,7 @@ import {
 import { createClient } from "@/utils/supabase/server"
 import UserMenu from "@/components/UserMenu"
 import Header from '@/components/layout/Header'
-// ... (keep other imports)
+import WebRPreloader from '@/components/WebRPreloader'
 
 export default async function LandingPage() {
   const supabase = await createClient()
@@ -31,6 +31,9 @@ export default async function LandingPage() {
 
       <div className="relative z-10">
         <Header user={user} />
+
+        {/* Preload R libraries in background */}
+        <WebRPreloader />
 
         {/* Hero Section */}
 
