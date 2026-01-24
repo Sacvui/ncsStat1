@@ -14,7 +14,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Edit,
-    Eye
+    Eye,
+    FlaskConical
 } from 'lucide-react';
 import {
     getAdminDashboardStats,
@@ -26,8 +27,9 @@ import {
     getInvitationStats,
     getTopInviters
 } from '@/lib/admin-actions';
+import { AdminAutoTest } from './AdminAutoTest';
 
-type Tab = 'dashboard' | 'users' | 'activity' | 'invitations' | 'settings';
+type Tab = 'dashboard' | 'users' | 'activity' | 'invitations' | 'autotest' | 'settings';
 
 interface DashboardStats {
     totalUsers: number;
@@ -124,6 +126,7 @@ export default function AdminDashboard() {
         { id: 'users', label: 'Users', icon: Users },
         { id: 'activity', label: 'Activity', icon: Activity },
         { id: 'invitations', label: 'Invitations', icon: UserPlus },
+        { id: 'autotest', label: 'Auto Test', icon: FlaskConical },
         { id: 'settings', label: 'Settings', icon: Settings },
     ];
 
@@ -454,6 +457,13 @@ export default function AdminDashboard() {
                                 )}
                             </div>
                         </div>
+                    </div>
+                )}
+
+                {/* Auto Test Tab */}
+                {!loading && activeTab === 'autotest' && (
+                    <div className="bg-white rounded-xl border shadow-sm p-6">
+                        <AdminAutoTest />
                     </div>
                 )}
 

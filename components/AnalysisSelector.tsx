@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart2, Shield, Network, Users, GitCompare, Layers, TrendingUp, Grid3x3, Activity, ChevronDown, ChevronRight, Star } from 'lucide-react';
+import { BarChart2, Shield, Network, Users, GitCompare, Layers, TrendingUp, Grid3x3, Activity, ChevronDown, ChevronRight, Star, Binary, FlaskConical, ArrowRightLeft, Target } from 'lucide-react';
 
 interface AnalysisSelectorProps {
     onSelect: (step: string) => void;
@@ -40,86 +40,93 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
         {
             id: 'reliability',
             category: {
-                name: 'Độ tin cậy & Mô tả',
-                description: 'Thống kê cơ bản và kiểm tra thang đo',
+                name: 'Reliability & Descriptive',
+                description: 'Basic statistics and scale reliability',
                 color: 'text-blue-700',
                 bgColor: 'bg-blue-50',
                 borderColor: 'border-blue-200',
                 options: [
-                    { id: 'descriptive-select', title: 'Thống kê mô tả', desc: 'Mean, SD, Min, Max, Median', icon: BarChart2, action: 'select' },
-                    { id: 'cronbach-select', title: "Cronbach's Alpha", desc: 'Kiểm tra độ tin cậy thang đo', icon: Shield, action: 'select', recommended: true },
+                    { id: 'descriptive-select', title: 'Descriptive Statistics', desc: 'Mean, SD, Min, Max, Median, Skewness, Kurtosis', icon: BarChart2, action: 'select' },
+                    { id: 'cronbach-select', title: "Cronbach's Alpha & Omega", desc: 'Scale reliability (α + ω)', icon: Shield, action: 'select', recommended: true },
                 ]
             }
         },
         {
             id: 'comparison',
             category: {
-                name: 'So sánh nhóm',
-                description: 'So sánh trung bình giữa các nhóm',
+                name: 'Group Comparison',
+                description: 'Compare means between groups',
                 color: 'text-green-700',
                 bgColor: 'bg-green-50',
                 borderColor: 'border-green-200',
                 options: [
-                    { id: 'ttest-select', title: 'Independent T-test', desc: 'So sánh 2 nhóm độc lập', icon: GitCompare, action: 'select' },
-                    { id: 'ttest-paired-select', title: 'Paired T-test', desc: 'So sánh trước-sau (cặp đôi)', icon: Users, action: 'select' },
-                    { id: 'anova-select', title: 'ANOVA', desc: 'So sánh trung bình nhiều nhóm', icon: Layers, action: 'select' },
-                    { id: 'mannwhitney-select', title: 'Mann-Whitney U', desc: 'So sánh 2 nhóm (Phi tham số)', icon: Activity, action: 'select' },
+                    { id: 'ttest-select', title: 'Independent T-test', desc: 'Compare 2 independent groups', icon: GitCompare, action: 'select' },
+                    { id: 'ttest-paired-select', title: 'Paired T-test', desc: 'Compare before-after (paired)', icon: Users, action: 'select' },
+                    { id: 'anova-select', title: 'One-Way ANOVA / Welch', desc: 'Compare multiple groups', icon: Layers, action: 'select' },
+                    { id: 'mannwhitney-select', title: 'Mann-Whitney U', desc: 'Non-parametric 2 groups', icon: Activity, action: 'select' },
+                    { id: 'kruskalwallis-select', title: 'Kruskal-Wallis H', desc: 'Non-parametric multiple groups', icon: Layers, action: 'select' },
+                    { id: 'wilcoxon-select', title: 'Wilcoxon Signed-Rank', desc: 'Non-parametric paired comparison', icon: ArrowRightLeft, action: 'select' },
                 ]
             }
         },
         {
             id: 'relationship',
             category: {
-                name: 'Tương quan & Hồi quy',
-                description: 'Phân tích mối quan hệ giữa biến',
+                name: 'Correlation & Regression',
+                description: 'Analyze relationships between variables',
                 color: 'text-purple-700',
                 bgColor: 'bg-purple-50',
                 borderColor: 'border-purple-200',
                 options: [
-                    { id: 'correlation', title: 'Ma trận tương quan', desc: 'Phân tích mối quan hệ giữa các biến', icon: Network, action: 'run' },
-                    { id: 'regression-select', title: 'Hồi quy Tuyến tính', desc: 'Multiple Linear Regression', icon: TrendingUp, action: 'select' },
+                    { id: 'correlation', title: 'Correlation Matrix', desc: 'Pearson/Spearman correlation', icon: Network, action: 'run' },
+                    { id: 'regression-select', title: 'Linear Regression', desc: 'Multiple linear regression with β', icon: TrendingUp, action: 'select' },
+                    { id: 'logistic-select', title: 'Logistic Regression', desc: 'Binary outcome prediction', icon: Binary, action: 'select' },
+                    { id: 'mediation-select', title: 'Mediation Analysis', desc: 'Baron & Kenny + Sobel test', icon: Target, action: 'select' },
                 ]
             }
         },
         {
             id: 'factor',
             category: {
-                name: 'Phân tích nhân tố',
-                description: 'EFA, CFA, SEM cho mô hình đo lường',
+                name: 'Factor Analysis & SEM',
+                description: 'EFA, CFA, SEM for measurement models',
                 color: 'text-orange-700',
                 bgColor: 'bg-orange-50',
                 borderColor: 'border-orange-200',
                 options: [
-                    { id: 'efa-select', title: 'EFA', desc: 'Phân tích nhân tố khám phá', icon: Grid3x3, action: 'select', recommended: true },
-                    { id: 'cfa-select', title: 'CFA', desc: 'Phân tích nhân tố khẳng định', icon: Network, action: 'select' },
-                    { id: 'sem-select', title: 'SEM', desc: 'Mô hình cấu trúc tuyến tính', icon: Layers, action: 'select' },
+                    { id: 'efa-select', title: 'EFA', desc: 'Exploratory Factor Analysis + Parallel Analysis', icon: Grid3x3, action: 'select', recommended: true },
+                    { id: 'cfa-select', title: 'CFA', desc: 'Confirmatory Factor Analysis', icon: Network, action: 'select' },
+                    { id: 'sem-select', title: 'SEM', desc: 'Structural Equation Modeling', icon: Layers, action: 'select' },
                 ]
             }
         },
         {
             id: 'categorical',
             category: {
-                name: 'Biến định danh',
-                description: 'Kiểm định cho biến phân loại',
+                name: 'Categorical Variables',
+                description: 'Tests for categorical data',
                 color: 'text-teal-700',
                 bgColor: 'bg-teal-50',
                 borderColor: 'border-teal-200',
                 options: [
-                    { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Kiểm định độc lập (Biến định danh)', icon: Grid3x3, action: 'select' },
+                    { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Independence test + Fisher exact', icon: Grid3x3, action: 'select' },
                 ]
             }
         }
     ];
 
+    // Count total methods
+    const totalMethods = categories.reduce((sum, cat) => sum + cat.category.options.length, 0);
+
     return (
         <div className="space-y-4">
             {/* Quick Stats */}
             <div className="flex items-center gap-2 text-sm text-slate-500 mb-6">
-                <span className="px-2 py-1 bg-slate-100 rounded font-medium">12 phương pháp</span>
+                <span className="px-2 py-1 bg-slate-100 rounded font-medium">{totalMethods} methods</span>
                 <span>•</span>
                 <span className="flex items-center gap-1">
                     <Star className="w-4 h-4 text-amber-500 fill-current" />
-                    Được khuyến nghị
+                    Recommended
                 </span>
             </div>
 
@@ -147,7 +154,7 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="text-xs text-slate-400">{category.options.length} phương pháp</span>
+                                <span className="text-xs text-slate-400">{category.options.length} methods</span>
                                 {isExpanded ? (
                                     <ChevronDown className="w-5 h-5 text-slate-400" />
                                 ) : (
