@@ -1,0 +1,46 @@
+# Keep Supabase Database Alive
+# Prevents the Free tier project from going into "pause" mode after 7 days of inactivity
+# This workflow pings the Supabase REST API every 2 days
+
+name: Keep Supabase Alive
+
+on:
+  schedule:
+    # Run every 2 days at midnight UTC
+    - cron: '0 0 */2 * *'
+  
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+jobs:
+  ping-supabase:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          echo "Pinging Supabase to keep it alive..."
+          
+          # Ping the REST API endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "https://nflmoaclnyjwuloydmmv.supabase.co/rest/v1/")
+          
+          echo "Response code: $response"
+          
+          if [ "$response" -eq 200 ] || [ "$response" -eq 401 ]; then
+            echo "✅ Supabase is alive!"
+          else
+            echo "⚠️ Unexpected response: $response"
+          fi
+
+      - name: Ping Auth endpoint
+        run: |
+          # Also ping the auth endpoint to ensure it's warm
+          curl -s -o /dev/null \
+            "https://nflmoaclnyjwuloydmmv.supabase.co/auth/v1/health"
+          echo "✅ Auth endpoint pinged"
+
+      - name: Log timestamp
+        run: |
+          echo "Keep-alive ping completed at: $(date -u)"
