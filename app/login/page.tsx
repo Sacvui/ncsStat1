@@ -124,16 +124,40 @@ function LoginForm() {
                             </div>
                         )}
 
-                        {/* ORCID (Disabled) */}
-                        <div className="relative pt-2">
-                            <button disabled className="w-full flex items-center justify-center gap-3 px-4 py-4 border border-dashed border-gray-300 text-base font-medium rounded-xl text-gray-400 bg-gray-50/50 cursor-not-allowed">
-                                <svg className="h-5 w-5 grayscale opacity-50" viewBox="0 0 24 24" fill="currentColor">
+                        {/* ORCID Login - Now Enabled */}
+                        <button
+                            disabled={!!loading}
+                            onClick={() => {
+                                setLoading('orcid');
+                                setErrorMsg(null);
+
+                                const clientId = 'APP-GIDRNEUSM0IQ6NNY';
+                                const redirectUri = `${window.location.origin}/auth/orcid/callback`;
+                                const state = btoa(JSON.stringify({ next: next || '/analyze' }));
+
+                                const orcidAuthUrl = `https://orcid.org/oauth/authorize?` +
+                                    `client_id=${clientId}&` +
+                                    `response_type=code&` +
+                                    `scope=/authenticate&` +
+                                    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+                                    `state=${state}`;
+
+                                window.location.href = orcidAuthUrl;
+                            }}
+                            className={`group relative w-full flex items-center justify-center gap-3 px-4 py-4 border border-[#A6CE39] text-base font-medium rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#A6CE39]
+                                ${loading === 'orcid' ? 'bg-[#A6CE39]/20 scale-[0.98]' : 'bg-white hover:bg-[#A6CE39]/10 hover:shadow-md'}
+                                ${loading && loading !== 'orcid' ? 'opacity-50 grayscale' : ''}
+                            `}
+                        >
+                            {loading === 'orcid' ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-[#A6CE39]" />
+                            ) : (
+                                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="#A6CE39">
                                     <path d="M12 0C5.372 0 0 5.372 0 12s5.372 12 12 12 12-5.372 12-12S18.628 0 12 0zM7.369 4.378c.525 0 .947.431.947.947s-.422.947-.947.947a.948.948 0 0 1-.947-.947c0-.516.422-.947.947-.947zm-.722 3.038h1.444v10.041H6.647V7.416zm3.562 0h3.9c3.712 0 5.344 2.653 5.344 5.025 0 2.578-2.016 5.025-5.325 5.025h-3.919V7.416zm1.444 1.306v7.444h2.297c3.272 0 4.022-2.484 4.022-3.722 0-2.016-1.212-3.722-4.097-3.722h-2.222z" />
                                 </svg>
-                                <span>ORCID Login</span>
-                            </button>
-                            <span className="absolute top-0 right-2 -mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-500 uppercase tracking-wider">Soon</span>
-                        </div>
+                            )}
+                            <span className="text-gray-700">{loading === 'orcid' ? 'Đang chuyển đến ORCID...' : 'Đăng nhập với ORCID'}</span>
+                        </button>
                     </div>
 
                     {/* Footer Links */}
