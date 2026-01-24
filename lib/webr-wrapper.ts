@@ -61,7 +61,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
     }
 
     isInitializing = true;
-    updateProgress('Đang khởi tạo WebR...');
+    updateProgress('R-Engine Loading...');
 
     // Retry logic wrapper
     for (let attempt = 0; attempt < maxRetries; attempt++) {
@@ -71,7 +71,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                     channelType: 1, // PostMessage channel
                 });
 
-                updateProgress('Đang tải R runtime...');
+                updateProgress('R-Engine Loading...');
                 await webR.init();
 
                 // Step 1: Set correct WASM Repo (Priority: 1. Core WASM, 2. R-Universe for missing binaries like quadprog)
@@ -83,7 +83,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 }
 
                 // Step 2: Install required packages (psych-based CFA/SEM - no lavaan needed)
-                updateProgress('Đang tải thư viện chính (psych, GPArotation)...');
+                updateProgress('R-Engine Loading...');
                 try {
                     await webR.installPackages(['psych', 'corrplot', 'GPArotation']);
                 } catch (pkgError) {
@@ -91,12 +91,12 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 }
 
                 // Step 3 & 4: Load packages and integrity check
-                updateProgress('Đang kích hoạt R environment...');
+                updateProgress('R-Engine Loading...');
 
                 await webR.evalR('library(psych)');
                 await webR.evalR('library(GPArotation)');
 
-                updateProgress('Sẵn sàng!');
+                updateProgress('R-Engine Ready');
                 webRInstance = webR;
                 isInitializing = false;
                 initPromise = null;
@@ -105,7 +105,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 // If not last attempt, retry
                 if (attempt < maxRetries - 1) {
                     console.warn(`WebR init attempt ${attempt + 1} failed, retrying...`);
-                    updateProgress(`Thử lại lần ${attempt + 2}...`);
+                    updateProgress(`R-Engine Loading... (Retry ${attempt + 1})`);
                     await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
                     throw error; // Throw to trigger retry
                 }
@@ -114,7 +114,7 @@ export async function initWebR(maxRetries: number = 3): Promise<WebR> {
                 isInitializing = false;
                 webRInstance = null;
                 initPromise = null;
-                updateProgress('Lỗi khởi tạo!');
+                updateProgress('R-Engine Error!');
                 console.error('WebR initialization error:', error);
                 throw new Error(`Failed to initialize WebR after ${maxRetries} attempts: ${error}`);
             }
