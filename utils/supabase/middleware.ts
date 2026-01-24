@@ -1,6 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+// Routes that require full user verification (server-side getUser)
+const PROTECTED_ROUTES = ['/analyze', '/profile', '/admin']
+
+// Routes that can skip auth check entirely (public)
+const PUBLIC_ROUTES = ['/', '/login', '/terms', '/privacy', '/docs', '/methods', '/auth']
+
 export async function updateSession(request: NextRequest) {
     let response = NextResponse.next({
         request: {
@@ -13,23 +19,31 @@ export async function updateSession(request: NextRequest) {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-        // Environment variables not set, skip auth middleware
+        return response
+    }
+
+    const pathname = request.nextUrl.pathname
+
+    // OPTIMIZATION: Skip auth for public routes entirely
+    const isPublicRoute = PUBLIC_ROUTES.some(route =>
+        pathname === route || pathname.startsWith(route + '/')
+    )
+
+    // Also skip for static assets and API routes (except auth API)
+    const isStaticOrApi = pathname.startsWith('/_next') ||
+        pathname.startsWith('/api/') ||
+        pathname.includes('.')
+
+    if (isPublicRoute || isStaticOrApi) {
+        // Just refresh session cookies if they exist, but don't verify user
         return response
     }
 
     const host = request.headers.get('host')
-    const forwardedHost = request.headers.get('x-forwarded-host')
     const forwardedProto = request.headers.get('x-forwarded-proto')
     const isHttps = forwardedProto === 'https' || request.nextUrl.protocol === 'https:'
     const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1'
     const useSecureCookies = isHttps || isProduction
-
-    // DIAGNOSTIC LOGGING
-    const sbCookies = request.cookies.getAll().filter(c => c.name.startsWith('sb-'))
-    console.log(`[Middleware] Path: ${request.nextUrl.pathname}, Host: ${host}, ForwardedHost: ${forwardedHost}, Proto: ${forwardedProto}, Https: ${isHttps}, SB Cookies Found: ${sbCookies.length}`)
-    if (sbCookies.length > 0) {
-        console.log(`[Middleware] Cookie Names: ${sbCookies.map(c => c.name).join(', ')}`)
-    }
 
     try {
         const supabase = createServerClient(
@@ -65,30 +79,39 @@ export async function updateSession(request: NextRequest) {
             }
         )
 
-        const {
-            data: { user },
-            error: userError
-        } = await supabase.auth.getUser()
+        // OPTIMIZATION: Check if this is a protected route
+        const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
 
-        if (userError) {
-            console.log(`[Middleware] auth.getUser error: ${userError.message}`)
-        }
-        console.log(`[Middleware] User ID: ${user?.id || 'null'}`)
+        if (isProtectedRoute) {
+            // For protected routes: Use getSession first (fast, from cookie)
+            const { data: { session } } = await supabase.auth.getSession()
 
-        // Protected routes
-        if (
-            !user &&
-            (request.nextUrl.pathname.startsWith('/analyze') ||
-                request.nextUrl.pathname.startsWith('/profile') ||
-                request.nextUrl.pathname.startsWith('/admin'))
-        ) {
-            const url = request.nextUrl.clone()
-            url.pathname = '/login'
-            url.searchParams.set('next', request.nextUrl.pathname)
-            return NextResponse.redirect(url)
+            if (!session) {
+                // No session at all -> redirect to login
+                const url = request.nextUrl.clone()
+                url.pathname = '/login'
+                url.searchParams.set('next', pathname)
+                return NextResponse.redirect(url)
+            }
+
+            // Session exists - for most cases this is enough
+            // Only call getUser() if session is about to expire (optional extra security)
+            const sessionAge = session.expires_at ? (session.expires_at * 1000 - Date.now()) : Infinity
+            const REFRESH_THRESHOLD = 5 * 60 * 1000 // 5 minutes
+
+            if (sessionAge < REFRESH_THRESHOLD) {
+                // Session expiring soon, verify with server
+                const { data: { user }, error } = await supabase.auth.getUser()
+                if (error || !user) {
+                    const url = request.nextUrl.clone()
+                    url.pathname = '/login'
+                    url.searchParams.set('next', pathname)
+                    return NextResponse.redirect(url)
+                }
+            }
         }
     } catch (error) {
-        // If Supabase fails, continue without auth or log error appropriately
+        console.error('[Middleware] Auth error:', error)
     }
 
     return response
