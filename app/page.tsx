@@ -129,14 +129,30 @@ export default async function LandingPage() {
         </div>
 
         {/* Footer */}
-        <footer className="bg-slate-900 text-slate-400 py-12 text-center text-sm">
-          <p className="mb-4">
-            © 2026 ncsStat. Phát triển bởi <a href="https://ncskit.org" target="_blank" className="text-white font-semibold hover:underline">NCSKit.org</a>
-          </p>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-500 font-mono">
-            <span>System Status:</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span className="text-emerald-500">Operaional</span>
+        <footer className="bg-slate-900 text-slate-400 py-12">
+          <div className="container mx-auto px-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Left: Copyright */}
+              <div className="text-center md:text-left">
+                <p className="text-sm">
+                  © 2026 ncsStat. Phát triển bởi <a href="https://ncskit.org" target="_blank" className="text-white font-semibold hover:underline">NCSKit.org</a>
+                </p>
+              </div>
+
+              {/* Center: Links */}
+              <div className="flex items-center gap-6 text-sm">
+                <Link href="/terms" className="hover:text-white transition-colors">Điều khoản</Link>
+                <Link href="/privacy" className="hover:text-white transition-colors">Bảo mật</Link>
+                <Link href="/docs" className="hover:text-white transition-colors">Hướng dẫn</Link>
+              </div>
+
+              {/* Right: Status */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-slate-500 font-mono">
+                <span>Status:</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-emerald-500">Operational</span>
+              </div>
+            </div>
           </div>
         </footer>
       </div>
