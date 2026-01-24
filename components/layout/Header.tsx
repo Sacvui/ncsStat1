@@ -6,6 +6,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/utils/supabase/client'
+import { getStoredLocale, t, type Locale } from '@/lib/i18n'
 
 interface HeaderProps {
     user: any
@@ -18,7 +19,19 @@ interface HeaderProps {
 export default function Header({ user, profile: initialProfile, centerContent, rightActions, hideNav = false }: HeaderProps) {
     const pathname = usePathname()
     const [profile, setProfile] = useState<any>(initialProfile)
+    const [locale, setLocale] = useState<Locale>('vi')
     const supabase = getSupabase()
+
+    useEffect(() => {
+        setLocale(getStoredLocale())
+        const handleStorageChange = () => setLocale(getStoredLocale())
+        window.addEventListener('storage', handleStorageChange)
+        window.addEventListener('localeChange', handleStorageChange)
+        return () => {
+            window.removeEventListener('storage', handleStorageChange)
+            window.removeEventListener('localeChange', handleStorageChange)
+        }
+    }, [])
 
     useEffect(() => {
         if (!user) return
@@ -72,9 +85,9 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                     {/* Desktop Nav */}
                     {!hideNav && !centerContent && (
                         <nav className="hidden md:flex items-center gap-1">
-                            <NavLink href="/analyze" active={pathname?.startsWith('/analyze')}>Analyze</NavLink>
+                            <NavLink href="/analyze" active={pathname?.startsWith('/analyze')}>{t(locale, 'nav.analyze')}</NavLink>
                             {user && (
-                                <NavLink href="/profile" active={pathname?.startsWith('/profile')}>Profile</NavLink>
+                                <NavLink href="/profile" active={pathname?.startsWith('/profile')}>{t(locale, 'nav.profile')}</NavLink>
                             )}
 
                             {/* Check if user is admin - UserMenu has this logic but we don't know easily.
