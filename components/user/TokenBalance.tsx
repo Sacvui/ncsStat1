@@ -1,44 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { getSupabase } from '@/utils/supabase/client';
+import { useTokenBalance as useTokenBalanceHook } from '@/hooks/useProfile';
 import { Coins, TrendingUp, TrendingDown, Gift } from 'lucide-react';
 
 interface TokenBalanceProps {
     compact?: boolean;
+    userId?: string;
 }
 
-interface BalanceData {
-    tokens: number;
-    total_earned: number;
-    total_spent: number;
-}
+export default function TokenBalance({ compact = false, userId }: TokenBalanceProps) {
+    const [currentUserId, setCurrentUserId] = useState<string | undefined>(userId);
 
-export default function TokenBalance({ compact = false }: TokenBalanceProps) {
-    const [balance, setBalance] = useState<BalanceData | null>(null);
-    const [loading, setLoading] = useState(true);
-
+    // Get user ID if not provided
     useEffect(() => {
-        async function fetchBalance() {
-            const supabase = createClient();
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-                const { data } = await supabase
-                    .from('profiles')
-                    .select('tokens, total_earned, total_spent')
-                    .eq('id', user.id)
-                    .single();
-
-                if (data) {
-                    setBalance(data);
-                }
-            }
-            setLoading(false);
+        if (!userId) {
+            const supabase = getSupabase();
+            supabase.auth.getUser().then(({ data: { user } }: { data: { user: any } }) => {
+                if (user) setCurrentUserId(user.id);
+            });
         }
+    }, [userId]);
 
-        fetchBalance();
-    }, []);
+    const { tokens, totalEarned, totalSpent, isLoading } = useTokenBalanceHook(currentUserId);
+
+    const balance = currentUserId ? { tokens, total_earned: totalEarned, total_spent: totalSpent } : null;
+    const loading = isLoading;
 
     if (loading) {
         return (

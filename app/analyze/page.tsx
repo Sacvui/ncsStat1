@@ -27,7 +27,7 @@ import type { PreviousAnalysisData } from '@/types/analysis';
 import { DemographicSurvey } from '@/components/feedback/DemographicSurvey';
 import { ApplicabilitySurvey } from '@/components/feedback/ApplicabilitySurvey';
 import { FeedbackService } from '@/lib/feedback-service';
-import { createClient } from '@/utils/supabase/client';
+import { getSupabase } from '@/utils/supabase/client';
 import Header from '@/components/layout/Header'
 import AnalysisToolbar from '@/components/analyze/AnalysisToolbar';
 
@@ -42,7 +42,7 @@ export default function AnalyzePage() {
     // Proper authentication - fetch real user from Supabase
     useEffect(() => {
         const getUser = async () => {
-            const supabase = createClient();
+            const supabase = getSupabase();
             const { data: { user } } = await supabase.auth.getUser();
 
             if (user) {

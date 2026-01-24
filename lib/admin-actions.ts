@@ -109,7 +109,7 @@ export async function getUserDetails(userId: string) {
 
     const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('id, email, full_name, role, tokens, total_earned, total_spent, last_active, created_at, referral_code, orcid_id')
         .eq('id', userId)
         .single();
 
@@ -120,7 +120,7 @@ export async function getUserDetails(userId: string) {
     // Get recent activity
     const { data: activities } = await supabase
         .from('activity_logs')
-        .select('*')
+        .select('id, action_type, action_details, points_earned, points_spent, created_at')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -128,7 +128,7 @@ export async function getUserDetails(userId: string) {
     // Get recent transactions
     const { data: transactions } = await supabase
         .from('token_transactions')
-        .select('*')
+        .select('id, amount, type, description, created_at, balance_after')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -136,7 +136,7 @@ export async function getUserDetails(userId: string) {
     // Get session history
     const { data: sessions } = await supabase
         .from('user_sessions')
-        .select('*')
+        .select('id, login_at, ip_address, user_agent')
         .eq('user_id', userId)
         .order('login_at', { ascending: false })
         .limit(10);

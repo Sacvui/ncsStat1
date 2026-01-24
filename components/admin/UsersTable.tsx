@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { getSupabase } from '@/utils/supabase/client';
 import {
     Search, Filter, MoreHorizontal, Shield,
     GraduationCap, Building2, BookOpen, Mail, Calendar
@@ -28,7 +28,7 @@ export default function UsersTable() {
 
     useEffect(() => {
         const fetchUsers = async () => {
-            const supabase = createClient();
+            const supabase = getSupabase();
 
             // Fetch profiles
             // Note: 'email' might not be in profiles table if it's only in auth.users.

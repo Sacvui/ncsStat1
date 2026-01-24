@@ -4,7 +4,7 @@ import Link from 'next/link'
 import UserMenu from '@/components/UserMenu'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase } from '@/utils/supabase/client'
 
 interface HeaderProps {
     user: any
@@ -17,7 +17,7 @@ interface HeaderProps {
 export default function Header({ user, profile: initialProfile, centerContent, rightActions, hideNav = false }: HeaderProps) {
     const pathname = usePathname()
     const [profile, setProfile] = useState<any>(initialProfile)
-    const supabase = createClient()
+    const supabase = getSupabase()
 
     useEffect(() => {
         if (!user) return
@@ -48,7 +48,7 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                     table: 'profiles',
                     filter: `id=eq.${user.id}`,
                 },
-                (payload) => {
+                (payload: any) => {
                     setProfile(payload.new)
                 }
             )

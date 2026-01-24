@@ -103,7 +103,7 @@ export async function getTransactionHistory(userId: string, limit = 20) {
 
     const { data, error } = await supabase
         .from('token_transactions')
-        .select('*')
+        .select('id, amount, type, description, created_at, balance_after')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(limit);

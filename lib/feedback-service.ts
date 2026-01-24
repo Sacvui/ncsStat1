@@ -81,8 +81,8 @@ export const FeedbackService = {
     // Helper to send to Supabase
     saveToSupabase: async (type: string, data: any) => {
         try {
-            const { createClient } = await import('@/utils/supabase/client');
-            const supabase = createClient();
+            const { getSupabase } = await import('@/utils/supabase/client');
+            const supabase = getSupabase();
 
             const { data: { user } } = await supabase.auth.getUser();
 

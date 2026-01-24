@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase } from '@/utils/supabase/client'
 
 export default function DebugAuthPage() {
     const [cookies, setCookies] = useState<string>('')
@@ -10,7 +10,7 @@ export default function DebugAuthPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const supabase = createClient()
+        const supabase = getSupabase()
 
         const check = async () => {
             setCookies(document.cookie)

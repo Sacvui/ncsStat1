@@ -2,7 +2,7 @@
 
 // ... imports
 import { useState, useEffect } from 'react'
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase } from '@/utils/supabase/client'
 import { X, Save, Calendar, GraduationCap, Building2, Phone, BookOpen } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { getAvatarUrl } from '@/utils/avatarHelper'
@@ -32,7 +32,7 @@ export default function EditProfileModal({
     onClose: () => void,
     onSuccess?: () => void
 }) {
-    const supabase = createClient()
+    const supabase = getSupabase()
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null)

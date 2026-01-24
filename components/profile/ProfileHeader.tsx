@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Mail, Shield, Edit2, GraduationCap, Building2, BookOpen } from 'lucide-react'
 import EditProfileModal from './EditProfileModal'
 import { getAvatarUrl } from '@/utils/avatarHelper'
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase } from '@/utils/supabase/client'
 
 type Profile = {
     id: string
@@ -23,7 +23,7 @@ type Profile = {
 export default function ProfileHeader({ user, profile: initialProfile, onUpdate }: { user: any, profile: Profile | null, onUpdate?: () => void }) {
     const [isEditOpen, setIsEditOpen] = useState(false)
     const [profile, setProfile] = useState<Profile | null>(initialProfile)
-    const supabase = createClient()
+    const supabase = getSupabase()
 
     useEffect(() => {
         setProfile(initialProfile)
@@ -42,7 +42,7 @@ export default function ProfileHeader({ user, profile: initialProfile, onUpdate 
                     table: 'profiles',
                     filter: `id=eq.${user.id}`,
                 },
-                (payload) => {
+                (payload: any) => {
                     setProfile(payload.new as Profile)
                     if (onUpdate) onUpdate()
                 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase } from '@/utils/supabase/client'
 import { createClientOnly } from '@/utils/supabase/client-only'
 import { Loader2 } from 'lucide-react'
 
@@ -37,7 +37,7 @@ function AuthCallbackContent() {
             // clientOnly: Uses localStorage, where the code_verifier was saved during login
             const clientOnly = createClientOnly()
             // clientSSR: Uses cookies, where we want to put the final session for middleware
-            const clientSSR = createClient()
+            const clientSSR = getSupabase()
 
             try {
                 // Client-side exchange! 
