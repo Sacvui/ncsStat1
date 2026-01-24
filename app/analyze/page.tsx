@@ -39,12 +39,25 @@ export default function AnalyzePage() {
     const [userProfile, setUserProfile] = useState<any>(null); // New User Profile State
     const [loading, setLoading] = useState(true);
 
-    // AUTH BYPASS: Skip authentication check for testing
+    // Proper authentication - fetch real user from Supabase
     useEffect(() => {
-        // Immediately set loading to false without checking auth
-        setLoading(false)
-        // Set a mock user for testing purposes
-        setUser({ id: 'test-user', email: 'test@example.com' })
+        const getUser = async () => {
+            const supabase = createClient();
+            const { data: { user } } = await supabase.auth.getUser();
+
+            if (user) {
+                setUser(user);
+                // Fetch user profile
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', user.id)
+                    .single();
+                setUserProfile(profile);
+            }
+            setLoading(false);
+        };
+        getUser();
     }, [])
     // Session State Management
     const {
