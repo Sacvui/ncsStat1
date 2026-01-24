@@ -233,7 +233,7 @@ export function TemplateInterpretation({
                     </div>
                     <div>
                         <h3 className="text-lg font-bold text-emerald-900">Nhận định Học thuật</h3>
-                        <p className="text-xs text-emerald-600">Tự động • Chuẩn APA • Không tốn chi phí</p>
+                        <p className="text-xs text-emerald-600">Tự động • Chuẩn APA • Dành cho Researcher</p>
                     </div>
                 </div>
                 <button

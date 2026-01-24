@@ -205,12 +205,12 @@ export async function exportToPDF(options: PDFExportOptions): Promise<void> {
             // BATCH CRONBACH - All scales in one PDF
             const batchResults = results.batchResults || [];
 
-            // Summary Table
+            // Summary Table (Using English headers for PDF compatibility)
             doc.setFontSize(14);
-            doc.text(`Tổng hợp ${batchResults.length} thang đo`, 15, yPos);
+            doc.text(`Summary of ${batchResults.length} Scales`, 15, yPos);
             yPos += 10;
 
-            const summaryHeaders = [['Thang đo', 'Số items', "Cronbach's Alpha", 'Đánh giá']];
+            const summaryHeaders = [['Scale Name', 'Items', "Cronbach's Alpha", 'Evaluation']];
             const summaryData = batchResults.map((r: any) => {
                 const alpha = r.alpha || r.rawAlpha || 0;
                 const evalText = alpha >= 0.9 ? 'Excellent' : alpha >= 0.8 ? 'Good' : alpha >= 0.7 ? 'Acceptable' : alpha >= 0.6 ? 'Questionable' : 'Poor';
