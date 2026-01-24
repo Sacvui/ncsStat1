@@ -36,4 +36,12 @@ CREATE INDEX IF NOT EXISTS idx_invitations_inviter_id ON invitations(inviter_id)
 CREATE INDEX IF NOT EXISTS idx_invitations_status ON invitations(status);
 
 -- Index for profiles.orcid_id (ORCID login lookup)
+-- First ensure the column exists
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='profiles' AND column_name='orcid_id') THEN
+        ALTER TABLE profiles ADD COLUMN orcid_id TEXT;
+    END IF;
+END $$;
 CREATE INDEX IF NOT EXISTS idx_profiles_orcid_id ON profiles(orcid_id);
+

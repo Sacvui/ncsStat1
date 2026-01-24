@@ -71,7 +71,14 @@ function CompleteProfileForm() {
                 document.cookie = `orcid_user=${result.profileId}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`
             }
 
-            // Redirect to analyze
+            // If we have a magic link (verifyUrl), use it for auto-login
+            if (result.verifyUrl) {
+                // Redirect through magic link for automatic session creation
+                window.location.href = result.verifyUrl
+                return
+            }
+
+            // Fallback: redirect directly to analyze (user may need to login again)
             router.push('/analyze')
         } catch (err: any) {
             setError(err.message || 'Đã xảy ra lỗi')

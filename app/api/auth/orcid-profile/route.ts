@@ -52,10 +52,20 @@ export async function POST(request: NextRequest) {
                 );
             }
 
+            // Generate magic link for auto-login (existing user by email)
+            const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+                type: 'magiclink',
+                email: email,
+                options: {
+                    redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://stat.ncskit.org'}/analyze`
+                }
+            });
+
             return NextResponse.json({
                 success: true,
                 message: 'Profile đã được cập nhật với ORCID',
-                profileId: existingByEmail.id
+                profileId: existingByEmail.id,
+                verifyUrl: linkData?.properties?.action_link
             });
         }
 
@@ -73,10 +83,30 @@ export async function POST(request: NextRequest) {
                 .update({ last_active: new Date().toISOString() })
                 .eq('id', existingByOrcid.id);
 
+            // Get email for existing ORCID user to generate magic link
+            const { data: orcidProfile } = await supabaseAdmin
+                .from('profiles')
+                .select('email')
+                .eq('id', existingByOrcid.id)
+                .single();
+
+            let verifyUrl = null;
+            if (orcidProfile?.email) {
+                const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+                    type: 'magiclink',
+                    email: orcidProfile.email,
+                    options: {
+                        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://stat.ncskit.org'}/analyze`
+                    }
+                });
+                verifyUrl = linkData?.properties?.action_link;
+            }
+
             return NextResponse.json({
                 success: true,
                 message: 'ORCID user đã tồn tại',
-                profileId: existingByOrcid.id
+                profileId: existingByOrcid.id,
+                verifyUrl: verifyUrl
             });
         }
 
@@ -118,11 +148,23 @@ export async function POST(request: NextRequest) {
             console.error('Update ORCID error:', orcidUpdateError);
         }
 
+        // Generate magic link for auto-login
+        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+            type: 'magiclink',
+            email: email,
+            options: {
+                redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'https://stat.ncskit.org'}/analyze`
+            }
+        });
+
         return NextResponse.json({
             success: true,
             message: 'Profile đã được tạo thành công',
             profileId: authUser.user.id,
-            userId: authUser.user.id
+            userId: authUser.user.id,
+            // Return the magic link token hash for client-side verification
+            magicLinkToken: linkData?.properties?.hashed_token,
+            verifyUrl: linkError ? null : linkData?.properties?.action_link
         });
 
     } catch (error: any) {
