@@ -2,7 +2,6 @@
 
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useState, useEffect, Suspense } from 'react'
-import { createClient } from '@/utils/supabase/client'
 
 export default function CompleteProfilePage() {
     return (
@@ -15,7 +14,6 @@ export default function CompleteProfilePage() {
 function CompleteProfileForm() {
     const searchParams = useSearchParams()
     const router = useRouter()
-    const supabase = createClient()
 
     const orcid = searchParams.get('orcid')
     const name = searchParams.get('name')
@@ -46,35 +44,32 @@ function CompleteProfileForm() {
                 throw new Error('Vui lòng nhập email')
             }
 
-            // Create user profile in Supabase
-            const { error: insertError } = await supabase
-                .from('profiles')
-                .insert({
-                    orcid_id: orcid,
-                    full_name: name || 'ORCID User',
+            // Call server-side API to create/update ORCID profile
+            const response = await fetch('/api/auth/orcid-profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orcid: orcid,
+                    name: name || 'ORCID User',
                     email: email,
-                    created_at: new Date().toISOString(),
-                    last_active: new Date().toISOString(),
-                })
+                }),
+            })
 
-            if (insertError) {
-                // If profile exists, try to update
-                const { error: updateError } = await supabase
-                    .from('profiles')
-                    .update({
-                        orcid_id: orcid,
-                        full_name: name || 'ORCID User',
-                        last_active: new Date().toISOString(),
-                    })
-                    .eq('email', email)
+            const result = await response.json()
 
-                if (updateError) {
-                    throw updateError
-                }
+            if (!response.ok) {
+                throw new Error(result.error || 'Không thể tạo profile')
             }
 
             // Clear ORCID pending cookie
             document.cookie = 'orcid_pending=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;'
+
+            // Set orcid_user cookie for session management
+            if (result.profileId) {
+                document.cookie = `orcid_user=${result.profileId}; path=/; max-age=${60 * 60 * 24 * 7}; secure; samesite=lax`
+            }
 
             // Redirect to analyze
             router.push('/analyze')
