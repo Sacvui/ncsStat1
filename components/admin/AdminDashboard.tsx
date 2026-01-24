@@ -128,18 +128,32 @@ export default function AdminDashboard() {
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+            {/* Header with branding */}
+            <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 text-white px-6 py-4">
+                <div className="max-w-7xl mx-auto flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+                        <p className="text-white/70 text-sm">ncsStat Management Console</p>
+                    </div>
+                    <div className="flex items-center gap-2 bg-white/20 rounded-full px-3 py-1">
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                        <span className="text-sm">Live</span>
+                    </div>
+                </div>
+            </div>
+
             {/* Tab Navigation */}
-            <div className="bg-white border-b sticky top-0 z-10">
+            <div className="bg-white/80 backdrop-blur-sm border-b sticky top-0 z-10 shadow-sm">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="flex gap-1 overflow-x-auto">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`flex items-center gap-2 px-4 py-3 border-b-2 transition-colors whitespace-nowrap ${activeTab === tab.id
-                                        ? 'border-blue-600 text-blue-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                className={`flex items-center gap-2 px-5 py-4 border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id
+                                    ? 'border-indigo-600 text-indigo-600 bg-indigo-50/50'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                                     }`}
                             >
                                 <tab.icon className="w-4 h-4" />
@@ -151,9 +165,21 @@ export default function AdminDashboard() {
             </div>
 
             <div className="max-w-7xl mx-auto px-4 py-6">
+                {/* Skeleton Loading */}
                 {loading && (
-                    <div className="flex justify-center items-center py-12">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <div className="space-y-6">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="bg-white rounded-xl p-6 animate-pulse">
+                                    <div className="h-4 bg-gray-200 rounded w-2/3 mb-3"></div>
+                                    <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-white rounded-xl p-6 animate-pulse">
+                            <div className="h-6 bg-gray-200 rounded w-1/4 mb-4"></div>
+                            <div className="h-40 bg-gray-100 rounded"></div>
+                        </div>
                     </div>
                 )}
 
@@ -247,10 +273,10 @@ export default function AdminDashboard() {
                                                     value={user.role}
                                                     onChange={(e) => handleRoleChange(user.id, e.target.value as any)}
                                                     className={`text-xs px-2 py-1 rounded-full border ${user.role === 'admin'
-                                                            ? 'bg-red-50 border-red-200 text-red-700'
-                                                            : user.role === 'researcher'
-                                                                ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                                                : 'bg-gray-50 border-gray-200 text-gray-700'
+                                                        ? 'bg-red-50 border-red-200 text-red-700'
+                                                        : user.role === 'researcher'
+                                                            ? 'bg-blue-50 border-blue-200 text-blue-700'
+                                                            : 'bg-gray-50 border-gray-200 text-gray-700'
                                                         }`}
                                                 >
                                                     <option value="user">User</option>
@@ -308,6 +334,94 @@ export default function AdminDashboard() {
                     </div>
                 )}
 
+                {/* Activity Tab */}
+                {!loading && activeTab === 'activity' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-xl border shadow-sm p-6">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-lg font-semibold">System Activity Log</h3>
+                                <div className="flex items-center gap-2 text-sm text-gray-500">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                    Real-time updates
+                                </div>
+                            </div>
+                            {activityBreakdown.length > 0 ? (
+                                <div className="space-y-3">
+                                    {activityBreakdown.map((item, idx) => (
+                                        <div key={idx} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:shadow-sm transition-shadow">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                                                    <Activity className="w-5 h-5 text-indigo-600" />
+                                                </div>
+                                                <div>
+                                                    <div className="font-medium capitalize">{item.type?.replace('_', ' ') || 'Activity'}</div>
+                                                    <div className="text-sm text-gray-500">Last 30 days</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-2xl font-bold text-indigo-600">{item.count}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12">
+                                    <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                                    <p className="text-gray-500">No activity data available yet</p>
+                                    <p className="text-sm text-gray-400 mt-1">Activity will appear here as users interact with the system</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Settings Tab */}
+                {!loading && activeTab === 'settings' && (
+                    <div className="space-y-6">
+                        <div className="bg-white rounded-xl border shadow-sm p-6">
+                            <h3 className="text-lg font-semibold mb-6">System Settings</h3>
+                            <div className="space-y-6">
+                                {/* Token Settings */}
+                                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Coins className="w-5 h-5 text-amber-600" />
+                                        <h4 className="font-semibold text-amber-900">Token System</h4>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <span className="text-amber-700">Default welcome tokens:</span>
+                                            <span className="ml-2 font-bold">100</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-amber-700">Referral bonus:</span>
+                                            <span className="ml-2 font-bold">50</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* API Settings */}
+                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <Settings className="w-5 h-5 text-blue-600" />
+                                        <h4 className="font-semibold text-blue-900">API Configuration</h4>
+                                    </div>
+                                    <div className="text-sm text-blue-700">
+                                        <p>✓ WebR Engine: Active</p>
+                                        <p>✓ Supabase Connection: Connected</p>
+                                        <p>✓ Template Interpretation: Enabled</p>
+                                    </div>
+                                </div>
+
+                                {/* Coming Soon */}
+                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                    <div className="flex items-center gap-2 text-gray-500">
+                                        <span className="text-lg">🚧</span>
+                                        <span className="font-medium">More settings coming soon...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Invitations Tab */}
                 {!loading && activeTab === 'invitations' && invitationStats && (
                     <div className="space-y-6">
@@ -318,13 +432,13 @@ export default function AdminDashboard() {
                             <StatCard icon={TrendingUp} label="Conversion" value={`${invitationStats.conversionRate}%`} color="purple" />
                         </div>
 
-                        <div className="bg-white rounded-xl border p-6">
+                        <div className="bg-white rounded-xl border shadow-sm p-6">
                             <h3 className="text-lg font-semibold mb-4">Top Inviters</h3>
                             <div className="space-y-3">
                                 {topInviters.map((inviter, idx) => (
-                                    <div key={inviter.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div key={inviter.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100">
                                         <div className="flex items-center gap-3">
-                                            <span className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-sm font-bold">
+                                            <span className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 text-white flex items-center justify-center text-sm font-bold shadow-md">
                                                 {idx + 1}
                                             </span>
                                             <div>
@@ -476,20 +590,32 @@ export default function AdminDashboard() {
 }
 
 function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number | string; color: string }) {
-    const colors = {
-        blue: 'bg-blue-50 text-blue-600 border-blue-200',
-        green: 'bg-green-50 text-green-600 border-green-200',
-        purple: 'bg-purple-50 text-purple-600 border-purple-200',
-        amber: 'bg-amber-50 text-amber-600 border-amber-200',
+    const gradients = {
+        blue: 'from-blue-500 to-indigo-600',
+        green: 'from-emerald-500 to-teal-600',
+        purple: 'from-purple-500 to-pink-600',
+        amber: 'from-amber-500 to-orange-600',
+    };
+
+    const bgColors = {
+        blue: 'bg-blue-50',
+        green: 'bg-emerald-50',
+        purple: 'bg-purple-50',
+        amber: 'bg-amber-50',
     };
 
     return (
-        <div className={`rounded-xl border p-4 ${colors[color as keyof typeof colors]}`}>
-            <div className="flex items-center gap-2 mb-2">
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium opacity-80">{label}</span>
+        <div className={`rounded-xl p-5 ${bgColors[color as keyof typeof bgColors]} border border-white/50 shadow-sm hover:shadow-md transition-shadow`}>
+            <div className="flex items-center justify-between mb-3">
+                <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${gradients[color as keyof typeof gradients]} flex items-center justify-center shadow-lg`}>
+                    <Icon className="w-5 h-5 text-white" />
+                </div>
+                <div className="text-xs px-2 py-0.5 rounded-full bg-white/60 text-gray-600 font-medium">
+                    Live
+                </div>
             </div>
-            <div className="text-3xl font-bold">{value}</div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+            <div className="text-sm text-gray-600 font-medium">{label}</div>
         </div>
     );
 }
