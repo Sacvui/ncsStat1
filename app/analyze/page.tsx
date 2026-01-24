@@ -1759,6 +1759,7 @@ export default function AnalyzePage() {
                                                 results={r.data}
                                                 columns={r.columns}
                                                 userProfile={userProfile}
+                                                scaleName={r.scaleName}
                                             />
                                         </div>
                                     ))}

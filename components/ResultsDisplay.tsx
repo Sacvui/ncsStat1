@@ -37,7 +37,9 @@ interface ResultsDisplayProps {
     onProceedToCFA?: (factors: { name: string; indicators: string[] }[]) => void;
     onProceedToSEM?: (factors: { name: string; indicators: string[] }[]) => void;
     columns?: string[];
+    columns?: string[];
     userProfile?: any;
+    scaleName?: string;
 }
 
 
@@ -48,7 +50,8 @@ export function ResultsDisplay({
     onProceedToCFA,
     onProceedToSEM,
     userProfile,
-    columns
+    columns,
+    scaleName
 }: ResultsDisplayProps) {
 
     const display = useMemo(() => {
@@ -67,7 +70,7 @@ export function ResultsDisplay({
             case 'regression':
                 return <RegressionResults results={results} columns={results.columns || []} />;
             case 'cronbach':
-                return <CronbachResults results={results} columns={results.columns || []} onProceedToEFA={onProceedToEFA} />;
+                return <CronbachResults results={results} columns={results.columns || []} onProceedToEFA={onProceedToEFA} scaleName={scaleName} />;
             case 'efa':
                 return <EFAResults results={results} columns={results.columns || []} onProceedToCFA={onProceedToCFA} />;
             case 'cfa':
@@ -457,7 +460,7 @@ function ANOVAResults({ results, columns }: { results: any; columns: string[] })
     );
 }
 
-function CronbachResults({ results, columns, onProceedToEFA }: { results: any; columns?: string[]; onProceedToEFA?: (goodItems: string[]) => void }) {
+function CronbachResults({ results, columns, onProceedToEFA, scaleName }: { results: any; columns?: string[]; onProceedToEFA?: (goodItems: string[]) => void; scaleName?: string }) {
     const alpha = results.alpha || results.rawAlpha || 0;
     const nItems = results.nItems || 'N/A';
     const itemTotalStats = results.itemTotalStats || [];
@@ -596,6 +599,13 @@ function CronbachResults({ results, columns, onProceedToEFA }: { results: any; c
                     </div>
                 </div>
             )}
+
+            {/* Template Interpretation */}
+            <TemplateInterpretation
+                analysisType="cronbach"
+                results={results}
+                scaleName={scaleName}
+            />
         </div>
     );
 }

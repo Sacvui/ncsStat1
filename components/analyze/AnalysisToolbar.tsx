@@ -40,20 +40,7 @@ export default function AnalysisToolbar({
 
             <div className="flex items-center gap-2 shrink-0">
                 <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block" />
-                <button
-                    onClick={() => setIsPrivateMode(!isPrivateMode)}
-                    className={`
-                        flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border
-                        ${isPrivateMode
-                            ? 'bg-slate-800 text-white border-slate-800 hover:bg-slate-700'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                        }
-                    `}
-                    title={isPrivateMode ? "Chế độ riêng tư: Đã bật" : "Chế độ riêng tư: Đã tắt"}
-                >
-                    {isPrivateMode ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                    <span className="hidden lg:inline">{isPrivateMode ? 'Riêng tư' : 'Lưu session'}</span>
-                </button>
+
 
 
 
