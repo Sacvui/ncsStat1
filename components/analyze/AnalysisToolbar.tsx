@@ -3,7 +3,6 @@
 import { Eye, EyeOff, Trash2, FileText, Settings, Shield, Save, PlusCircle, FolderOpen } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { WebRStatus } from '@/components/WebRStatus'
-import { AISettings } from '@/components/VariableSelector'
 
 interface ToolbarProps {
     isPrivateMode: boolean
@@ -56,7 +55,7 @@ export default function AnalysisToolbar({
                     <span className="hidden lg:inline">{isPrivateMode ? 'Riêng tư' : 'Lưu session'}</span>
                 </button>
 
-                <AISettings />
+
 
                 <div className="h-6 w-px bg-slate-200 mx-2 hidden md:block" />
 

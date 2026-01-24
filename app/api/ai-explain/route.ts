@@ -47,8 +47,8 @@ INPUT DỮ LIỆU:
 YÊU CẦU ĐẦU RA (Markdown):
 
 ## 1. Ý Nghĩa Kết Quả (Interpretation)
-- Đọc từng chỉ số quan trọng (Mean, SD, t, F, r, beta...).
-- Giải thích ý nghĩa con số đó (VD: r=0.8 là tương quan rất mạnh).
+- Đọc từng chỉ số quan trọng phù hợp với loại phân tích (VD: Cronbach's Alpha cho độ tin cậy, r cho tương quan, beta cho hồi quy...).
+- TUYỆT ĐỐI KHÔNG nhầm lẫn tên gọi chỉ số (VD: Không gọi Alpha là Beta).
 
 ## 2. Kết Luận (Conclusion)
 - Dựa trên p-value, Chấp nhận hay Bác bỏ giả thuyết H0?

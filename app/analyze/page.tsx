@@ -31,6 +31,7 @@ import { getSupabase } from '@/utils/supabase/client';
 import Header from '@/components/layout/Header'
 import AnalysisToolbar from '@/components/analyze/AnalysisToolbar';
 import SaveProjectModal from '@/components/analyze/SaveProjectModal';
+import Footer from '@/components/layout/Footer';
 
 export default function AnalyzePage() {
     const router = useRouter()
@@ -1767,7 +1768,10 @@ export default function AnalyzePage() {
                             {/* Action Buttons */}
                             <div className="flex gap-4 justify-center">
                                 <button
-                                    onClick={() => setStep('analyze')}
+                                    onClick={() => {
+                                        setResults(null);
+                                        setStep('analyze');
+                                    }}
                                     className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors"
                                 >
                                     ← Phân tích khác
@@ -1810,35 +1814,7 @@ export default function AnalyzePage() {
             </div>
 
             {/* Footer */}
-            <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500">
-                <p>
-                    1 sản phẩm của hệ sinh thái hỗ trợ nghiên cứu khoa học từ{' '}
-                    <a
-                        href="https://ncskit.org"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                        NCSKit.org
-                    </a>
-                </p>
-                <div className="mt-4">
-                    <button
-                        onClick={() => {
-                            const data = FeedbackService.exportAllData();
-                            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `ncsStat_feedback_${new Date().toISOString().slice(0, 10)}.json`;
-                            a.click();
-                        }}
-                        className="text-xs text-gray-400 hover:text-gray-600 underline"
-                    >
-                        Export Feedback Data (Dev)
-                    </button>
-                </div>
-            </footer>
+            <Footer />
 
             {/* Custom styles for animations */}
             <style jsx>{`
