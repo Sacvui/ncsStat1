@@ -23,16 +23,20 @@ export const translations = {
         },
         // Workflow (New)
         workflow: {
-            title: 'Quy trình 3 Bước Đơn giản',
+            title: 'Quy trình 4 Bước Chuẩn',
             step1: {
                 title: 'Tải dữ liệu',
-                desc: 'Hỗ trợ định dạng Excel/CSV. Hệ thống tự động kiểm tra và chuẩn hóa cấu trúc dữ liệu.'
+                desc: 'Hỗ trợ định dạng Excel/CSV. Hệ thống tự động kiểm tra cấu trúc.'
             },
             step2: {
-                title: 'Chọn kiểm định',
-                desc: 'Menu phân tích trực quan, đầy đủ các phương pháp từ EFA, CFA đến mô hình SEM phức tạp.'
+                title: 'Kiểm tra & Làm sạch',
+                desc: 'Tự động phát hiện giá trị lỗi, outlier và đánh giá chất lượng dữ liệu trước khi xử lý.'
             },
             step3: {
+                title: 'Chọn kiểm định',
+                desc: 'Menu phân tích trực quan, đầy đủ các phương pháp từ EFA, CFA đến mô hình SEM.'
+            },
+            step4: {
                 title: 'Nhận báo cáo',
                 desc: 'Kết quả chi tiết chuẩn APA, biểu đồ chuyên nghiệp và được AI giải thích ý nghĩa.'
             }
@@ -109,16 +113,20 @@ export const translations = {
         },
         // Workflow (New)
         workflow: {
-            title: 'Simple 3-Step Workflow',
+            title: 'Standard 4-Step Process',
             step1: {
                 title: 'Import Data',
-                desc: 'Support Excel/CSV formats. Automatic data structure validation and normalization.'
+                desc: 'Support Excel/CSV formats. Automatic data structure validation.'
             },
             step2: {
+                title: 'Review & Clean',
+                desc: 'Auto-detect missing values, outliers, and assess data quality before processing.'
+            },
+            step3: {
                 title: 'Select Analysis',
                 desc: 'Intuitive menu covering all methods from EFA, CFA to complex SEM models.'
             },
-            step3: {
+            step4: {
                 title: 'Get Report',
                 desc: 'Detailed APA-standard results, professional charts, and AI-powered interpretation.'
             }

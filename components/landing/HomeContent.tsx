@@ -89,35 +89,44 @@ export default function HomeContent() {
                     <h2 className="text-2xl md:text-3xl font-bold text-slate-900">{t(locale, 'workflow.title')}</h2>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-8 relative">
+                <div className="grid md:grid-cols-4 gap-8 relative">
                     {/* Connecting Line (Desktop) */}
-                    <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-slate-200 -z-10"></div>
+                    <div className="hidden md:block absolute top-12 left-[12%] right-[12%] h-0.5 bg-slate-200 -z-10"></div>
 
                     {/* Step 1 */}
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-24 h-24 bg-white rounded-full border-4 border-indigo-50 shadow-sm flex items-center justify-center mb-6 relative z-10">
-                            <span className="text-3xl font-bold text-indigo-600">1</span>
+                    <div className="flex flex-col items-center text-center group">
+                        <div className="w-20 h-20 bg-white rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center mb-4 relative z-10 group-hover:border-indigo-200 group-hover:shadow-md transition-all">
+                            <span className="text-2xl font-bold text-slate-300 group-hover:text-indigo-600 transition-colors">1</span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">{t(locale, 'workflow.step1.title')}</h3>
-                        <p className="text-slate-600 text-sm max-w-xs">{t(locale, 'workflow.step1.desc')}</p>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">{t(locale, 'workflow.step1.title')}</h3>
+                        <p className="text-slate-500 text-xs max-w-[200px] leading-relaxed">{t(locale, 'workflow.step1.desc')}</p>
                     </div>
 
                     {/* Step 2 */}
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-24 h-24 bg-white rounded-full border-4 border-indigo-50 shadow-sm flex items-center justify-center mb-6 relative z-10">
-                            <span className="text-3xl font-bold text-indigo-600">2</span>
+                    <div className="flex flex-col items-center text-center group">
+                        <div className="w-20 h-20 bg-white rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center mb-4 relative z-10 group-hover:border-indigo-200 group-hover:shadow-md transition-all">
+                            <span className="text-2xl font-bold text-slate-300 group-hover:text-indigo-600 transition-colors">2</span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">{t(locale, 'workflow.step2.title')}</h3>
-                        <p className="text-slate-600 text-sm max-w-xs">{t(locale, 'workflow.step2.desc')}</p>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">{t(locale, 'workflow.step2.title')}</h3>
+                        <p className="text-slate-500 text-xs max-w-[200px] leading-relaxed">{t(locale, 'workflow.step2.desc')}</p>
                     </div>
 
                     {/* Step 3 */}
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-24 h-24 bg-white rounded-full border-4 border-indigo-50 shadow-sm flex items-center justify-center mb-6 relative z-10">
-                            <span className="text-3xl font-bold text-indigo-600">3</span>
+                    <div className="flex flex-col items-center text-center group">
+                        <div className="w-20 h-20 bg-white rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center mb-4 relative z-10 group-hover:border-indigo-200 group-hover:shadow-md transition-all">
+                            <span className="text-2xl font-bold text-slate-300 group-hover:text-indigo-600 transition-colors">3</span>
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-2">{t(locale, 'workflow.step3.title')}</h3>
-                        <p className="text-slate-600 text-sm max-w-xs">{t(locale, 'workflow.step3.desc')}</p>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">{t(locale, 'workflow.step3.title')}</h3>
+                        <p className="text-slate-500 text-xs max-w-[200px] leading-relaxed">{t(locale, 'workflow.step3.desc')}</p>
+                    </div>
+
+                    {/* Step 4 */}
+                    <div className="flex flex-col items-center text-center group">
+                        <div className="w-20 h-20 bg-white rounded-2xl border-2 border-slate-100 shadow-sm flex items-center justify-center mb-4 relative z-10 group-hover:border-indigo-200 group-hover:shadow-md transition-all">
+                            <span className="text-2xl font-bold text-slate-300 group-hover:text-indigo-600 transition-colors">4</span>
+                        </div>
+                        <h3 className="text-lg font-bold text-slate-900 mb-1">{t(locale, 'workflow.step4.title')}</h3>
+                        <p className="text-slate-500 text-xs max-w-[200px] leading-relaxed">{t(locale, 'workflow.step4.desc')}</p>
                     </div>
                 </div>
             </div>
@@ -161,22 +170,29 @@ export default function HomeContent() {
                     <p className="text-lg text-slate-600 max-w-2xl mx-auto">{t(locale, 'methods.subtitle')}</p>
                 </div>
 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
-                        { icon: NcsIconReliability, key: 'reliability', color: 'bg-blue-500' },
-                        { icon: NcsIconEFA, key: 'efa', color: 'bg-purple-500' },
-                        { icon: NcsIconCFA, key: 'cfa', color: 'bg-pink-500' },
-                        { icon: NcsIconSEM, key: 'sem', color: 'bg-red-500' },
-                        { icon: NcsIconRegression, key: 'regression', color: 'bg-orange-500' },
-                        { icon: NcsIconComparison, key: 'comparison', color: 'bg-amber-500' },
-                        { icon: NcsIconCorrelation, key: 'correlation', color: 'bg-green-500' },
-                        { icon: NcsIconNonParam, key: 'nonparam', color: 'bg-teal-500' }
+                        { icon: NcsIconReliability, key: 'reliability', color: 'text-blue-600 bg-blue-50' },
+                        { icon: NcsIconEFA, key: 'efa', color: 'text-purple-600 bg-purple-50' },
+                        { icon: NcsIconCFA, key: 'cfa', color: 'text-pink-600 bg-pink-50' },
+                        { icon: NcsIconSEM, key: 'sem', color: 'text-red-600 bg-red-50' },
+                        { icon: NcsIconRegression, key: 'regression', color: 'text-orange-600 bg-orange-50' },
+                        { icon: NcsIconComparison, key: 'comparison', color: 'text-amber-600 bg-amber-50' },
+                        { icon: NcsIconCorrelation, key: 'correlation', color: 'text-green-600 bg-green-50' },
+                        { icon: NcsIconNonParam, key: 'nonparam', color: 'text-teal-600 bg-teal-50' }
                     ].map((item) => (
-                        <div key={item.key} className="bg-white rounded-xl p-4 border border-slate-200 hover:border-slate-300 hover:shadow-md transition-all text-center">
-                            <div className={`w-10 h-10 ${item.color} rounded-lg flex items-center justify-center mx-auto mb-3 text-white`}>
-                                <item.icon size={20} />
+                        <div key={item.key} className="group bg-white rounded-xl p-4 border border-slate-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all cursor-default">
+                            <div className="flex items-center gap-4">
+                                <div className={`w-12 h-12 ${item.color} rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform`}>
+                                    <item.icon size={24} strokeWidth={1.5} />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-bold text-slate-800 group-hover:text-indigo-700 transition-colors truncate">
+                                        {t(locale, `methods.${item.key}`)}
+                                    </h4>
+                                    <p className="text-[10px] text-slate-400 mt-0.5 font-medium uppercase tracking-wider">Available</p>
+                                </div>
                             </div>
-                            <span className="text-sm font-semibold text-slate-700">{t(locale, `methods.${item.key}`)}</span>
                         </div>
                     ))}
                 </div>
