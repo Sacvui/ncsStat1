@@ -77,7 +77,7 @@ export const translations = {
             status: 'Trạng thái hệ thống',
             operational: 'Đang hoạt động tốt',
             aboutTitle: 'About Hai Rong Choi',
-            aboutDesc: 'Hải Rong Chơi chào bạn! Ghé thăm "thánh địa" của những con số, nơi sự chính xác gặp gỡ tinh thần tự do. ncsStat đang trong giai đoạn Pilot - nhưng đầy nhiệt huyết. Có thể đâu đó vẫn còn chút lỗi nhỏ, rất mong nhận được những góp ý thẳng thắn từ bạn để chúng mình cùng nhau hoàn thiện. Con đường nghiên cứu tuy đơn độc, nhưng tại đây, bạn luôn có người đồng hành. Cùng khám phá những công cụ đắc lực cho luận án của bạn nhé!'
+            aboutDesc: 'Hai Rong Choi greets you! Welcome to the sanctuary of numbers, where precision meets the spirit of freedom. ncsStat is in its Pilot phase - full of passion but perhaps still carrying a few small grains of sand. We warmly welcome your honest feedback so we can perfect it together. Research is a lonely path, but here, you never walk alone. Let’s explore the tools that will empower your thesis!'
         },
         // Analyze Page
         analyze: {
