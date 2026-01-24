@@ -4,7 +4,7 @@
 
 🔗 **Live App:** [https://stat.ncskit.org](https://stat.ncskit.org)
 
-📄 **Version:** 1.2.0 (Stable Release)
+📄 **Version:** 2.0.0 (Major Release - 2026-01-24)
 
 ---
 
@@ -23,40 +23,43 @@
 
 ## 🚀 Tính Năng Chính
 
-### 1. Phân Tích Đa Dạng
+### 1. Phân Tích Đa Dạng (18 phương pháp)
 
 | Nhóm | Phương pháp | Chi tiết |
 |------|-------------|----------|
-| **Độ tin cậy** | Cronbach's Alpha | Item-total stats, Alpha if deleted, Likert 1-5/1-7 |
+| **Độ tin cậy** | Cronbach's Alpha + **McDonald's Omega** | Item-total stats, Alpha/Omega if deleted |
 | **Tương quan** | Pearson, Spearman, Kendall | Ma trận r + p-values |
 | **So sánh nhóm** | T-test (độc lập, ghép cặp) | Shapiro-Wilk, Levene's, Cohen's d |
-| **ANOVA** | One-Way ANOVA | Tukey HSD post-hoc, Eta² |
-| **Khám phá** | EFA | KMO, Bartlett, Varimax/Oblimin |
+| **ANOVA** | One-Way ANOVA (**Auto Welch**) | Tukey HSD, Eta², auto-switch |
+| **Khám phá** | EFA (**Parallel Analysis**) | KMO, Bartlett, Varimax/Oblimin |
 | **Khẳng định** | CFA | CFI, TLI, RMSEA, SRMR |
 | **Mô hình** | SEM | Structural paths, Fit indices |
-| **Hồi quy** | Linear Regression | VIF, R², Shapiro residuals |
-| **Phi tham số** | Mann-Whitney U, Chi-Square | Effect size (r, Cramér's V) |
+| **Hồi quy** | Linear Regression | VIF, R², **Standardized β** |
+| **Hồi quy nhị phân** | **Logistic Regression** | Odds Ratio, Pseudo R², Confusion Matrix |
+| **Phi tham số** | Mann-Whitney U, **Kruskal-Wallis** | Effect size (ε², r) |
+| **Phi tham số cặp** | **Wilcoxon Signed-Rank** | Median diff, Effect r |
+| **Phân loại** | Chi-Square + **Fisher's Exact** | Cramér's V, Warning < 5 |
+| **Trung gian** | **Mediation Analysis** | Sobel test, Bootstrap CI 95% |
 | **Mô tả** | Descriptive Stats | Mean, SD, Skew, Kurtosis, SE |
 
-### 2. Kiểm định Giả định (Assumption Tests) ✅
+### 2. Kiểm định Giả định Tự động ✅
 
-Tự động kiểm tra các giả định thống kê:
-- **Shapiro-Wilk:** Kiểm tra phân phối chuẩn
-- **Levene's Test:** Kiểm tra đồng nhất phương sai
-- **Residual Normality:** Phân phối chuẩn của phần dư
+- **Shapiro-Wilk:** Phân phối chuẩn
+- **Levene's Test:** Đồng nhất phương sai → **Auto Welch ANOVA**
+- **Fisher's Exact:** Tự động cho bảng 2x2 nhỏ
+- **Warning:** Cảnh báo khi expected < 5
 
 ### 3. Workflow Mode (Trợ lý thông minh) 🎯
 
-Hướng dẫn từng bước phân tích:
-- Cronbach's Alpha → EFA (khi độ tin cậy đạt)
-- EFA → CFA (khi cấu trúc nhân tố rõ ràng)
-- CFA → SEM (khi mô hình phù hợp)
+- Cronbach's Alpha → EFA (khi α ≥ 0.7)
+- EFA → CFA (khi cấu trúc rõ ràng)
+- CFA → SEM (khi fit tốt)
 
 ### 4. AI Interpretation 🤖
 
-- Tự động viết nhận xét, đánh giá kết quả
-- Giải thích các chỉ số phức tạp (CFI, RMSEA, p-value)
-- Ngôn ngữ học thuật chuẩn paper
+- Tự động viết nhận xét học thuật
+- Giải thích CFI, RMSEA, p-value cho người không chuyên
+- Ngôn ngữ chuẩn paper
 
 ---
 
@@ -67,7 +70,7 @@ Hướng dẫn từng bước phân tích:
 | **Frontend** | Next.js 14, React 18, TypeScript |
 | **Styling** | Tailwind CSS, Lucide Icons |
 | **R Engine** | WebR (WebAssembly R) |
-| **R Packages** | `psych`, `GPArotation`, `corrplot` |
+| **R Packages** | `psych`, `GPArotation` |
 | **AI** | Google Gemini 2.0 Flash |
 | **Auth** | Supabase Auth (Google, ORCID, LinkedIn) |
 | **Database** | Supabase PostgreSQL |
@@ -76,8 +79,6 @@ Hướng dẫn từng bước phân tích:
 ---
 
 ## 📚 Hướng Dẫn Trích Dẫn (Citation)
-
-Khi sử dụng **ncsStat** cho luận văn, luận án hoặc bài báo, vui lòng trích dẫn:
 
 ### Trong phần Phương pháp:
 > "Dữ liệu được phân tích bằng ngôn ngữ R (R Core Team, 2024) thông qua nền tảng **ncsStat** (Le, 2026). Các phân tích độ tin cậy và nhân tố sử dụng package `psych` (Revelle, 2024)."
@@ -88,7 +89,7 @@ Khi sử dụng **ncsStat** cho luận văn, luận án hoặc bài báo, vui l�
 > Le, P. H. (2026). *ncsStat: A Web-Based Statistical Analysis Platform for Vietnamese Researchers*. https://stat.ncskit.org
 
 **Tiếng Việt:**
-> Lê Phúc Hải (2026). *ncsStat: Nền tảng phân tích thống kê trực tuyến cho nghiên cứu sinh Việt Nam*. Truy cập từ https://stat.ncskit.org
+> Lê Phúc Hải (2026). *ncsStat: Nền tảng phân tích thống kê trực tuyến cho nghiên cứu sinh Việt Nam*. https://stat.ncskit.org
 
 ---
 
@@ -112,14 +113,6 @@ npm run dev
 
 Truy cập `http://localhost:3000`
 
-### Environment Variables cần thiết:
-```env
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
-SUPABASE_SERVICE_ROLE_KEY=your_service_key
-NEXT_PUBLIC_GEMINI_API_KEY=your_gemini_key
-```
-
 ---
 
 ## 📂 Cấu trúc Project
@@ -129,18 +122,14 @@ ncsStat/
 ├── app/                    # Next.js App Router
 │   ├── analyze/            # Trang phân tích chính
 │   ├── login/              # Đăng nhập OAuth
-│   ├── profile/            # Hồ sơ người dùng
-│   └── admin/              # Quản trị
+│   └── profile/            # Hồ sơ người dùng
 ├── components/             # React Components
-│   ├── layout/             # Header, Footer
-│   ├── ui/                 # Reusable UI components
-│   └── results/            # Hiển thị kết quả
 ├── lib/
-│   ├── webr-wrapper.ts     # R statistical functions
+│   ├── webr-wrapper.ts     # R statistical functions (2000+ lines)
 │   ├── i18n.ts             # Internationalization
 │   └── pdf-exporter.ts     # PDF export
-├── paper/                  # Publication documents
-│   └── R_CODE_REFERENCE.md # R code documentation
+├── paper/
+│   └── R_CODE_REFERENCE.md # R code documentation (18 methods)
 └── utils/supabase/         # Supabase client
 ```
 

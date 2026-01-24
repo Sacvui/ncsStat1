@@ -502,5 +502,243 @@ list(
 
 ---
 
+## 12. Logistic Regression (Hồi quy nhị phân)
+
+**Function:** `runLogisticRegression()`
+
+**Mục đích:** Dự đoán biến phụ thuộc nhị phân (0/1)
+
+**R Code:**
+```r
+# DV phải là 0/1
+y_name <- colnames(df)[1]
+df[[y_name]] <- as.factor(df[[y_name]])
+
+# Formula
+f <- as.formula(paste(y_name, "~ ."))
+
+# Fit Logistic Regression
+model <- glm(f, data = df, family = binomial(link = "logit"))
+s <- summary(model)
+
+# Coefficients & Odds Ratios
+coefs <- s$coefficients
+odds_ratios <- exp(coefs[, 1])
+
+# McFadden's Pseudo R²
+null_dev <- model$null.deviance
+resid_dev <- model$deviance
+pseudo_r2 <- 1 - (resid_dev / null_dev)
+
+# Confusion Matrix
+probs <- predict(model, type = "response")
+preds <- ifelse(probs > 0.5, 1, 0)
+actual <- as.numeric(as.character(df[[y_name]]))
+
+tp <- sum(preds == 1 & actual == 1)
+tn <- sum(preds == 0 & actual == 0)
+fp <- sum(preds == 1 & actual == 0)
+fn <- sum(preds == 0 & actual == 1)
+accuracy <- (tp + tn) / length(actual)
+```
+
+---
+
+## 13. Kruskal-Wallis Test (Phi tham số ANOVA)
+
+**Function:** `runKruskalWallis()`
+
+**Mục đích:** So sánh 3+ nhóm khi vi phạm giả định phân phối chuẩn
+
+**R Code:**
+```r
+# Kruskal-Wallis Test
+test <- kruskal.test(values ~ groups)
+
+# Group Medians
+groupMedians <- tapply(values, groups, median)
+
+# Effect Size: Epsilon squared
+n <- length(values)
+epsilon_sq <- test$statistic / (n - 1)
+
+list(
+    statistic = test$statistic,  # Chi-squared
+    df = test$parameter,
+    p_value = test$p.value,
+    group_medians = as.numeric(groupMedians),
+    effect_size = epsilon_sq
+)
+```
+
+---
+
+## 14. Wilcoxon Signed-Rank Test (Phi tham số ghép cặp)
+
+**Function:** `runWilcoxonSignedRank()`
+
+**Mục đích:** So sánh cặp khi vi phạm phân phối chuẩn
+
+**R Code:**
+```r
+# Wilcoxon Signed-Rank Test (paired)
+test <- wilcox.test(before, after, paired = TRUE, conf.int = TRUE)
+
+# Effect Size: r = Z / sqrt(N)
+n <- length(before)
+z_score <- qnorm(test$p.value / 2)
+effect_r <- abs(z_score) / sqrt(n)
+
+# Difference
+diffs <- before - after
+
+list(
+    statistic = test$statistic,  # V
+    p_value = test$p.value,
+    median_before = median(before),
+    median_after = median(after),
+    median_diff = median(diffs),
+    effect_size = effect_r
+)
+```
+
+---
+
+## 15. Mediation Analysis (Phân tích trung gian)
+
+**Function:** `runMediationAnalysis()`
+
+**Mục đích:** Kiểm tra liệu M có trung gian hóa mối quan hệ X → Y
+
+**Model:** X → M → Y (với direct effect X → Y)
+
+**R Code:**
+```r
+# === BARON & KENNY STEPS ===
+
+# Step 1: Path c (Total Effect) - X predicts Y
+model_c <- lm(y ~ x)
+path_c <- coef(summary(model_c))[2, 1]
+
+# Step 2: Path a - X predicts M
+model_a <- lm(m ~ x)
+path_a <- coef(summary(model_a))[2, 1]
+
+# Step 3: Paths b and c' - M predicts Y controlling for X
+model_bc <- lm(y ~ x + m)
+path_b <- coef(summary(model_bc))[3, 1]      # M coefficient
+path_cprime <- coef(summary(model_bc))[2, 1] # Direct effect
+
+# === INDIRECT EFFECT ===
+indirect_effect <- path_a * path_b
+total_effect <- path_c
+direct_effect <- path_cprime
+
+# Proportion mediated
+prop_mediated <- indirect_effect / total_effect
+
+# === SOBEL TEST ===
+sobel_se <- sqrt(path_b^2 * se_a^2 + path_a^2 * se_b^2)
+sobel_z <- indirect_effect / sobel_se
+sobel_p <- 2 * (1 - pnorm(abs(sobel_z)))
+
+# === BOOTSTRAP CI (1000 iterations) ===
+n_boot <- 1000
+boot_indirect <- numeric(n_boot)
+
+for (i in 1:n_boot) {
+    idx <- sample(1:n, n, replace = TRUE)
+    a_b <- coef(lm(m[idx] ~ x[idx]))[2]
+    b_b <- coef(lm(y[idx] ~ x[idx] + m[idx]))[3]
+    boot_indirect[i] <- a_b * b_b
+}
+
+boot_ci_lower <- quantile(boot_indirect, 0.025)
+boot_ci_upper <- quantile(boot_indirect, 0.975)
+
+# Mediation Type
+# Full: c' not significant, indirect significant
+# Partial: both c' and indirect significant
+# None: indirect not significant
+```
+
+---
+
+## 16. McDonald's Omega (Độ tin cậy)
+
+**Thêm vào `runCronbachAlpha()`**
+
+**Mục đích:** Omega robust hơn Alpha cho multidimensional scales
+
+**R Code:**
+```r
+library(psych)
+
+# omega() requires at least 3 items
+omega_result <- omega(data, nfactors = 1, plot = FALSE)
+
+list(
+    omega_total = omega_result$omega.tot,   # Total Omega
+    omega_h = omega_result$omega_h          # Hierarchical Omega
+)
+```
+
+---
+
+## 17. Welch ANOVA (Auto-switch)
+
+**Cập nhật `runOneWayANOVA()`**
+
+**Mục đích:** Khi Levene p < 0.05, tự động dùng Welch ANOVA thay Classic
+
+**R Code:**
+```r
+if (levene_p < 0.05) {
+    # Variance NOT homogeneous -> Use Welch ANOVA
+    welch_result <- oneway.test(values ~ groups, var.equal = FALSE)
+    f_stat <- welch_result$statistic
+    df_between <- welch_result$parameter[1]
+    df_within <- welch_result$parameter[2]
+    p_val <- welch_result$p.value
+    method_used <- "Welch ANOVA"
+} else {
+    # Classic ANOVA
+    model <- aov(values ~ groups)
+    method_used <- "Classic ANOVA"
+}
+```
+
+---
+
+## 18. Parallel Analysis cho EFA
+
+**Cập nhật `runEFA()`**
+
+**Mục đích:** Parallel Analysis tốt hơn Kaiser criterion (eigenvalue > 1)
+
+**R Code:**
+```r
+library(psych)
+
+# Parallel Analysis - Gold Standard
+pa <- fa.parallel(df_clean, fm = "pa", fa = "fa", plot = FALSE, 
+                  n.iter = 20, quant = 0.95)
+n_factors_suggested <- pa$nfact
+
+# Kaiser criterion as fallback
+n_factors_kaiser <- sum(eigenvalues > 1)
+
+# Prefer Parallel Analysis
+if (!is.na(n_factors_suggested)) {
+    n_factors_run <- n_factors_suggested
+    factor_method <- "parallel"
+} else {
+    n_factors_run <- n_factors_kaiser
+    factor_method <- "kaiser"
+}
+```
+
+---
+
 *Tài liệu này được tạo tự động từ mã nguồn `lib/webr-wrapper.ts`*
 *Cập nhật lần cuối: 2026-01-24*
