@@ -16,11 +16,19 @@ let _supabaseAdmin: SupabaseClient | null = null;
 
 function getSupabaseAdmin(): SupabaseClient {
     if (!_supabaseAdmin) {
-        _supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!,
-            { auth: { persistSession: false } }
-        );
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+        if (!supabaseUrl) {
+            throw new Error('NEXT_PUBLIC_SUPABASE_URL is not configured');
+        }
+        if (!supabaseKey) {
+            throw new Error('SUPABASE_SERVICE_ROLE_KEY is not configured');
+        }
+
+        _supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+            auth: { persistSession: false }
+        });
     }
     return _supabaseAdmin;
 }
