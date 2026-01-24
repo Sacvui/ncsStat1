@@ -47,7 +47,8 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 borderColor: 'border-blue-200',
                 options: [
                     { id: 'descriptive-select', title: 'Descriptive Statistics', desc: 'Mean, SD, Min, Max, Median, Skewness, Kurtosis', icon: BarChart2, action: 'select' },
-                    { id: 'cronbach-select', title: "Cronbach's Alpha & Omega", desc: 'Scale reliability (α + ω)', icon: Shield, action: 'select', recommended: true },
+                    { id: 'cronbach-select', title: "Cronbach's Alpha", desc: 'Classic scale reliability (α)', icon: Shield, action: 'select', recommended: true },
+                    { id: 'omega-select', title: "McDonald's Omega", desc: 'Modern reliability (ω) for better precision', icon: Shield, action: 'select' },
                 ]
             }
         },
@@ -109,7 +110,8 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-teal-50',
                 borderColor: 'border-teal-200',
                 options: [
-                    { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Independence test + Fisher exact', icon: Grid3x3, action: 'select' },
+                    { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Test of independence (Large sample)', icon: Grid3x3, action: 'select' },
+                    { id: 'fisher-select', title: "Fisher's Exact Test", desc: 'Test of independence (Small sample)', icon: Grid3x3, action: 'select' },
                 ]
             }
         }

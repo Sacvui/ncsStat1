@@ -313,7 +313,7 @@ export default function DocsPage() {
                 {/* Footer */}
                 <div className="mt-12 text-center text-sm text-slate-500 pb-8">
                     <p>
-                        <strong>ncsStat</strong> - Free statistical analysis for Vietnamese PhD researchers
+                        <strong>ncsStat</strong> - Professional statistical analysis for Vietnamese PhD researchers
                     </p>
                     <p className="mt-1">
                         Built with WebR (R in browser) • No data uploaded to server •

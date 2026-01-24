@@ -48,7 +48,7 @@ export default function UserMenu({ user, profile }: { user: any, profile?: any }
                 {isOpen && (
                     <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
                         <div className="px-4 py-3 border-b border-slate-100">
-                            <p className="text-xs text-slate-500 font-medium">Đang đăng nhập với</p>
+                            <p className="text-xs text-slate-500 font-medium">Logged in as</p>
                             <p className="text-sm font-semibold text-slate-900 truncate">{user.email}</p>
                         </div>
 
@@ -59,7 +59,7 @@ export default function UserMenu({ user, profile }: { user: any, profile?: any }
                                 onClick={() => setIsOpen(false)}
                             >
                                 <User className="w-4 h-4" />
-                                Hồ sơ cá nhân
+                                Profile
                             </Link>
                             <button
                                 onClick={() => {
@@ -69,7 +69,7 @@ export default function UserMenu({ user, profile }: { user: any, profile?: any }
                                 className="w-full flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors text-left"
                             >
                                 <MessageSquare className="w-4 h-4" />
-                                Gửi phản hồi
+                                Send Feedback
                             </button>
                         </div>
 
@@ -80,7 +80,7 @@ export default function UserMenu({ user, profile }: { user: any, profile?: any }
                                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
                                 >
                                     <LogOut className="w-4 h-4" />
-                                    Đăng xuất
+                                    Logout
                                 </button>
                             </form>
                         </div>

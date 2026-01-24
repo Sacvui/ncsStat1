@@ -72,9 +72,9 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                     {/* Desktop Nav */}
                     {!hideNav && !centerContent && (
                         <nav className="hidden md:flex items-center gap-1">
-                            <NavLink href="/analyze" active={pathname?.startsWith('/analyze')}>Phân tích</NavLink>
+                            <NavLink href="/analyze" active={pathname?.startsWith('/analyze')}>Analyze</NavLink>
                             {user && (
-                                <NavLink href="/profile" active={pathname?.startsWith('/profile')}>Hồ sơ</NavLink>
+                                <NavLink href="/profile" active={pathname?.startsWith('/profile')}>Profile</NavLink>
                             )}
 
                             {/* Check if user is admin - UserMenu has this logic but we don't know easily.
@@ -109,7 +109,7 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                         <UserMenu user={user} profile={profile} />
                     ) : (
                         <Link href="/login" className="px-5 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-all shadow-sm">
-                            Đăng nhập
+                            Login
                         </Link>
                     )}
                 </div>

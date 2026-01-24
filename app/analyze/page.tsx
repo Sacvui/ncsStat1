@@ -803,6 +803,42 @@ export default function AnalyzePage() {
                                     <p className="mt-4 text-gray-600">Đang phân tích...</p>
                                 </div>
                             )}
+
+                        </div>
+                    )}
+
+                    {/* Omega Selection - NEW (Clone of Cronbach) */}
+                    {step === 'omega-select' && (
+                        <div className="max-w-3xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    McDonald&apos;s Omega
+                                </h2>
+                                <p className="text-gray-600">
+                                    Đánh giá độ tin cậy thang đo (Độ chính xác cao hơn Alpha)
+                                </p>
+                            </div>
+
+                            <SmartGroupSelector
+                                columns={getNumericColumns()}
+                                onAnalyzeGroup={runCronbachWithSelection}
+                                onAnalyzeAllGroups={runCronbachBatch}
+                                isAnalyzing={isAnalyzing}
+                            />
+
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors"
+                            >
+                                ← Quay lại chọn phương pháp
+                            </button>
+
+                            {isAnalyzing && (
+                                <div className="text-center py-8">
+                                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                                    <p className="mt-4 text-gray-600">Đang phân tích Omega...</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -1414,312 +1450,396 @@ export default function AnalyzePage() {
                             >
                                 ← Quay lại
                             </button>
+                        </button>
                         </div>
                     )}
 
-                    {/* Mann-Whitney U Selection - NEW */}
-                    {step === 'mannwhitney-select' && (
-                        <div className="max-w-2xl mx-auto space-y-6">
-                            <div className="text-center mb-8">
-                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                                    Mann-Whitney U Test
-                                </h2>
-                                <p className="text-gray-600">
-                                    So sánh trung bình 2 nhóm độc lập (Phi tham số - Non-parametric)
-                                </p>
-                            </div>
+                {/* Fisher Exact Selection - NEW */}
+                {step === 'fisher-select' && (
+                    <div className="max-w-2xl mx-auto space-y-6">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                Fisher&apos;s Exact Test
+                            </h2>
+                            <p className="text-gray-600">
+                                Kiểm định mối quan hệ biến định danh (Dành cho mẫu nhỏ)
+                            </p>
+                        </div>
 
-                            <div className="bg-white rounded-xl shadow-lg p-6 border">
-                                <p className="text-sm text-gray-600 mb-4">
-                                    Chọn 2 biến số để so sánh:
-                                </p>
-                                <div className="grid grid-cols-2 gap-4 mb-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 1</label>
-                                        <select
-                                            id="mw-group1"
-                                            className="w-full px-3 py-2 border rounded-lg"
-                                            defaultValue=""
-                                        >
-                                            <option value="">Chọn biến...</option>
-                                            {getNumericColumns().map(col => (
-                                                <option key={col} value={col}>{col}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 2</label>
-                                        <select
-                                            id="mw-group2"
-                                            className="w-full px-3 py-2 border rounded-lg"
-                                            defaultValue=""
-                                        >
-                                            <option value="">Chọn biến...</option>
-                                            {getNumericColumns().map(col => (
-                                                <option key={col} value={col}>{col}</option>
-                                            ))}
-                                        </select>
-                                    </div>
+                        <div className="bg-white rounded-xl shadow-lg p-6 border">
+                            <p className="text-sm text-gray-600 mb-4">
+                                Chọn 2 biến để kiểm định:
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Biến hàng (Row)</label>
+                                    <select
+                                        id="fisher-row"
+                                        className="w-full px-3 py-2 border rounded-lg"
+                                        defaultValue=""
+                                    >
+                                        <option value="">Chọn biến...</option>
+                                        {profile?.columnStats && Object.keys(profile.columnStats).map(col => (
+                                            <option key={col} value={col}>{col}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                                <button
-                                    onClick={async () => {
-                                        const g1 = (document.getElementById('mw-group1') as HTMLSelectElement).value;
-                                        const g2 = (document.getElementById('mw-group2') as HTMLSelectElement).value;
-
-                                        if (!g1 || !g2) { showToast('Vui lòng chọn cả 2 biến', 'error'); return; }
-                                        if (g1 === g2) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
-
-                                        setIsAnalyzing(true);
-                                        setAnalysisType('mann-whitney'); // Matches ResultsDisplay 'mann-whitney' case
-                                        try {
-                                            const group1Data = data.map(row => Number(row[g1]) || 0);
-                                            const group2Data = data.map(row => Number(row[g2]) || 0);
-                                            // The generic runMannWhitneyU in webr-wrapper likely takes 2 arrays (like t-test).
-                                            const result = await runMannWhitneyU(group1Data, group2Data);
-                                            setResults({ type: 'mann-whitney', data: result, columns: [g1, g2] });
-                                            setStep('results');
-                                            showToast('Phân tích Mann-Whitney U hoàn thành!', 'success');
-                                        } catch (err) { showToast('Lỗi: ' + err, 'error'); }
-                                        finally { setIsAnalyzing(false); }
-                                    }}
-                                    disabled={isAnalyzing}
-                                    className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg"
-                                >
-                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Mann-Whitney U'}
-                                </button>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Biến cột (Col)</label>
+                                    <select
+                                        id="fisher-col"
+                                        className="w-full px-3 py-2 border rounded-lg"
+                                        defaultValue=""
+                                    >
+                                        <option value="">Chọn biến...</option>
+                                        {profile?.columnStats && Object.keys(profile.columnStats).map(col => (
+                                            <option key={col} value={col}>{col}</option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
-
                             <button
-                                onClick={() => setStep('analyze')}
-                                className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                                onClick={async () => {
+                                    const rVar = (document.getElementById('fisher-row') as HTMLSelectElement).value;
+                                    const cVar = (document.getElementById('fisher-col') as HTMLSelectElement).value;
+
+                                    if (!rVar || !cVar) { showToast('Vui lòng chọn cả 2 biến', 'error'); return; }
+                                    if (rVar === cVar) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
+
+                                    setIsAnalyzing(true);
+                                    setAnalysisType('chisquare'); // Reuse chisquare logical flow
+                                    try {
+                                        const fisherData = data.map(row => [
+                                            row[rVar],
+                                            row[cVar]
+                                        ]);
+
+                                        const result = await runChiSquare(fisherData);
+                                        setResults({ type: 'chisquare', data: result, columns: [rVar, cVar] });
+                                        setStep('results');
+                                        showToast('Phân tích Fisher Exact hoàn thành!', 'success');
+                                    } catch (err) { showToast('Lỗi: ' + err, 'error'); }
+                                    finally { setIsAnalyzing(false); }
+                                }}
+                                disabled={isAnalyzing}
+                                className="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg"
                             >
-                                ← Quay lại
+                                {isAnalyzing ? 'Đang phân tích...' : 'Chạy Fisher Exact Test'}
                             </button>
                         </div>
-                    )}
 
-                    {/* CFA Selection */}
-                    {step === 'cfa-select' && (
-                        <CFASelection
-                            columns={getNumericColumns()}
-                            onRunCFA={async (modelSyntax: string, factors: any[]) => {
-                                setIsAnalyzing(true);
-                                setAnalysisType('cfa');
-                                try {
-                                    const selectedCols = factors.flatMap((f: any) => f.indicators);
-                                    const cfaData = data.map(row =>
-                                        selectedCols.map(col => Number(row[col]) || 0)
-                                    );
-                                    const result = await runCFA(cfaData, selectedCols, modelSyntax);
-                                    setResults({ type: 'cfa', data: result, columns: selectedCols });
-                                    setStep('results');
-                                    showToast('Phân tích CFA hoàn thành!', 'success');
-                                } catch (err) {
-                                    showToast('Lỗi CFA: ' + err, 'error');
-                                }
-                                finally { setIsAnalyzing(false); }
-                            }}
-                            isAnalyzing={isAnalyzing}
-                            onBack={() => setStep('analyze')}
-                        />
-                    )}
+                        <button
+                            onClick={() => setStep('analyze')}
+                            className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                        >
+                            ← Quay lại
+                        </button>
+                    </div>
+                )}
 
-                    {/* SEM Selection */}
-                    {step === 'sem-select' && (
-                        <SEMSelection
-                            columns={getNumericColumns()}
-                            onRunSEM={async (modelSyntax: string, factors: any[]) => {
-                                setIsAnalyzing(true);
-                                setAnalysisType('sem');
-                                try {
-                                    const selectedCols = factors.flatMap((f: any) => f.indicators);
-                                    const semData = data.map(row =>
-                                        selectedCols.map(col => Number(row[col]) || 0)
-                                    );
-                                    const result = await runSEM(semData, selectedCols, modelSyntax);
-                                    setResults({ type: 'sem', data: result, columns: selectedCols });
-                                    setStep('results');
-                                    showToast('Phân tích SEM hoàn thành!', 'success');
-                                } catch (err) {
-                                    showToast('Lỗi SEM: ' + err, 'error');
-                                }
-                                finally { setIsAnalyzing(false); }
-                            }}
-                            isAnalyzing={isAnalyzing}
-                            onBack={() => setStep('analyze')}
-                        />
-                    )}
+                {/* Mann-Whitney U Selection - NEW */}
+                {step === 'mannwhitney-select' && (
+                    <div className="max-w-2xl mx-auto space-y-6">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                Mann-Whitney U Test
+                            </h2>
+                            <p className="text-gray-600">
+                                So sánh trung bình 2 nhóm độc lập (Phi tham số - Non-parametric)
+                            </p>
+                        </div>
 
-                    {step === 'results' && (results || multipleResults.length > 0) && (
-                        <div className="max-w-6xl mx-auto space-y-6" id="results-container">
-                            <div className="text-center mb-8">
-                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                                    Kết quả phân tích
-                                </h2>
-                                <p className="text-gray-600">
-                                    {analysisType === 'cronbach' && `Cronbach's Alpha${results?.scaleName ? ` - ${results.scaleName}` : ''}`}
-                                    {analysisType === 'cronbach-batch' && `Cronbach's Alpha - ${multipleResults.length} thang đo`}
-                                    {analysisType === 'correlation' && "Ma trận tương quan"}
-                                    {analysisType === 'descriptive' && "Thống kê mô tả"}
-                                    {analysisType === 'ttest' && "Independent Samples T-test"}
-                                    {analysisType === 'ttest-paired' && "Paired Samples T-test"}
-                                    {analysisType === 'anova' && "One-Way ANOVA"}
-                                    {analysisType === 'efa' && "Exploratory Factor Analysis"}
-                                    {analysisType === 'regression' && "Multiple Linear Regression"}
-                                </p>
-                            </div>
-
-                            {/* Single Result Display */}
-                            {results && analysisType !== 'cronbach-batch' && (
-                                <ResultsDisplay
-                                    analysisType={analysisType}
-                                    results={results.data}
-                                    columns={results.columns}
-                                    onProceedToEFA={handleProceedToEFA}
-                                    onProceedToCFA={handleProceedToCFA}
-                                    onProceedToSEM={handleProceedToSEM}
-                                    userProfile={userProfile}
-                                />
-                            )}
-
-                            {/* Batch Results Display */}
-                            {analysisType === 'cronbach-batch' && multipleResults.length > 0 && (
-                                <div className="space-y-8">
-                                    {/* Summary Table */}
-                                    <div className="bg-white rounded-xl shadow-lg p-6">
-                                        <h3 className="text-lg font-bold text-gray-800 mb-4">Tổng hợp độ tin cậy các thang đo</h3>
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="border-b-2 border-gray-300">
-                                                    <th className="py-2 px-3 font-semibold">Thang đo</th>
-                                                    <th className="py-2 px-3 font-semibold text-center">Số biến</th>
-                                                    <th className="py-2 px-3 font-semibold text-center">Cronbach&apos;s Alpha</th>
-                                                    <th className="py-2 px-3 font-semibold text-center">Đánh giá</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {multipleResults.map((r, idx) => {
-                                                    const alpha = r.data?.alpha || r.data?.rawAlpha || 0;
-                                                    let evaluation = '';
-                                                    let evalColor = '';
-                                                    if (alpha >= 0.9) { evaluation = 'Xuất sắc'; evalColor = 'text-green-700 bg-green-100'; }
-                                                    else if (alpha >= 0.8) { evaluation = 'Tốt'; evalColor = 'text-green-600 bg-green-50'; }
-                                                    else if (alpha >= 0.7) { evaluation = 'Chấp nhận'; evalColor = 'text-blue-600 bg-blue-50'; }
-                                                    else if (alpha >= 0.6) { evaluation = 'Khá'; evalColor = 'text-yellow-600 bg-yellow-50'; }
-                                                    else { evaluation = 'Kém'; evalColor = 'text-red-600 bg-red-50'; }
-
-                                                    return (
-                                                        <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
-                                                            <td className="py-3 px-3 font-medium">{r.scaleName}</td>
-                                                            <td className="py-3 px-3 text-center">{r.columns.length}</td>
-                                                            <td className="py-3 px-3 text-center font-bold">{alpha.toFixed(3)}</td>
-                                                            <td className="py-3 px-3 text-center">
-                                                                <span className={`px-2 py-1 rounded text-sm font-medium ${evalColor}`}>
-                                                                    {evaluation}
-                                                                </span>
-                                                            </td>
-                                                        </tr>
-                                                    );
-                                                })}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {/* Detailed Results for Each Group */}
-                                    {multipleResults.map((r, idx) => (
-                                        <div key={idx} className="border-t pt-6">
-                                            <h4 className="text-lg font-bold text-gray-800 mb-4">
-                                                Chi tiết: {r.scaleName} ({r.columns.join(', ')})
-                                            </h4>
-                                            <ResultsDisplay
-                                                analysisType="cronbach"
-                                                results={r.data}
-                                                columns={r.columns}
-                                                userProfile={userProfile}
-                                            />
-                                        </div>
-                                    ))}
+                        <div className="bg-white rounded-xl shadow-lg p-6 border">
+                            <p className="text-sm text-gray-600 mb-4">
+                                Chọn 2 biến số để so sánh:
+                            </p>
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 1</label>
+                                    <select
+                                        id="mw-group1"
+                                        className="w-full px-3 py-2 border rounded-lg"
+                                        defaultValue=""
+                                    >
+                                        <option value="">Chọn biến...</option>
+                                        {getNumericColumns().map(col => (
+                                            <option key={col} value={col}>{col}</option>
+                                        ))}
+                                    </select>
                                 </div>
-                            )}
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nhóm 2</label>
+                                    <select
+                                        id="mw-group2"
+                                        className="w-full px-3 py-2 border rounded-lg"
+                                        defaultValue=""
+                                    >
+                                        <option value="">Chọn biến...</option>
+                                        {getNumericColumns().map(col => (
+                                            <option key={col} value={col}>{col}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <button
+                                onClick={async () => {
+                                    const g1 = (document.getElementById('mw-group1') as HTMLSelectElement).value;
+                                    const g2 = (document.getElementById('mw-group2') as HTMLSelectElement).value;
 
-                            {/* Action Buttons */}
-                            <div className="flex gap-4 justify-center">
+                                    if (!g1 || !g2) { showToast('Vui lòng chọn cả 2 biến', 'error'); return; }
+                                    if (g1 === g2) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
+
+                                    setIsAnalyzing(true);
+                                    setAnalysisType('mann-whitney'); // Matches ResultsDisplay 'mann-whitney' case
+                                    try {
+                                        const group1Data = data.map(row => Number(row[g1]) || 0);
+                                        const group2Data = data.map(row => Number(row[g2]) || 0);
+                                        // The generic runMannWhitneyU in webr-wrapper likely takes 2 arrays (like t-test).
+                                        const result = await runMannWhitneyU(group1Data, group2Data);
+                                        setResults({ type: 'mann-whitney', data: result, columns: [g1, g2] });
+                                        setStep('results');
+                                        showToast('Phân tích Mann-Whitney U hoàn thành!', 'success');
+                                    } catch (err) { showToast('Lỗi: ' + err, 'error'); }
+                                    finally { setIsAnalyzing(false); }
+                                }}
+                                disabled={isAnalyzing}
+                                className="w-full py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg"
+                            >
+                                {isAnalyzing ? 'Đang phân tích...' : 'Chạy Mann-Whitney U'}
+                            </button>
+                        </div>
+
+                        <button
+                            onClick={() => setStep('analyze')}
+                            className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg"
+                        >
+                            ← Quay lại
+                        </button>
+                    </div>
+                )}
+
+                {/* CFA Selection */}
+                {step === 'cfa-select' && (
+                    <CFASelection
+                        columns={getNumericColumns()}
+                        onRunCFA={async (modelSyntax: string, factors: any[]) => {
+                            setIsAnalyzing(true);
+                            setAnalysisType('cfa');
+                            try {
+                                const selectedCols = factors.flatMap((f: any) => f.indicators);
+                                const cfaData = data.map(row =>
+                                    selectedCols.map(col => Number(row[col]) || 0)
+                                );
+                                const result = await runCFA(cfaData, selectedCols, modelSyntax);
+                                setResults({ type: 'cfa', data: result, columns: selectedCols });
+                                setStep('results');
+                                showToast('Phân tích CFA hoàn thành!', 'success');
+                            } catch (err) {
+                                showToast('Lỗi CFA: ' + err, 'error');
+                            }
+                            finally { setIsAnalyzing(false); }
+                        }}
+                        isAnalyzing={isAnalyzing}
+                        onBack={() => setStep('analyze')}
+                    />
+                )}
+
+                {/* SEM Selection */}
+                {step === 'sem-select' && (
+                    <SEMSelection
+                        columns={getNumericColumns()}
+                        onRunSEM={async (modelSyntax: string, factors: any[]) => {
+                            setIsAnalyzing(true);
+                            setAnalysisType('sem');
+                            try {
+                                const selectedCols = factors.flatMap((f: any) => f.indicators);
+                                const semData = data.map(row =>
+                                    selectedCols.map(col => Number(row[col]) || 0)
+                                );
+                                const result = await runSEM(semData, selectedCols, modelSyntax);
+                                setResults({ type: 'sem', data: result, columns: selectedCols });
+                                setStep('results');
+                                showToast('Phân tích SEM hoàn thành!', 'success');
+                            } catch (err) {
+                                showToast('Lỗi SEM: ' + err, 'error');
+                            }
+                            finally { setIsAnalyzing(false); }
+                        }}
+                        isAnalyzing={isAnalyzing}
+                        onBack={() => setStep('analyze')}
+                    />
+                )}
+
+                {step === 'results' && (results || multipleResults.length > 0) && (
+                    <div className="max-w-6xl mx-auto space-y-6" id="results-container">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                Kết quả phân tích
+                            </h2>
+                            <p className="text-gray-600">
+                                {analysisType === 'cronbach' && `Cronbach's Alpha${results?.scaleName ? ` - ${results.scaleName}` : ''}`}
+                                {analysisType === 'cronbach-batch' && `Cronbach's Alpha - ${multipleResults.length} thang đo`}
+                                {analysisType === 'correlation' && "Ma trận tương quan"}
+                                {analysisType === 'descriptive' && "Thống kê mô tả"}
+                                {analysisType === 'ttest' && "Independent Samples T-test"}
+                                {analysisType === 'ttest-paired' && "Paired Samples T-test"}
+                                {analysisType === 'anova' && "One-Way ANOVA"}
+                                {analysisType === 'efa' && "Exploratory Factor Analysis"}
+                                {analysisType === 'regression' && "Multiple Linear Regression"}
+                            </p>
+                        </div>
+
+                        {/* Single Result Display */}
+                        {results && analysisType !== 'cronbach-batch' && (
+                            <ResultsDisplay
+                                analysisType={analysisType}
+                                results={results.data}
+                                columns={results.columns}
+                                onProceedToEFA={handleProceedToEFA}
+                                onProceedToCFA={handleProceedToCFA}
+                                onProceedToSEM={handleProceedToSEM}
+                                userProfile={userProfile}
+                            />
+                        )}
+
+                        {/* Batch Results Display */}
+                        {analysisType === 'cronbach-batch' && multipleResults.length > 0 && (
+                            <div className="space-y-8">
+                                {/* Summary Table */}
+                                <div className="bg-white rounded-xl shadow-lg p-6">
+                                    <h3 className="text-lg font-bold text-gray-800 mb-4">Tổng hợp độ tin cậy các thang đo</h3>
+                                    <table className="w-full text-left">
+                                        <thead>
+                                            <tr className="border-b-2 border-gray-300">
+                                                <th className="py-2 px-3 font-semibold">Thang đo</th>
+                                                <th className="py-2 px-3 font-semibold text-center">Số biến</th>
+                                                <th className="py-2 px-3 font-semibold text-center">Cronbach&apos;s Alpha</th>
+                                                <th className="py-2 px-3 font-semibold text-center">Đánh giá</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {multipleResults.map((r, idx) => {
+                                                const alpha = r.data?.alpha || r.data?.rawAlpha || 0;
+                                                let evaluation = '';
+                                                let evalColor = '';
+                                                if (alpha >= 0.9) { evaluation = 'Xuất sắc'; evalColor = 'text-green-700 bg-green-100'; }
+                                                else if (alpha >= 0.8) { evaluation = 'Tốt'; evalColor = 'text-green-600 bg-green-50'; }
+                                                else if (alpha >= 0.7) { evaluation = 'Chấp nhận'; evalColor = 'text-blue-600 bg-blue-50'; }
+                                                else if (alpha >= 0.6) { evaluation = 'Khá'; evalColor = 'text-yellow-600 bg-yellow-50'; }
+                                                else { evaluation = 'Kém'; evalColor = 'text-red-600 bg-red-50'; }
+
+                                                return (
+                                                    <tr key={idx} className="border-b border-gray-200 hover:bg-gray-50">
+                                                        <td className="py-3 px-3 font-medium">{r.scaleName}</td>
+                                                        <td className="py-3 px-3 text-center">{r.columns.length}</td>
+                                                        <td className="py-3 px-3 text-center font-bold">{alpha.toFixed(3)}</td>
+                                                        <td className="py-3 px-3 text-center">
+                                                            <span className={`px-2 py-1 rounded text-sm font-medium ${evalColor}`}>
+                                                                {evaluation}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                {/* Detailed Results for Each Group */}
+                                {multipleResults.map((r, idx) => (
+                                    <div key={idx} className="border-t pt-6">
+                                        <h4 className="text-lg font-bold text-gray-800 mb-4">
+                                            Chi tiết: {r.scaleName} ({r.columns.join(', ')})
+                                        </h4>
+                                        <ResultsDisplay
+                                            analysisType="cronbach"
+                                            results={r.data}
+                                            columns={r.columns}
+                                            userProfile={userProfile}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-4 justify-center">
+                            <button
+                                onClick={() => setStep('analyze')}
+                                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors"
+                            >
+                                ← Phân tích khác
+                            </button>
+                            <button
+                                onClick={handleExportPDF}
+                                className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                            >
+                                <FileText className="w-5 h-5" />
+                                Xuất PDF
+                            </button>
+                            <div className="relative group">
                                 <button
-                                    onClick={() => setStep('analyze')}
-                                    className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg transition-colors"
-                                >
-                                    ← Phân tích khác
-                                </button>
-                                <button
-                                    onClick={handleExportPDF}
-                                    className="px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                                    disabled
+                                    className="px-6 py-3 bg-blue-400 text-white font-semibold rounded-lg flex items-center gap-2 cursor-not-allowed opacity-70"
                                 >
                                     <FileText className="w-5 h-5" />
-                                    Xuất PDF
+                                    Xuất Word
                                 </button>
-                                <div className="relative group">
-                                    <button
-                                        disabled
-                                        className="px-6 py-3 bg-blue-400 text-white font-semibold rounded-lg flex items-center gap-2 cursor-not-allowed opacity-70"
-                                    >
-                                        <FileText className="w-5 h-5" />
-                                        Xuất Word
-                                    </button>
-                                    <span className="absolute -top-3 -right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
-                                        Soon
-                                    </span>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setStep('upload');
-                                        setData([]);
-                                        setProfile(null);
-                                        setResults(null);
-                                        setMultipleResults([]);
-                                    }}
-                                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-                                >
-                                    Tải file mới
-                                </button>
+                                <span className="absolute -top-3 -right-3 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                    Soon
+                                </span>
                             </div>
+                            <button
+                                onClick={() => {
+                                    setStep('upload');
+                                    setData([]);
+                                    setProfile(null);
+                                    setResults(null);
+                                    setMultipleResults([]);
+                                }}
+                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+                            >
+                                Tải file mới
+                            </button>
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
+        </div>
 
-            {/* Footer */}
-            <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500">
-                <p>
-                    1 sản phẩm của hệ sinh thái hỗ trợ nghiên cứu khoa học từ{' '}
-                    <a
-                        href="https://ncskit.org"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-bold text-blue-600 hover:text-blue-800 transition-colors"
-                    >
-                        NCSKit.org
-                    </a>
-                </p>
-                <div className="mt-4">
-                    <button
-                        onClick={() => {
-                            const data = FeedbackService.exportAllData();
-                            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-                            const url = URL.createObjectURL(blob);
-                            const a = document.createElement('a');
-                            a.href = url;
-                            a.download = `ncsStat_feedback_${new Date().toISOString().slice(0, 10)}.json`;
-                            a.click();
-                        }}
-                        className="text-xs text-gray-400 hover:text-gray-600 underline"
-                    >
-                        Export Feedback Data (Dev)
-                    </button>
-                </div>
-            </footer>
+            {/* Footer */ }
+    <footer className="mt-12 py-6 border-t border-gray-200 text-center text-sm text-gray-500">
+        <p>
+            1 sản phẩm của hệ sinh thái hỗ trợ nghiên cứu khoa học từ{' '}
+            <a
+                href="https://ncskit.org"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-blue-600 hover:text-blue-800 transition-colors"
+            >
+                NCSKit.org
+            </a>
+        </p>
+        <div className="mt-4">
+            <button
+                onClick={() => {
+                    const data = FeedbackService.exportAllData();
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `ncsStat_feedback_${new Date().toISOString().slice(0, 10)}.json`;
+                    a.click();
+                }}
+                className="text-xs text-gray-400 hover:text-gray-600 underline"
+            >
+                Export Feedback Data (Dev)
+            </button>
+        </div>
+    </footer>
 
-            {/* Custom styles for animations */}
-            <style jsx>{`
+    {/* Custom styles for animations */ }
+    <style jsx>{`
                 @keyframes slide-up {
                     from {
                         transform: translateY(100%);
@@ -1734,30 +1854,30 @@ export default function AnalyzePage() {
                     animation: slide-up 0.3s ease-out;
                 }
             `}</style>
-            {/* Feedback Part 1: Demographics Survey */}
-            <DemographicSurvey
-                isOpen={showDemographics}
-                onComplete={() => {
-                    setShowDemographics(false);
-                    showToast('Cảm ơn bạn đã cung cấp thông tin!', 'success');
-                }}
-            />
+    {/* Feedback Part 1: Demographics Survey */ }
+    <DemographicSurvey
+        isOpen={showDemographics}
+        onComplete={() => {
+            setShowDemographics(false);
+            showToast('Cảm ơn bạn đã cung cấp thông tin!', 'success');
+        }}
+    />
 
-            {/* Feedback Part 3: Applicability Survey */}
-            <ApplicabilitySurvey
-                isOpen={showApplicability}
-                onComplete={() => {
-                    setShowApplicability(false);
-                    runExportPDF(); // Proceed to export
-                }}
-                onCancel={() => {
-                    setShowApplicability(false);
-                    // Just close, do not export? Or allow export without feedback?
-                    // Typically "Cancel" means cancel the action.
-                    // If they want to export without feedback, they should probably have a "Skip" option inside (not implemented yet),
-                    // or we assume completing Q8 is mandatory for the "Value" (Export).
-                }}
-            />
+    {/* Feedback Part 3: Applicability Survey */ }
+    <ApplicabilitySurvey
+        isOpen={showApplicability}
+        onComplete={() => {
+            setShowApplicability(false);
+            runExportPDF(); // Proceed to export
+        }}
+        onCancel={() => {
+            setShowApplicability(false);
+            // Just close, do not export? Or allow export without feedback?
+            // Typically "Cancel" means cancel the action.
+            // If they want to export without feedback, they should probably have a "Skip" option inside (not implemented yet),
+            // or we assume completing Q8 is mandatory for the "Value" (Export).
+        }}
+    />
         </div >
     );
 }
