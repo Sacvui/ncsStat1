@@ -1,6 +1,6 @@
 'use client'
 
-import { createClient } from '@/utils/supabase/client'
+import { createClientOnly } from '@/utils/supabase/client-only'
 import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ProjectFlowAnimation } from '@/components/login/ProjectFlowAnimation'
@@ -26,7 +26,7 @@ function LoginForm() {
         setErrorMsg(null)
 
         try {
-            const supabase = createClient()
+            const supabase = createClientOnly()
             const redirectTo = `${window.location.origin}/auth/callback?next=${encodeURIComponent(next || '/analyze')}`
 
             const { error } = await supabase.auth.signInWithOAuth({
