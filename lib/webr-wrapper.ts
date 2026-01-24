@@ -273,14 +273,17 @@ export async function runCronbachAlpha(data: number[][]): Promise<{
 
 
 /**
- * Run correlation analysis
+ * Run correlation analysis with method selection
+ * @param data - Matrix of numeric data
+ * @param method - 'pearson' (default), 'spearman', or 'kendall'
  */
-/**
- * Run correlation analysis
- */
-export async function runCorrelation(data: number[][]): Promise<{
+export async function runCorrelation(
+    data: number[][],
+    method: 'pearson' | 'spearman' | 'kendall' = 'pearson'
+): Promise<{
     correlationMatrix: number[][];
     pValues: number[][];
+    method: string;
     rCode: string;
 }> {
     const webR = await initWebR();
@@ -294,14 +297,16 @@ export async function runCorrelation(data: number[][]): Promise<{
     # Force unique column names to avoid "duplicate row.names" error in psych
     colnames(df) <- paste0("V", 1:ncol(df))
 
-    # Use psych::corr.test for robust pairwise p-values and handling missing data
-    # adjust = "none" matches standard SPSS / Excel output (unadjusted p-values)
-    ct <- corr.test(df, use = "pairwise", method = "pearson", adjust = "none")
+    # Run correlation with selected method
+    # Pearson = linear, Spearman = rank-based (non-parametric), Kendall = rank concordance
+    method_name <- "${method}"
+    ct <- corr.test(df, use = "pairwise", method = method_name, adjust = "none")
 
     list(
         correlation = as.vector(ct$r),
         p_values = as.vector(ct$p),
-        n_cols = ncol(df)
+        n_cols = ncol(df),
+        method = method_name
     )
     `;
 
@@ -311,7 +316,7 @@ export async function runCorrelation(data: number[][]): Promise<{
     const getValue = parseWebRResult(jsResult);
 
     // Parse flat array to matrix
-    const parseMatrix = (val: any, dim: number): number[][] => {
+    const parseMatrixLocal = (val: any, dim: number): number[][] => {
         if (!val || !Array.isArray(val)) return [];
         const matrix: number[][] = [];
         for (let i = 0; i < dim; i++) {
@@ -323,8 +328,9 @@ export async function runCorrelation(data: number[][]): Promise<{
     const numCols = getValue('n_cols')?.[0] || nCols;
 
     return {
-        correlationMatrix: parseMatrix(getValue('correlation'), numCols),
-        pValues: parseMatrix(getValue('p_values'), numCols),
+        correlationMatrix: parseMatrixLocal(getValue('correlation'), numCols),
+        pValues: parseMatrixLocal(getValue('p_values'), numCols),
+        method: method,
         rCode: rCode
     };
 }
