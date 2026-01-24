@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+// Force dynamic to prevent build-time env var access
+export const dynamic = 'force-dynamic';
 
 /**
  * API Route để tạo/cập nhật profile cho ORCID users
@@ -8,11 +11,19 @@ import { createClient } from '@supabase/supabase-js';
  * để insert trực tiếp vào profiles table với orcid_id
  */
 
-const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-);
+// Lazy-init Supabase admin client to avoid build-time errors
+let _supabaseAdmin: SupabaseClient | null = null;
+
+function getSupabaseAdmin(): SupabaseClient {
+    if (!_supabaseAdmin) {
+        _supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { persistSession: false } }
+        );
+    }
+    return _supabaseAdmin;
+}
 
 export async function POST(request: NextRequest) {
     try {
@@ -53,7 +64,7 @@ export async function POST(request: NextRequest) {
             }
 
             // Generate magic link for auto-login (existing user by email)
-            const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+            const { data: linkData } = await getSupabaseAdmin().auth.admin.generateLink({
                 type: 'magiclink',
                 email: email,
                 options: {
@@ -92,7 +103,7 @@ export async function POST(request: NextRequest) {
 
             let verifyUrl = null;
             if (orcidProfile?.email) {
-                const { data: linkData } = await supabaseAdmin.auth.admin.generateLink({
+                const { data: linkData } = await getSupabaseAdmin().auth.admin.generateLink({
                     type: 'magiclink',
                     email: orcidProfile.email,
                     options: {
@@ -117,7 +128,7 @@ export async function POST(request: NextRequest) {
         // For now, we'll use a separate orcid_profiles table or create temp auth user
         // Option: Use Supabase Admin API to create a dummy auth user
 
-        const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        const { data: authUser, error: authError } = await getSupabaseAdmin().auth.admin.createUser({
             email: email,
             email_confirm: true,
             user_metadata: {
@@ -149,7 +160,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Generate magic link for auto-login
-        const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        const { data: linkData, error: linkError } = await getSupabaseAdmin().auth.admin.generateLink({
             type: 'magiclink',
             email: email,
             options: {
