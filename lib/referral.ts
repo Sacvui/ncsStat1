@@ -9,11 +9,13 @@ const REFERRAL_REWARD = 5000; // NCS points for successful referral
 
 /**
  * Generate unique referral code for a user
+ * Uses 8 random alphanumeric characters for uniqueness
  */
 export function generateReferralCode(userId: string): string {
-    const prefix = userId.slice(0, 4).toUpperCase();
+    // Use a combination of timestamp and random for uniqueness
+    const timestamp = Date.now().toString(36).slice(-4).toUpperCase();
     const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-    return `NCS-${prefix}${random}`;
+    return `NCS-${timestamp}${random}`;
 }
 
 /**
