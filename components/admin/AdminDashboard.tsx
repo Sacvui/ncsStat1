@@ -29,6 +29,7 @@ import {
 } from '@/lib/admin-actions';
 import { AdminAutoTest } from './AdminAutoTest';
 import { AdminCreditConfig } from './AdminCreditConfig';
+import { AdminActivityLog } from './AdminActivityLog';
 
 type Tab = 'dashboard' | 'users' | 'activity' | 'invitations' | 'autotest' | 'settings';
 
@@ -108,13 +109,23 @@ export default function AdminDashboard() {
     }
 
     async function handleAdjustTokens() {
-        if (!selectedUser || !tokenAmount || !tokenReason) return;
+        if (!selectedUser || !tokenAmount || !tokenReason) {
+            alert('Please fill all fields');
+            return;
+        }
 
-        await adjustUserTokens(selectedUser.profile.id, tokenAmount, tokenReason);
+        const result = await adjustUserTokens(selectedUser.profile.id, tokenAmount, tokenReason);
+
+        if (result?.error) {
+            alert(`Error: ${result.error}`);
+            return;
+        }
+
         setShowTokenModal(false);
         setTokenAmount(0);
         setTokenReason('');
         handleViewUser(selectedUser.profile.id);
+        alert('Tokens adjusted successfully');
     }
 
     async function handleRoleChange(userId: string, newRole: 'user' | 'researcher' | 'admin') {
@@ -341,39 +352,7 @@ export default function AdminDashboard() {
                 {/* Activity Tab */}
                 {!loading && activeTab === 'activity' && (
                     <div className="space-y-6">
-                        <div className="bg-white rounded-xl border shadow-sm p-6">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-lg font-semibold">System Activity Log</h3>
-                                <div className="flex items-center gap-2 text-sm text-gray-500">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                    Real-time updates
-                                </div>
-                            </div>
-                            {activityBreakdown.length > 0 ? (
-                                <div className="space-y-3">
-                                    {activityBreakdown.map((item, idx) => (
-                                        <div key={idx} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-white rounded-lg border border-gray-100 hover:shadow-sm transition-shadow">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                                                    <Activity className="w-5 h-5 text-indigo-600" />
-                                                </div>
-                                                <div>
-                                                    <div className="font-medium capitalize">{item.type?.replace('_', ' ') || 'Activity'}</div>
-                                                    <div className="text-sm text-gray-500">Last 30 days</div>
-                                                </div>
-                                            </div>
-                                            <div className="text-2xl font-bold text-indigo-600">{item.count}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-12">
-                                    <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                                    <p className="text-gray-500">No activity data available yet</p>
-                                    <p className="text-sm text-gray-400 mt-1">Activity will appear here as users interact with the system</p>
-                                </div>
-                            )}
-                        </div>
+                        <AdminActivityLog />
                     </div>
                 )}
 

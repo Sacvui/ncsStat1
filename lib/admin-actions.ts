@@ -1,7 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
-import { recordTokenTransaction } from './token-service';
+import { recordTokenTransaction, recordTokenTransactionAdmin } from './token-service';
 import { POINTS_CONFIG } from './points-config';
 
 // Get admin dashboard statistics - OPTIMIZED with parallel queries
@@ -178,7 +178,7 @@ export async function adjustUserTokens(
         return { error: 'Not authorized' };
     }
 
-    const result = await recordTokenTransaction(
+    const result = await recordTokenTransactionAdmin(
         userId,
         amount,
         'admin_adjust',

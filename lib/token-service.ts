@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/utils/supabase/server';
+import { createAdminClient } from '@/utils/supabase/admin';
 import { POINTS_CONFIG, TransactionType } from './points-config';
 
 
@@ -13,6 +14,78 @@ export async function recordTokenTransaction(
     relatedId?: string
 ) {
     const supabase = await createClient();
+
+    // Get current balance
+    const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('tokens, total_earned, total_spent')
+        .eq('id', userId)
+        .single();
+
+    if (profileError) {
+        console.error('Error fetching profile:', profileError);
+        return { error: profileError.message };
+    }
+
+    const currentBalance = profile?.tokens || 0;
+    const newBalance = currentBalance + amount;
+
+    // Check if user has enough tokens for spending
+    if (amount < 0 && newBalance < 0) {
+        return { error: 'Insufficient tokens', balance: currentBalance };
+    }
+
+    // Update profile
+    const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+            tokens: newBalance,
+            total_earned: amount > 0 ? (profile?.total_earned || 0) + amount : profile?.total_earned,
+            total_spent: amount < 0 ? (profile?.total_spent || 0) + Math.abs(amount) : profile?.total_spent,
+            last_active: new Date().toISOString(),
+        })
+        .eq('id', userId);
+
+    if (updateError) {
+        console.error('Error updating profile:', updateError);
+        return { error: updateError.message };
+    }
+
+    // Insert transaction record
+    const { data: transaction, error: txError } = await supabase
+        .from('token_transactions')
+        .insert({
+            user_id: userId,
+            amount,
+            type,
+            description,
+            related_id: relatedId,
+            balance_after: newBalance,
+        })
+        .select()
+        .single();
+
+    if (txError) {
+        console.error('Error recording transaction:', txError);
+        return { error: txError.message };
+    }
+
+    return {
+        success: true,
+        transaction,
+        newBalance
+    };
+}
+
+// Record a token transaction (Admin Version - Bypasses RLS)
+export async function recordTokenTransactionAdmin(
+    userId: string,
+    amount: number,
+    type: TransactionType,
+    description?: string,
+    relatedId?: string
+) {
+    const supabase = createAdminClient();
 
     // Get current balance
     const { data: profile, error: profileError } = await supabase

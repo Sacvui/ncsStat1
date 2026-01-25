@@ -125,8 +125,8 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                     {rightActions && <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />}
 
                     {/* NCS Balance Badge - show when user is logged in */}
-                    {effectiveUser && effectiveProfile?.tokens !== undefined && (
-                        <NcsBalanceBadge balance={effectiveProfile.tokens || 0} size="sm" />
+                    {effectiveUser && (
+                        <NcsBalanceBadge balance={effectiveProfile?.tokens || 0} size="sm" />
                     )}
 
                     {/* Language Switcher */}

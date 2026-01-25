@@ -247,6 +247,7 @@ function getDefaultCosts(): Record<string, number> {
     return {
         descriptive: 100,
         cronbach: 500,
+        omega: 500, // Same as cronbach
         correlation: 300,
         ttest: 400,
         'ttest-indep': 400,

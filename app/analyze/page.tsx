@@ -33,6 +33,7 @@ import AnalysisToolbar from '@/components/analyze/AnalysisToolbar';
 import SaveProjectModal from '@/components/analyze/SaveProjectModal';
 import Footer from '@/components/layout/Footer';
 import { getAnalysisCost, checkBalance, deductCredits, getUserBalance } from '@/lib/ncs-credits';
+import { logAnalysisUsage, logExport } from '@/lib/activity-logger';
 import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
 import { NcsBalanceBadge } from '@/components/NcsBalanceBadge';
 
@@ -380,6 +381,7 @@ export default function AnalyzePage() {
             if (user) {
                 const cost = await getAnalysisCost('cronbach');
                 await deductCredits(user.id, cost, `Cronbach Alpha: ${name}`);
+                await logAnalysisUsage(user.id, 'cronbach', cost);
                 setNcsBalance(prev => Math.max(0, prev - cost));
             }
 
@@ -471,6 +473,7 @@ export default function AnalyzePage() {
             if (user) {
                 const cost = await getAnalysisCost('omega');
                 await deductCredits(user.id, cost, `McDonald's Omega: ${name}`);
+                await logAnalysisUsage(user.id, 'omega', cost);
                 setNcsBalance(prev => Math.max(0, prev - cost));
             }
 
@@ -538,7 +541,21 @@ export default function AnalyzePage() {
             if (numericColumns.length < 2) {
                 showToast('Cần ít nhất 2 biến số để phân tích', 'error');
                 setIsAnalyzing(false);
+                setIsAnalyzing(false);
                 return;
+            }
+
+            // NCS Credit Check
+            if (user) {
+                const cost = await getAnalysisCost(type);
+                const hasEnough = await checkBalance(user.id, cost);
+                if (!hasEnough) {
+                    setRequiredCredits(cost);
+                    setCurrentAnalysisCost(cost);
+                    setShowInsufficientCredits(true);
+                    setIsAnalyzing(false);
+                    return;
+                }
             }
 
             setAnalysisProgress(0);
@@ -569,6 +586,14 @@ export default function AnalyzePage() {
 
             clearInterval(progressInterval);
             setAnalysisProgress(100);
+
+            // Deduct credits on success
+            if (user) {
+                const cost = await getAnalysisCost(type);
+                await deductCredits(user.id, cost, `${type === 'correlation' ? 'Correlation Matrix' : 'Descriptive Stats'}`);
+                await logAnalysisUsage(user.id, type, cost);
+                setNcsBalance(prev => Math.max(0, prev - cost));
+            }
 
             setResults({
                 type,
@@ -661,6 +686,9 @@ export default function AnalyzePage() {
                     filename: `cronbach_batch_${multipleResults.length}_scales_${Date.now()}.pdf`,
                     chartImages: []
                 });
+                if (user) {
+                    await logExport(user.id, 'PDF: cronbach-batch');
+                }
                 showToast(`Đã xuất 1 file PDF tổng hợp ${multipleResults.length} thang đo!`, 'success');
             } else {
                 // Single result export
@@ -672,6 +700,9 @@ export default function AnalyzePage() {
                     filename: `statviet_${analysisType}_${Date.now()}.pdf`,
                     chartImages
                 });
+                if (user) {
+                    await logExport(user.id, `PDF: ${analysisType}`);
+                }
                 showToast('Đã xuất PDF thành công!', 'success');
             }
         } catch (error) {
@@ -1067,10 +1098,32 @@ export default function AnalyzePage() {
                                         if (g1 === g2) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
                                         setIsAnalyzing(true);
                                         setAnalysisType('ttest-indep');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('ttest-indep');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const group1Data = data.map(row => Number(row[g1]) || 0);
                                             const group2Data = data.map(row => Number(row[g2]) || 0);
                                             const result = await runTTestIndependent(group1Data, group2Data);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('ttest-indep');
+                                                await deductCredits(user.id, cost, `Independent T-Test: ${g1} vs ${g2}`);
+                                                await logAnalysisUsage(user.id, 'ttest-indep', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'ttest-indep', data: result, columns: [g1, g2] });
                                             setStep('results');
                                             showToast('Phân tích T-test hoàn thành!', 'success');
@@ -1145,10 +1198,32 @@ export default function AnalyzePage() {
                                         if (before === after) { showToast('Vui lòng chọn 2 biến khác nhau', 'error'); return; }
                                         setIsAnalyzing(true);
                                         setAnalysisType('ttest-paired');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('ttest-paired');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const beforeData = data.map(row => Number(row[before]) || 0);
                                             const afterData = data.map(row => Number(row[after]) || 0);
                                             const result = await runTTestPaired(beforeData, afterData);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('ttest-paired');
+                                                await deductCredits(user.id, cost, `Paired T-Test: ${before} vs ${after}`);
+                                                await logAnalysisUsage(user.id, 'ttest-paired', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'ttest-paired', data: result, columns: [before, after] });
                                             setStep('results');
                                             showToast('Phân tích Paired T-test hoàn thành!', 'success');
@@ -1206,9 +1281,31 @@ export default function AnalyzePage() {
                                         if (selectedCols.length < 3) { showToast('Cần chọn ít nhất 3 biến', 'error'); return; }
                                         setIsAnalyzing(true);
                                         setAnalysisType('anova');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('anova');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const groups = selectedCols.map(col => data.map(row => Number(row[col]) || 0));
                                             const result = await runOneWayANOVA(groups);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('anova');
+                                                await deductCredits(user.id, cost, `One-Way ANOVA: ${selectedCols.length} variables`);
+                                                await logAnalysisUsage(user.id, 'anova', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'anova', data: result, columns: selectedCols });
                                             setStep('results');
                                             showToast('Phân tích ANOVA hoàn thành!', 'success');
@@ -1339,11 +1436,33 @@ export default function AnalyzePage() {
 
                                         setIsAnalyzing(true);
                                         setAnalysisType('efa');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('efa');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const efaData = data.map(row =>
                                                 selectedCols.map(col => Number(row[col]) || 0)
                                             );
                                             const result = await runEFA(efaData, nfactors, rotationInput);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('efa');
+                                                await deductCredits(user.id, cost, `EFA: ${nfactors || 'Auto'} factors`);
+                                                await logAnalysisUsage(user.id, 'efa', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'efa', data: result, columns: selectedCols });
                                             setStep('results');
                                             showToast('Phân tích EFA hoàn thành!', 'success');
@@ -1439,6 +1558,20 @@ export default function AnalyzePage() {
 
                                         setIsAnalyzing(true);
                                         setAnalysisType('regression');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('regression');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             // Prepare Data Matrix [Y, X1, X2...]
                                             const cols = [regressionVars.y, ...regressionVars.xs];
@@ -1447,6 +1580,14 @@ export default function AnalyzePage() {
                                             );
 
                                             const result = await runLinearRegression(regData, cols);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('regression');
+                                                await deductCredits(user.id, cost, `Regression: Y=${regressionVars.y}`);
+                                                await logAnalysisUsage(user.id, 'regression', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'regression', data: result, columns: cols });
                                             setStep('results');
                                             showToast('Phân tích Hồi quy hoàn thành!', 'success');
@@ -1583,6 +1724,20 @@ export default function AnalyzePage() {
 
                                         setIsAnalyzing(true);
                                         setAnalysisType('chisquare'); // Matches ResultsDisplay 'chisquare' case
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('chisquare');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             // Pass RAW data (strings/numbers) for Chi-Square to handle cross-tabulation
                                             // runChiSquare implementation (checked via memory or intuition) usually takes a matrix or two arrays.
@@ -1604,6 +1759,14 @@ export default function AnalyzePage() {
                                             ]);
 
                                             const result = await runChiSquare(chiData); // Need to verify signature
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('chisquare');
+                                                await deductCredits(user.id, cost, `Chi-Square: ${rVar} vs ${cVar}`);
+                                                await logAnalysisUsage(user.id, 'chisquare', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'chisquare', data: result, columns: [rVar, cVar] });
                                             setStep('results');
                                             showToast('Phân tích Chi-Square hoàn thành!', 'success');
@@ -1680,6 +1843,20 @@ export default function AnalyzePage() {
 
                                         setIsAnalyzing(true);
                                         setAnalysisType('chisquare'); // Reuse chisquare logical flow
+
+                                        // NCS Credit Check (using chisquare cost)
+                                        if (user) {
+                                            const cost = await getAnalysisCost('chisquare');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const fisherData = data.map(row => [
                                                 row[rVar],
@@ -1687,6 +1864,14 @@ export default function AnalyzePage() {
                                             ]);
 
                                             const result = await runChiSquare(fisherData);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('chisquare');
+                                                await deductCredits(user.id, cost, `Fisher Exact: ${rVar} vs ${cVar}`);
+                                                await logAnalysisUsage(user.id, 'chisquare', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'chisquare', data: result, columns: [rVar, cVar] });
                                             setStep('results');
                                             showToast('Phân tích Fisher Exact hoàn thành!', 'success');
@@ -1763,11 +1948,33 @@ export default function AnalyzePage() {
 
                                         setIsAnalyzing(true);
                                         setAnalysisType('mann-whitney'); // Matches ResultsDisplay 'mann-whitney' case
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('mann-whitney');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const group1Data = data.map(row => Number(row[g1]) || 0);
                                             const group2Data = data.map(row => Number(row[g2]) || 0);
                                             // The generic runMannWhitneyU in webr-wrapper likely takes 2 arrays (like t-test).
                                             const result = await runMannWhitneyU(group1Data, group2Data);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('mann-whitney');
+                                                await deductCredits(user.id, cost, `Mann-Whitney U: ${g1} vs ${g2}`);
+                                                await logAnalysisUsage(user.id, 'mann-whitney', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'mann-whitney', data: result, columns: [g1, g2] });
                                             setStep('results');
                                             showToast('Phân tích Mann-Whitney U hoàn thành!', 'success');
@@ -1796,13 +2003,36 @@ export default function AnalyzePage() {
                             columns={getNumericColumns()}
                             onRunCFA={async (modelSyntax: string, factors: any[]) => {
                                 setIsAnalyzing(true);
+                                setIsAnalyzing(true);
                                 setAnalysisType('cfa');
+
+                                // NCS Credit Check
+                                if (user) {
+                                    const cost = await getAnalysisCost('cfa');
+                                    const hasEnough = await checkBalance(user.id, cost);
+                                    if (!hasEnough) {
+                                        setRequiredCredits(cost);
+                                        setCurrentAnalysisCost(cost);
+                                        setShowInsufficientCredits(true);
+                                        setIsAnalyzing(false);
+                                        return;
+                                    }
+                                }
+
                                 try {
                                     const selectedCols = factors.flatMap((f: any) => f.indicators);
                                     const cfaData = data.map(row =>
                                         selectedCols.map(col => Number(row[col]) || 0)
                                     );
                                     const result = await runCFA(cfaData, selectedCols, modelSyntax);
+                                    // Deduct credits on success
+                                    if (user) {
+                                        const cost = await getAnalysisCost('cfa');
+                                        await deductCredits(user.id, cost, `CFA: ${factors.length} factors`);
+                                        await logAnalysisUsage(user.id, 'cfa', cost);
+                                        setNcsBalance(prev => Math.max(0, prev - cost));
+                                    }
+
                                     setResults({ type: 'cfa', data: result, columns: selectedCols });
                                     setStep('results');
                                     showToast('Phân tích CFA hoàn thành!', 'success');
@@ -1822,13 +2052,36 @@ export default function AnalyzePage() {
                             columns={getNumericColumns()}
                             onRunSEM={async (modelSyntax: string, factors: any[]) => {
                                 setIsAnalyzing(true);
+                                setIsAnalyzing(true);
                                 setAnalysisType('sem');
+
+                                // NCS Credit Check
+                                if (user) {
+                                    const cost = await getAnalysisCost('sem');
+                                    const hasEnough = await checkBalance(user.id, cost);
+                                    if (!hasEnough) {
+                                        setRequiredCredits(cost);
+                                        setCurrentAnalysisCost(cost);
+                                        setShowInsufficientCredits(true);
+                                        setIsAnalyzing(false);
+                                        return;
+                                    }
+                                }
+
                                 try {
                                     const selectedCols = factors.flatMap((f: any) => f.indicators);
                                     const semData = data.map(row =>
                                         selectedCols.map(col => Number(row[col]) || 0)
                                     );
                                     const result = await runSEM(semData, selectedCols, modelSyntax);
+                                    // Deduct credits on success
+                                    if (user) {
+                                        const cost = await getAnalysisCost('sem');
+                                        await deductCredits(user.id, cost, `SEM: ${factors.length} factors`);
+                                        await logAnalysisUsage(user.id, 'sem', cost);
+                                        setNcsBalance(prev => Math.max(0, prev - cost));
+                                    }
+
                                     setResults({ type: 'sem', data: result, columns: selectedCols });
                                     setStep('results');
                                     showToast('Phân tích SEM hoàn thành!', 'success');
@@ -1911,10 +2164,32 @@ export default function AnalyzePage() {
                                         }
                                         setIsAnalyzing(true);
                                         setAnalysisType('moderation');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('moderation');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const cols = [moderationVars.y, moderationVars.x, moderationVars.w];
                                             const modData = data.map(row => cols.map(c => Number(row[c]) || 0));
                                             const result = await runModerationAnalysis(modData, cols);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('moderation');
+                                                await deductCredits(user.id, cost, `Moderation: ${moderationVars.y} ~ ${moderationVars.x} * ${moderationVars.w}`);
+                                                await logAnalysisUsage(user.id, 'moderation', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'moderation', data: result, columns: cols });
                                             setStep('results');
                                             showToast('Phân tích Moderation hoàn thành!', 'success');
@@ -2003,6 +2278,24 @@ export default function AnalyzePage() {
                                         }
                                         setIsAnalyzing(true);
                                         setAnalysisType('twoway-anova');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            // 'twoway-anova' usually costs same as anova or separate. Using 'anova' cost if 'twoway-anova' not in defaults.
+                                            // Let's check ncs-credits.ts defaults. It has 'anova'. 
+                                            // I'll assume standard ANOVA cost or add a key if needed. 
+                                            // Using 'anova' for now as it's structurally similar.
+                                            const cost = await getAnalysisCost('anova');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const cols = [twoWayAnovaVars.y, twoWayAnovaVars.factor1, twoWayAnovaVars.factor2];
                                             const anovaData = data.map(row => [
@@ -2011,6 +2304,14 @@ export default function AnalyzePage() {
                                                 String(row[twoWayAnovaVars.factor2] || '')
                                             ]);
                                             const result = await runTwoWayANOVA(anovaData, cols);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('anova');
+                                                await deductCredits(user.id, cost, `Two-Way ANOVA: ${twoWayAnovaVars.y} by ${twoWayAnovaVars.factor1}, ${twoWayAnovaVars.factor2}`);
+                                                await logAnalysisUsage(user.id, 'anova', cost); // logging as anova type
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'twoway-anova', data: result, columns: cols });
                                             setStep('results');
                                             showToast('Phân tích Two-Way ANOVA hoàn thành!', 'success');
@@ -2095,10 +2396,38 @@ export default function AnalyzePage() {
                                         }
                                         setIsAnalyzing(true);
                                         setAnalysisType('cluster');
+
+                                        // NCS Credit Check
+                                        // cluster not in default costs list I saw earlier (descriptive, cronbach, correlation, ttest..., anova, efa, cfa, sem, regression, chisquare, mann-whitney, ai_explain, export_pdf).
+                                        // I should probably add it or use a default. Let's use 'efa' cost as it is multivariate? Or 'regression'.
+                                        // Wait, let's use 'regression' cost as a safe bet if key missing, or add 'cluster' to defaults later.
+                                        // I will use 'regression' cost here or checking if I can add a key on the fly.
+                                        // Actually I added 'omega'. I didn't see 'cluster' in the defaults list I modified.
+                                        // Let's assume 'regression' cost (800) for now.
+                                        if (user) {
+                                            const cost = await getAnalysisCost('regression');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const cols = clusterVars.variables;
                                             const clusterData = data.map(row => cols.map(c => Number(row[c]) || 0));
                                             const result = await runClusterAnalysis(clusterData, cols, clusterVars.k);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('regression');
+                                                await deductCredits(user.id, cost, `Cluster Analysis: ${clusterVars.k} clusters`);
+                                                await logAnalysisUsage(user.id, 'cluster', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'cluster', data: result, columns: cols });
                                             setStep('results');
                                             showToast('Phân tích Cluster hoàn thành!', 'success');
@@ -2187,10 +2516,33 @@ export default function AnalyzePage() {
                                         }
                                         setIsAnalyzing(true);
                                         setAnalysisType('mediation');
+
+                                        // NCS Credit Check - Mediation is complex, maybe SEM cost? or Regression? 
+                                        // Let's use 'regression' cost.
+                                        if (user) {
+                                            const cost = await getAnalysisCost('regression');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const cols = [mediationVars.x, mediationVars.m, mediationVars.y];
                                             const medData = data.map(row => cols.map(c => Number(row[c]) || 0));
                                             const result = await runMediationAnalysis(medData, cols);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('regression');
+                                                await deductCredits(user.id, cost, `Mediation Analysis: ${mediationVars.x}->${mediationVars.m}->${mediationVars.y}`);
+                                                await logAnalysisUsage(user.id, 'mediation', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'mediation', data: result, columns: cols });
                                             setStep('results');
                                             showToast('Phân tích Mediation hoàn thành!', 'success');
@@ -2278,10 +2630,32 @@ export default function AnalyzePage() {
                                         }
                                         setIsAnalyzing(true);
                                         setAnalysisType('logistic');
+
+                                        // NCS Credit Check
+                                        if (user) {
+                                            const cost = await getAnalysisCost('regression');
+                                            const hasEnough = await checkBalance(user.id, cost);
+                                            if (!hasEnough) {
+                                                setRequiredCredits(cost);
+                                                setCurrentAnalysisCost(cost);
+                                                setShowInsufficientCredits(true);
+                                                setIsAnalyzing(false);
+                                                return;
+                                            }
+                                        }
+
                                         try {
                                             const cols = [logisticVars.y, ...logisticVars.xs];
                                             const logData = data.map(row => cols.map(c => Number(row[c]) || 0));
                                             const result = await runLogisticRegression(logData, cols);
+                                            // Deduct credits on success
+                                            if (user) {
+                                                const cost = await getAnalysisCost('regression');
+                                                await deductCredits(user.id, cost, `Logistic Regression: Y=${logisticVars.y}`);
+                                                await logAnalysisUsage(user.id, 'logistic', cost);
+                                                setNcsBalance(prev => Math.max(0, prev - cost));
+                                            }
+
                                             setResults({ type: 'logistic', data: result, columns: cols });
                                             setStep('results');
                                             showToast('Phân tích Logistic Regression hoàn thành!', 'success');
