@@ -1840,7 +1840,284 @@ export default function AnalyzePage() {
                         />
                     )}
 
+                    {/* Moderation Analysis Selection */}
+                    {step === 'moderation-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Phân tích Điều tiết (Moderation)
+                                </h2>
+                                <p className="text-gray-600">
+                                    Kiểm tra biến W có điều tiết mối quan hệ X → Y không
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến phụ thuộc (Y)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={moderationVars.y}
+                                            onChange={(e) => setModerationVars({ ...moderationVars, y: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={moderationVars.x === col || moderationVars.w === col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến độc lập (X)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={moderationVars.x}
+                                            onChange={(e) => setModerationVars({ ...moderationVars, x: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={moderationVars.y === col || moderationVars.w === col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến điều tiết (W / Moderator)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={moderationVars.w}
+                                            onChange={(e) => setModerationVars({ ...moderationVars, w: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={moderationVars.y === col || moderationVars.x === col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (!moderationVars.y || !moderationVars.x || !moderationVars.w) {
+                                            showToast('Vui lòng chọn đủ 3 biến (Y, X, W)', 'error');
+                                            return;
+                                        }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('moderation');
+                                        try {
+                                            const cols = [moderationVars.y, moderationVars.x, moderationVars.w];
+                                            const modData = data.map(row => cols.map(c => Number(row[c]) || 0));
+                                            const result = await runModerationAnalysis(modData, cols);
+                                            setResults({ type: 'moderation', data: result, columns: cols });
+                                            setStep('results');
+                                            showToast('Phân tích Moderation hoàn thành!', 'success');
+                                        } catch (err) { handleAnalysisError(err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="mt-6 w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Moderation Analysis'}
+                                </button>
+                            </div>
+
+                            <button onClick={() => setStep('analyze')} className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg">
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Two-Way ANOVA Selection */}
+                    {step === 'twoway-anova-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Two-Way ANOVA
+                                </h2>
+                                <p className="text-gray-600">
+                                    Phân tích tác động chính và tương tác của 2 nhân tố
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến phụ thuộc (Y) - Số liệu liên tục
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={twoWayAnovaVars.y}
+                                            onChange={(e) => setTwoWayAnovaVars({ ...twoWayAnovaVars, y: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Nhân tố 1 (Factor 1) - Biến phân loại
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={twoWayAnovaVars.factor1}
+                                            onChange={(e) => setTwoWayAnovaVars({ ...twoWayAnovaVars, factor1: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {profile?.columns?.map((col: any) => (
+                                                <option key={col.name} value={col.name} disabled={twoWayAnovaVars.y === col.name || twoWayAnovaVars.factor2 === col.name}>{col.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Nhân tố 2 (Factor 2) - Biến phân loại
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={twoWayAnovaVars.factor2}
+                                            onChange={(e) => setTwoWayAnovaVars({ ...twoWayAnovaVars, factor2: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {profile?.columns?.map((col: any) => (
+                                                <option key={col.name} value={col.name} disabled={twoWayAnovaVars.y === col.name || twoWayAnovaVars.factor1 === col.name}>{col.name}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (!twoWayAnovaVars.y || !twoWayAnovaVars.factor1 || !twoWayAnovaVars.factor2) {
+                                            showToast('Vui lòng chọn đủ biến phụ thuộc và 2 nhân tố', 'error');
+                                            return;
+                                        }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('twoway-anova');
+                                        try {
+                                            const cols = [twoWayAnovaVars.y, twoWayAnovaVars.factor1, twoWayAnovaVars.factor2];
+                                            const anovaData = data.map(row => [
+                                                Number(row[twoWayAnovaVars.y]) || 0,
+                                                String(row[twoWayAnovaVars.factor1] || ''),
+                                                String(row[twoWayAnovaVars.factor2] || '')
+                                            ]);
+                                            const result = await runTwoWayANOVA(anovaData, cols);
+                                            setResults({ type: 'twoway-anova', data: result, columns: cols });
+                                            setStep('results');
+                                            showToast('Phân tích Two-Way ANOVA hoàn thành!', 'success');
+                                        } catch (err) { handleAnalysisError(err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="mt-6 w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Two-Way ANOVA'}
+                                </button>
+                            </div>
+
+                            <button onClick={() => setStep('analyze')} className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg">
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Cluster Analysis Selection */}
+                    {step === 'cluster-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Phân tích Cụm (Cluster Analysis)
+                                </h2>
+                                <p className="text-gray-600">
+                                    Phân nhóm/phân khúc đối tượng dựa trên sự tương đồng
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Chọn các biến để phân cụm (tối thiểu 2)
+                                        </label>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                                            {getNumericColumns().map(col => (
+                                                <label key={col} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        value={col}
+                                                        checked={clusterVars.variables.includes(col)}
+                                                        onChange={(e) => {
+                                                            const isChecked = e.target.checked;
+                                                            setClusterVars(prev => ({
+                                                                ...prev,
+                                                                variables: isChecked
+                                                                    ? [...prev.variables, col]
+                                                                    : prev.variables.filter(v => v !== col)
+                                                            }));
+                                                        }}
+                                                        className="w-4 h-4 text-pink-600"
+                                                    />
+                                                    <span>{col}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Số cụm (k) - mặc định 3
+                                        </label>
+                                        <input
+                                            type="number"
+                                            min="2"
+                                            max="10"
+                                            value={clusterVars.k}
+                                            onChange={(e) => setClusterVars({ ...clusterVars, k: Number(e.target.value) || 3 })}
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-1">Khuyến nghị: k = 2-5 cho hầu hết trường hợp</p>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (clusterVars.variables.length < 2) {
+                                            showToast('Vui lòng chọn ít nhất 2 biến để phân cụm', 'error');
+                                            return;
+                                        }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('cluster');
+                                        try {
+                                            const cols = clusterVars.variables;
+                                            const clusterData = data.map(row => cols.map(c => Number(row[c]) || 0));
+                                            const result = await runClusterAnalysis(clusterData, cols, clusterVars.k);
+                                            setResults({ type: 'cluster', data: result, columns: cols });
+                                            setStep('results');
+                                            showToast('Phân tích Cluster hoàn thành!', 'success');
+                                        } catch (err) { handleAnalysisError(err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="mt-6 w-full py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Cluster Analysis'}
+                                </button>
+                            </div>
+
+                            <button onClick={() => setStep('analyze')} className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg">
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
                     {step === 'results' && (results || multipleResults.length > 0) && (
+
                         <div className="max-w-6xl mx-auto space-y-6" id="results-container">
                             <div className="text-center mb-8">
                                 <h2 className="text-3xl font-bold text-gray-800 mb-2">
