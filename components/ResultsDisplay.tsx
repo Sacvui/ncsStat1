@@ -69,6 +69,7 @@ export function ResultsDisplay({
             case 'regression':
                 return <RegressionResults results={results} columns={results.columns || []} />;
             case 'cronbach':
+            case 'omega':
                 return <CronbachResults results={results} columns={results.columns || []} onProceedToEFA={onProceedToEFA} scaleName={scaleName} />;
             case 'efa':
                 return <EFAResults results={results} columns={results.columns || []} onProceedToCFA={onProceedToCFA} />;
