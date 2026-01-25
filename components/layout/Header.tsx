@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import UserMenu from '@/components/UserMenu'
 import LanguageSwitcher from '@/components/LanguageSwitcher'
+import { NcsBalanceBadge } from '@/components/NcsBalanceBadge'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/utils/supabase/client'
@@ -114,6 +115,11 @@ export default function Header({ user, profile: initialProfile, centerContent, r
 
                     {/* Separator if actions exist */}
                     {rightActions && <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />}
+
+                    {/* NCS Balance Badge - show when user is logged in */}
+                    {user && profile?.tokens !== undefined && (
+                        <NcsBalanceBadge balance={profile.tokens || 0} size="sm" />
+                    )}
 
                     {/* Language Switcher */}
                     <LanguageSwitcher compact />

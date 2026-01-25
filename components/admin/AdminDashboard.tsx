@@ -28,6 +28,7 @@ import {
     getTopInviters
 } from '@/lib/admin-actions';
 import { AdminAutoTest } from './AdminAutoTest';
+import { AdminCreditConfig } from './AdminCreditConfig';
 
 type Tab = 'dashboard' | 'users' | 'activity' | 'invitations' | 'autotest' | 'settings';
 
@@ -380,46 +381,19 @@ export default function AdminDashboard() {
                 {!loading && activeTab === 'settings' && (
                     <div className="space-y-6">
                         <div className="bg-white rounded-xl border shadow-sm p-6">
-                            <h3 className="text-lg font-semibold mb-6">System Settings</h3>
-                            <div className="space-y-6">
-                                {/* Token Settings */}
-                                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Coins className="w-5 h-5 text-amber-600" />
-                                        <h4 className="font-semibold text-amber-900">Token System</h4>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                        <div>
-                                            <span className="text-amber-700">Default welcome tokens:</span>
-                                            <span className="ml-2 font-bold">100</span>
-                                        </div>
-                                        <div>
-                                            <span className="text-amber-700">Referral bonus:</span>
-                                            <span className="ml-2 font-bold">50</span>
-                                        </div>
-                                    </div>
-                                </div>
+                            <AdminCreditConfig />
+                        </div>
 
-                                {/* API Settings */}
-                                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                    <div className="flex items-center gap-2 mb-3">
-                                        <Settings className="w-5 h-5 text-blue-600" />
-                                        <h4 className="font-semibold text-blue-900">API Configuration</h4>
-                                    </div>
-                                    <div className="text-sm text-blue-700">
-                                        <p>✓ WebR Engine: Active</p>
-                                        <p>✓ Supabase Connection: Connected</p>
-                                        <p>✓ Template Interpretation: Enabled</p>
-                                    </div>
-                                </div>
-
-                                {/* Coming Soon */}
-                                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                                    <div className="flex items-center gap-2 text-gray-500">
-                                        <span className="text-lg">🚧</span>
-                                        <span className="font-medium">More settings coming soon...</span>
-                                    </div>
-                                </div>
+                        {/* API Settings */}
+                        <div className="bg-white rounded-xl border shadow-sm p-6">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Settings className="w-5 h-5 text-blue-600" />
+                                <h4 className="font-semibold text-blue-900">API Configuration</h4>
+                            </div>
+                            <div className="text-sm text-blue-700 space-y-1">
+                                <p>✓ WebR Engine: Active</p>
+                                <p>✓ Supabase Connection: Connected</p>
+                                <p>✓ Template Interpretation: Enabled</p>
                             </div>
                         </div>
                     </div>

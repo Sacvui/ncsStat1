@@ -32,6 +32,9 @@ import Header from '@/components/layout/Header'
 import AnalysisToolbar from '@/components/analyze/AnalysisToolbar';
 import SaveProjectModal from '@/components/analyze/SaveProjectModal';
 import Footer from '@/components/layout/Footer';
+import { getAnalysisCost, checkBalance, deductCredits, getUserBalance } from '@/lib/ncs-credits';
+import { InsufficientCreditsModal } from '@/components/InsufficientCreditsModal';
+import { NcsBalanceBadge } from '@/components/NcsBalanceBadge';
 
 export default function AnalyzePage() {
     const router = useRouter()
@@ -56,6 +59,11 @@ export default function AnalyzePage() {
                     .eq('id', user.id)
                     .single();
                 setUserProfile(profile);
+
+                // Set NCS balance from profile tokens
+                if (profile?.tokens !== undefined) {
+                    setNcsBalance(profile.tokens);
+                }
             }
             setLoading(false);
         };
@@ -93,6 +101,12 @@ export default function AnalyzePage() {
 
     // Progress tracking
     const [analysisProgress, setAnalysisProgress] = useState(0);
+
+    // NCS Credit System State
+    const [ncsBalance, setNcsBalance] = useState<number>(0);
+    const [showInsufficientCredits, setShowInsufficientCredits] = useState(false);
+    const [requiredCredits, setRequiredCredits] = useState(0);
+    const [currentAnalysisCost, setCurrentAnalysisCost] = useState(0);
 
     // Persist workflow state to sessionStorage
     useEffect(() => {
@@ -295,6 +309,18 @@ export default function AnalyzePage() {
             return;
         }
 
+        // NCS Credit Check
+        if (user) {
+            const cost = await getAnalysisCost('cronbach');
+            const hasEnough = await checkBalance(user.id, cost);
+            if (!hasEnough) {
+                setRequiredCredits(cost);
+                setCurrentAnalysisCost(cost);
+                setShowInsufficientCredits(true);
+                return;
+            }
+        }
+
         setIsAnalyzing(true);
         setAnalysisType('cronbach');
         setScaleName(name);
@@ -306,6 +332,13 @@ export default function AnalyzePage() {
             );
 
             const analysisResults = await runCronbachAlpha(selectedData);
+
+            // Deduct credits on success
+            if (user) {
+                const cost = await getAnalysisCost('cronbach');
+                await deductCredits(user.id, cost, `Cronbach Alpha: ${name}`);
+                setNcsBalance(prev => Math.max(0, prev - cost));
+            }
 
             setResults({
                 type: 'cronbach',
@@ -1867,6 +1900,14 @@ export default function AnalyzePage() {
                 results={results}
                 analysisType={analysisType}
                 step={step}
+            />
+
+            {/* Insufficient Credits Modal */}
+            <InsufficientCreditsModal
+                isOpen={showInsufficientCredits}
+                onClose={() => setShowInsufficientCredits(false)}
+                required={requiredCredits}
+                available={ncsBalance}
             />
         </div >
     );
