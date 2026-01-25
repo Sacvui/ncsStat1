@@ -20,6 +20,9 @@ export function useAnalysisSession() {
     const [multipleResults, setMultipleResults] = useState<any[]>([]);
     const [scaleName, setScaleName] = useState('');
     const [regressionVars, setRegressionVars] = useState<{ y: string; xs: string[] }>({ y: '', xs: [] });
+    const [moderationVars, setModerationVars] = useState<{ y: string; x: string; w: string }>({ y: '', x: '', w: '' });
+    const [twoWayAnovaVars, setTwoWayAnovaVars] = useState<{ y: string; factor1: string; factor2: string }>({ y: '', factor1: '', factor2: '' });
+    const [clusterVars, setClusterVars] = useState<{ variables: string[]; k: number }>({ variables: [], k: 3 });
 
     // Load session on mount
     useEffect(() => {
@@ -63,7 +66,10 @@ export function useAnalysisSession() {
             results,
             multipleResults,
             scaleName,
-            regressionVars
+            regressionVars,
+            moderationVars,
+            twoWayAnovaVars,
+            clusterVars
         };
 
         try {
@@ -72,7 +78,7 @@ export function useAnalysisSession() {
             console.error('Failed to save session (likely quota exceeded):', e);
             // Optionally notify user
         }
-    }, [isLoaded, isPrivateMode, step, data, filename, profile, analysisType, results, multipleResults, scaleName, regressionVars]);
+    }, [isLoaded, isPrivateMode, step, data, filename, profile, analysisType, results, multipleResults, scaleName, regressionVars, moderationVars, twoWayAnovaVars, clusterVars]);
 
     // Clear session helper
     const clearSession = useCallback(() => {
@@ -86,6 +92,9 @@ export function useAnalysisSession() {
         setAnalysisType('');
         setScaleName('');
         setRegressionVars({ y: '', xs: [] });
+        setModerationVars({ y: '', x: '', w: '' });
+        setTwoWayAnovaVars({ y: '', factor1: '', factor2: '' });
+        setClusterVars({ variables: [], k: 3 });
     }, []);
 
     return {
@@ -102,6 +111,9 @@ export function useAnalysisSession() {
         results, setResults,
         multipleResults, setMultipleResults,
         scaleName, setScaleName,
-        regressionVars, setRegressionVars
+        regressionVars, setRegressionVars,
+        moderationVars, setModerationVars,
+        twoWayAnovaVars, setTwoWayAnovaVars,
+        clusterVars, setClusterVars
     };
 }

@@ -10,7 +10,7 @@ import { DataProfiler } from '@/components/DataProfiler';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { SmartGroupSelector, VariableSelector, AISettings } from '@/components/VariableSelector';
 import { profileData, DataProfile } from '@/lib/data-profiler';
-import { runCronbachAlpha, runCorrelation, runDescriptiveStats, runTTestIndependent, runTTestPaired, runOneWayANOVA, runEFA, runLinearRegression, runChiSquare, runMannWhitneyU, initWebR, getWebRStatus, setProgressCallback } from '@/lib/webr-wrapper';
+import { runCronbachAlpha, runCorrelation, runDescriptiveStats, runTTestIndependent, runTTestPaired, runOneWayANOVA, runEFA, runLinearRegression, runChiSquare, runMannWhitneyU, runModerationAnalysis, runTwoWayANOVA, runClusterAnalysis, initWebR, getWebRStatus, setProgressCallback } from '@/lib/webr-wrapper';
 import { BarChart3, FileText, Shield, Trash2, Eye, EyeOff, Wifi, WifiOff } from 'lucide-react';
 import { Toast } from '@/components/ui/Toast';
 import { WebRStatus } from '@/components/WebRStatus';
@@ -118,8 +118,12 @@ export default function AnalyzePage() {
         results, setResults,
         multipleResults, setMultipleResults,
         scaleName, setScaleName,
-        regressionVars, setRegressionVars
+        regressionVars, setRegressionVars,
+        moderationVars, setModerationVars,
+        twoWayAnovaVars, setTwoWayAnovaVars,
+        clusterVars, setClusterVars
     } = useAnalysisSession();
+
 
     // Local ephemeral state
     const [isAnalyzing, setIsAnalyzing] = useState(false);
