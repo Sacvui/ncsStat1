@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart2, Shield, Network, Users, GitCompare, Layers, TrendingUp, Grid3x3, Activity, ChevronDown, ChevronRight, Star, Binary, FlaskConical, ArrowRightLeft, Target } from 'lucide-react';
+import { BarChart2, Shield, Network, Users, GitCompare, Layers, TrendingUp, Grid3x3, Activity, ChevronDown, ChevronRight, Star, Binary, FlaskConical, ArrowRightLeft, Target, CircleDot, Shuffle } from 'lucide-react';
 
 interface AnalysisSelectorProps {
     onSelect: (step: string) => void;
@@ -64,6 +64,7 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                     { id: 'ttest-select', title: 'Independent T-test', desc: 'Compare 2 independent groups', icon: GitCompare, action: 'select' },
                     { id: 'ttest-paired-select', title: 'Paired T-test', desc: 'Compare before-after (paired)', icon: Users, action: 'select' },
                     { id: 'anova-select', title: 'One-Way ANOVA / Welch', desc: 'Compare multiple groups', icon: Layers, action: 'select' },
+                    { id: 'twoway-anova-select', title: 'Two-Way ANOVA', desc: 'Factorial ANOVA with interaction', icon: Grid3x3, action: 'select' },
                     { id: 'mannwhitney-select', title: 'Mann-Whitney U', desc: 'Non-parametric 2 groups', icon: Activity, action: 'select' },
                     { id: 'kruskalwallis-select', title: 'Kruskal-Wallis H', desc: 'Non-parametric multiple groups', icon: Layers, action: 'select' },
                     { id: 'wilcoxon-select', title: 'Wilcoxon Signed-Rank', desc: 'Non-parametric paired comparison', icon: ArrowRightLeft, action: 'select' },
@@ -83,6 +84,7 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                     { id: 'regression-select', title: 'Linear Regression', desc: 'Multiple linear regression with β', icon: TrendingUp, action: 'select' },
                     { id: 'logistic-select', title: 'Logistic Regression', desc: 'Binary outcome prediction', icon: Binary, action: 'select' },
                     { id: 'mediation-select', title: 'Mediation Analysis', desc: 'Baron & Kenny + Sobel test', icon: Target, action: 'select' },
+                    { id: 'moderation-select', title: 'Moderation Analysis', desc: 'Interaction effect with simple slopes', icon: Shuffle, action: 'select' },
                 ]
             }
         },
@@ -112,6 +114,19 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 options: [
                     { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Test of independence (Large sample)', icon: Grid3x3, action: 'select' },
                     { id: 'fisher-select', title: "Fisher's Exact Test", desc: 'Test of independence (Small sample)', icon: Grid3x3, action: 'select' },
+                ]
+            }
+        },
+        {
+            id: 'clustering',
+            category: {
+                name: 'Clustering & Segmentation',
+                description: 'Segment data into groups',
+                color: 'text-pink-700',
+                bgColor: 'bg-pink-50',
+                borderColor: 'border-pink-200',
+                options: [
+                    { id: 'cluster-select', title: 'Cluster Analysis', desc: 'K-Means clustering with profiles', icon: CircleDot, action: 'select' },
                 ]
             }
         }
@@ -149,6 +164,7 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                                     {id === 'relationship' && <Network className="w-5 h-5" />}
                                     {id === 'factor' && <Layers className="w-5 h-5" />}
                                     {id === 'categorical' && <Grid3x3 className="w-5 h-5" />}
+                                    {id === 'clustering' && <CircleDot className="w-5 h-5" />}
                                 </div>
                                 <div className="text-left">
                                     <h3 className={`font-semibold ${category.color}`}>{category.name}</h3>

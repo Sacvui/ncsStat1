@@ -1,4 +1,4 @@
-export type AnalysisStep = 'upload' | 'profile' | 'analyze' | 'results' | 'cronbach-select' | 'cronbach-batch-select' | 'omega-select' | 'ttest-select' | 'ttest-paired-select' | 'anova-select' | 'efa-select' | 'regression-select' | 'cfa-select' | 'sem-select' | 'chisq-select' | 'fisher-select' | 'mannwhitney-select' | 'kruskalwallis-select' | 'wilcoxon-select' | 'logistic-select' | 'mediation-select' | 'descriptive-select';
+export type AnalysisStep = 'upload' | 'profile' | 'analyze' | 'results' | 'cronbach-select' | 'cronbach-batch-select' | 'omega-select' | 'ttest-select' | 'ttest-paired-select' | 'anova-select' | 'efa-select' | 'regression-select' | 'cfa-select' | 'sem-select' | 'chisq-select' | 'fisher-select' | 'mannwhitney-select' | 'kruskalwallis-select' | 'wilcoxon-select' | 'logistic-select' | 'mediation-select' | 'descriptive-select' | 'moderation-select' | 'twoway-anova-select' | 'cluster-select';
 
 // Workflow Mode Types
 export interface WorkflowStep {
