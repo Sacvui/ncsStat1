@@ -67,7 +67,35 @@ export default function AnalyzePage() {
             } else {
                 // Check for ORCID session cookie
                 const orcidCookie = document.cookie.split(';').find(c => c.trim().startsWith('orcid_user='));
-                if (!orcidCookie) {
+                if (orcidCookie) {
+                    // ORCID user - fetch profile using the cookie value (profile ID)
+                    const profileId = orcidCookie.split('=')[1]?.trim();
+                    if (profileId) {
+                        const { data: profile } = await supabase
+                            .from('profiles')
+                            .select('*')
+                            .eq('id', profileId)
+                            .single();
+
+                        if (profile) {
+                            // Create mock user object for Header/UserMenu
+                            const orcidUser = {
+                                id: profileId,
+                                email: profile.email || `${profile.orcid_id}@orcid.org`,
+                                user_metadata: {
+                                    full_name: profile.display_name || profile.full_name,
+                                    avatar_url: profile.avatar_url
+                                }
+                            };
+                            setUser(orcidUser);
+                            setUserProfile(profile);
+
+                            if (profile.tokens !== undefined) {
+                                setNcsBalance(profile.tokens);
+                            }
+                        }
+                    }
+                } else {
                     // No auth at all - redirect to login
                     router.push('/login?next=/analyze');
                     return;
@@ -77,6 +105,7 @@ export default function AnalyzePage() {
         };
         getUser();
     }, [router])
+
     // Session State Management
     const {
         isPrivateMode, setIsPrivateMode,
