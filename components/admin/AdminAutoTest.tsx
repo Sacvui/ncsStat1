@@ -33,6 +33,25 @@ function extractColumnsAsMatrix(data: any[], columns: string[]): number[][] {
     );
 }
 
+// Convert test results to CSV string
+export function generateCsv(results: TestResult[]): string {
+    const header = ['analysisId', 'status', 'duration', 'result'];
+    const rows = results.map(r => {
+        const resultStr = typeof r.result === 'object' ? JSON.stringify(r.result) : String(r.result);
+        return [r.analysisId, r.status, r.duration ?? '', resultStr];
+    });
+    const csvLines = [header.join(','), ...rows.map(row => row.map(v => `"${String(v).replace(/"/g, '""')}`).join(','))];
+    return csvLines.join('\n');
+}
+
+export function generateJson(results: TestResult[]): string {
+    return JSON.stringify(results, null, 2);
+}
+
+// Export functionality moved inside component; placeholder to avoid lint errors.
+
+
+
 export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
     const [isRunning, setIsRunning] = useState(false);
     const [testResults, setTestResults] = useState<TestResult[]>([]);
@@ -41,6 +60,29 @@ export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
     const [dataLoading, setDataLoading] = useState(false);
     const [webRReady, setWebRReady] = useState(false);
     const [progress, setProgress] = useState(0);
+
+    // Export report function (CSV, JSON & PDF)
+    const exportReport = async () => {
+        if (!testResults || testResults.length === 0) return;
+        const csvContent = generateCsv(testResults);
+        const jsonContent = generateJson(testResults);
+        const download = (content: string | Blob, filename: string, mime: string) => {
+            const blob = content instanceof Blob ? content : new Blob([content], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+        download(csvContent, 'ncsStat_auto_test_report.csv', 'text/csv');
+        download(jsonContent, 'ncsStat_auto_test_report.json', 'application/json');
+
+        // Generate and download PDF
+        const { generatePdf } = await import('./exportUtils');
+        const pdfBlob = await generatePdf(testResults);
+        download(pdfBlob, 'ncsStat_auto_test_report.pdf', 'application/pdf');
+    };
 
     // Check WebR status
     useEffect(() => {
@@ -263,6 +305,15 @@ export function AdminAutoTest({ onTestComplete }: AdminAutoTestProps) {
                                 Run Auto Test
                             </>
                         )}
+                    </button>
+                    {/* Export Report Button */}
+                    <button
+                        onClick={exportReport}
+                        disabled={isRunning || testResults.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-lg hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+                    >
+                        <FileSpreadsheet className="w-4 h-4" />
+                        Export Report
                     </button>
                 </div>
             </div>
