@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         // Create a custom session token (simplified - in production use proper JWT)
         const response = NextResponse.redirect(new URL(nextUrl, request.url));
         response.cookies.set('orcid_user', existingProfile.id, {
-            httpOnly: true,
+            httpOnly: false, // Allow JavaScript to read for client-side session check
             secure: true,
             sameSite: 'lax',
             maxAge: 60 * 60 * 24 * 7, // 1 week
