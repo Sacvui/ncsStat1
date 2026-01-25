@@ -14,6 +14,8 @@ interface SmartGroupSelectorProps {
     onAnalyzeGroup: (selectedColumns: string[], scaleName: string) => void;
     onAnalyzeAllGroups: (groups: { name: string; columns: string[] }[]) => void;
     isAnalyzing: boolean;
+    analysisLabel?: string; // Custom label for the analysis (e.g., "Cronbach's Alpha" or "McDonald's Omega")
+    minItemsPerGroup?: number; // Minimum items per group (default: 2, omega needs 3)
 }
 
 // Extract prefix from column name (first 2-3 letters before numbers)
@@ -39,7 +41,7 @@ function autoGroupColumns(columns: string[]): VariableGroup[] {
     });
 
     return Object.entries(groupMap)
-        .filter(([_, cols]) => cols.length >= 2) // Only groups with 2+ items
+        .filter(([_, cols]) => cols.length >= 2) // Only groups with 2+ items (filtered in component based on minItemsPerGroup)
         .map(([name, cols]) => ({
             name,
             columns: cols,
@@ -47,7 +49,7 @@ function autoGroupColumns(columns: string[]): VariableGroup[] {
         }));
 }
 
-export function SmartGroupSelector({ columns, onAnalyzeGroup, onAnalyzeAllGroups, isAnalyzing }: SmartGroupSelectorProps) {
+export function SmartGroupSelector({ columns, onAnalyzeGroup, onAnalyzeAllGroups, isAnalyzing, analysisLabel = "Cronbach's Alpha", minItemsPerGroup = 2 }: SmartGroupSelectorProps) {
     const [groups, setGroups] = useState<VariableGroup[]>([]);
     const [editingGroup, setEditingGroup] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
@@ -232,7 +234,7 @@ export function SmartGroupSelector({ columns, onAnalyzeGroup, onAnalyzeAllGroups
                     disabled={isAnalyzing || !selectedSingleGroup}
                     className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isAnalyzing ? 'Đang phân tích...' : `Tính Cronbach's Alpha cho ${selectedSingleGroup || '...'}`}
+                    {isAnalyzing ? 'Đang phân tích...' : `Tính ${analysisLabel} cho ${selectedSingleGroup || '...'}`}
                 </button>
             ) : (
                 <button
@@ -240,7 +242,7 @@ export function SmartGroupSelector({ columns, onAnalyzeGroup, onAnalyzeAllGroups
                     disabled={isAnalyzing || selectedCount === 0}
                     className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {isAnalyzing ? 'Đang phân tích...' : `Tính Cronbach's Alpha cho ${selectedCount} nhóm đã chọn`}
+                    {isAnalyzing ? 'Đang phân tích...' : `Tính ${analysisLabel} cho ${selectedCount} nhóm đã chọn`}
                 </button>
             )}
         </div>

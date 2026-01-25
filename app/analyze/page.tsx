@@ -961,6 +961,7 @@ export default function AnalyzePage() {
                                 onAnalyzeAllGroups={runOmegaBatch}
                                 isAnalyzing={isAnalyzing}
                                 minItemsPerGroup={3}
+                                analysisLabel="McDonald's Omega"
                             />
 
                             <button
