@@ -82,6 +82,12 @@ export function ResultsDisplay({
                 return <ChiSquareResults results={results} />;
             case 'descriptive':
                 return <DescriptiveResults results={results} columns={columns || []} />;
+            case 'moderation':
+                return <ModerationResults results={results} columns={results.columns || []} />;
+            case 'twoway-anova':
+                return <TwoWayANOVAResults results={results} columns={results.columns || []} />;
+            case 'cluster':
+                return <ClusterResults results={results} columns={results.columns || []} />;
             default:
                 return (
                     <Card>
@@ -1798,6 +1804,266 @@ function SEMResults({ results }: { results: any }) {
                     </CardContent>
                 </Card>
             )}
+        </div>
+    );
+}
+
+// Moderation Analysis Results Component
+function ModerationResults({ results, columns }: { results: any; columns: string[] }) {
+    const interactionP = results.interactionP;
+    const significant = interactionP < 0.05;
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Moderation Analysis Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                            <strong>Mô hình:</strong> {columns[0]} = b0 + b1*{columns[1]} + b2*{columns[2]} + b3*({columns[1]}×{columns[2]})
+                        </p>
+                    </div>
+
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                                <th className="py-2 text-left font-semibold">Term</th>
+                                <th className="py-2 text-right font-semibold">Estimate</th>
+                                <th className="py-2 text-right font-semibold">Std. Error</th>
+                                <th className="py-2 text-right font-semibold">t</th>
+                                <th className="py-2 text-right font-semibold">p-value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 font-medium">(Intercept)</td>
+                                <td className="py-2 text-right">{results.interceptEst?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.interceptSE?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.interceptT?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.interceptP?.toFixed(4)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 font-medium">{columns[1]} (X)</td>
+                                <td className="py-2 text-right">{results.xEst?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.xSE?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.xT?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.xP?.toFixed(4)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 font-medium">{columns[2]} (W)</td>
+                                <td className="py-2 text-right">{results.wEst?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.wSE?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.wT?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.wP?.toFixed(4)}</td>
+                            </tr>
+                            <tr className={`border-b border-gray-200 ${significant ? 'bg-green-50' : ''}`}>
+                                <td className="py-2 font-bold">X × W (Interaction)</td>
+                                <td className="py-2 text-right font-bold">{results.interactionEst?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.interactionSE?.toFixed(4)}</td>
+                                <td className="py-2 text-right">{results.interactionT?.toFixed(3)}</td>
+                                <td className={`py-2 text-right font-bold ${significant ? 'text-green-600' : 'text-gray-600'}`}>
+                                    {interactionP?.toFixed(4)} {significant && '***'}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div className="mt-4 grid grid-cols-2 gap-4 text-sm">
+                        <div className="p-3 bg-gray-50 rounded">
+                            <span className="font-medium">R²:</span> {results.rSquared?.toFixed(4)}
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded">
+                            <span className="font-medium">Adjusted R²:</span> {results.rSquaredAdj?.toFixed(4)}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800">
+                    {significant
+                        ? `Có hiệu ứng điều tiết có ý nghĩa thống kê (p = ${interactionP?.toFixed(4)} < 0.05). Biến ${columns[2]} điều tiết mối quan hệ giữa ${columns[1]} và ${columns[0]}.`
+                        : `Không có hiệu ứng điều tiết có ý nghĩa thống kê (p = ${interactionP?.toFixed(4)} >= 0.05). Biến ${columns[2]} không điều tiết mối quan hệ giữa ${columns[1]} và ${columns[0]}.`
+                    }
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// Two-Way ANOVA Results Component
+function TwoWayANOVAResults({ results, columns }: { results: any; columns: string[] }) {
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Two-Way ANOVA Table</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                                <th className="py-2 text-left font-semibold">Source</th>
+                                <th className="py-2 text-right font-semibold">df</th>
+                                <th className="py-2 text-right font-semibold">Sum Sq</th>
+                                <th className="py-2 text-right font-semibold">Mean Sq</th>
+                                <th className="py-2 text-right font-semibold">F</th>
+                                <th className="py-2 text-right font-semibold">p-value</th>
+                                <th className="py-2 text-right font-semibold">η²</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 font-medium">{columns[1]} (Factor 1)</td>
+                                <td className="py-2 text-right">{results.factor1Df}</td>
+                                <td className="py-2 text-right">{results.factor1SS?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.factor1MS?.toFixed(3)}</td>
+                                <td className="py-2 text-right font-bold">{results.factor1F?.toFixed(3)}</td>
+                                <td className={`py-2 text-right font-bold ${results.factor1P < 0.05 ? 'text-green-600' : 'text-gray-600'}`}>
+                                    {results.factor1P?.toFixed(4)} {results.factor1P < 0.05 && '***'}
+                                </td>
+                                <td className="py-2 text-right">{results.factor1Eta?.toFixed(3)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 font-medium">{columns[2]} (Factor 2)</td>
+                                <td className="py-2 text-right">{results.factor2Df}</td>
+                                <td className="py-2 text-right">{results.factor2SS?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.factor2MS?.toFixed(3)}</td>
+                                <td className="py-2 text-right font-bold">{results.factor2F?.toFixed(3)}</td>
+                                <td className={`py-2 text-right font-bold ${results.factor2P < 0.05 ? 'text-green-600' : 'text-gray-600'}`}>
+                                    {results.factor2P?.toFixed(4)} {results.factor2P < 0.05 && '***'}
+                                </td>
+                                <td className="py-2 text-right">{results.factor2Eta?.toFixed(3)}</td>
+                            </tr>
+                            <tr className={`border-b border-gray-200 ${results.interactionP < 0.05 ? 'bg-yellow-50' : ''}`}>
+                                <td className="py-2 font-bold">Interaction</td>
+                                <td className="py-2 text-right">{results.interactionDf}</td>
+                                <td className="py-2 text-right">{results.interactionSS?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.interactionMS?.toFixed(3)}</td>
+                                <td className="py-2 text-right font-bold">{results.interactionF?.toFixed(3)}</td>
+                                <td className={`py-2 text-right font-bold ${results.interactionP < 0.05 ? 'text-orange-600' : 'text-gray-600'}`}>
+                                    {results.interactionP?.toFixed(4)} {results.interactionP < 0.05 && '***'}
+                                </td>
+                                <td className="py-2 text-right">{results.interactionEta?.toFixed(3)}</td>
+                            </tr>
+                            <tr className="border-b border-gray-100">
+                                <td className="py-2 font-medium">Residuals</td>
+                                <td className="py-2 text-right">{results.residualDf}</td>
+                                <td className="py-2 text-right">{results.residualSS?.toFixed(3)}</td>
+                                <td className="py-2 text-right">{results.residualMS?.toFixed(3)}</td>
+                                <td className="py-2 text-right">-</td>
+                                <td className="py-2 text-right">-</td>
+                                <td className="py-2 text-right">-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </CardContent>
+            </Card>
+
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <ul className="text-sm text-gray-800 space-y-2">
+                    <li>
+                        <strong>Main Effect {columns[1]}:</strong> {results.factor1P < 0.05
+                            ? `Có ý nghĩa (p = ${results.factor1P?.toFixed(4)})`
+                            : `Không có ý nghĩa (p = ${results.factor1P?.toFixed(4)})`}
+                    </li>
+                    <li>
+                        <strong>Main Effect {columns[2]}:</strong> {results.factor2P < 0.05
+                            ? `Có ý nghĩa (p = ${results.factor2P?.toFixed(4)})`
+                            : `Không có ý nghĩa (p = ${results.factor2P?.toFixed(4)})`}
+                    </li>
+                    <li>
+                        <strong>Interaction Effect:</strong> {results.interactionP < 0.05
+                            ? `Có ý nghĩa (p = ${results.interactionP?.toFixed(4)}) - Cần phân tích Simple Effects`
+                            : `Không có ý nghĩa (p = ${results.interactionP?.toFixed(4)})`}
+                    </li>
+                </ul>
+            </div>
+        </div>
+    );
+}
+
+// Cluster Analysis Results Component
+function ClusterResults({ results, columns }: { results: any; columns: string[] }) {
+    const k = results.k || 3;
+    const clusterSizes = results.clusterSizes || [];
+    const centers = results.centers || [];
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Cluster Analysis Summary (K-Means, k={k})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="p-4 bg-blue-50 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-blue-600">{k}</div>
+                            <div className="text-xs text-blue-600">Clusters</div>
+                        </div>
+                        <div className="p-4 bg-green-50 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-green-600">{results.totalN || 'N/A'}</div>
+                            <div className="text-xs text-green-600">Total Observations</div>
+                        </div>
+                        <div className="p-4 bg-purple-50 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-purple-600">{results.betweenSS?.toFixed(1) || 'N/A'}</div>
+                            <div className="text-xs text-purple-600">Between SS</div>
+                        </div>
+                        <div className="p-4 bg-orange-50 rounded-lg text-center">
+                            <div className="text-2xl font-bold text-orange-600">{results.withinSS?.toFixed(1) || 'N/A'}</div>
+                            <div className="text-xs text-orange-600">Within SS</div>
+                        </div>
+                    </div>
+
+                    <h4 className="font-semibold mb-2">Cluster Sizes</h4>
+                    <div className="flex gap-2 mb-6">
+                        {clusterSizes.map((size: number, idx: number) => (
+                            <div key={idx} className="px-4 py-2 bg-gray-100 rounded-lg text-center">
+                                <span className="font-bold">Cluster {idx + 1}:</span> {size}
+                            </div>
+                        ))}
+                    </div>
+
+                    <h4 className="font-semibold mb-2">Cluster Centers</h4>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-200 bg-gray-50">
+                                    <th className="py-2 px-3 text-left font-semibold">Cluster</th>
+                                    {columns.map((col, idx) => (
+                                        <th key={idx} className="py-2 px-3 text-right font-semibold">{col}</th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {centers.map((center: number[], cIdx: number) => (
+                                    <tr key={cIdx} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="py-2 px-3 font-medium">Cluster {cIdx + 1}</td>
+                                        {center.map((val: number, vIdx: number) => (
+                                            <td key={vIdx} className="py-2 px-3 text-right">
+                                                {typeof val === 'number' ? val.toFixed(3) : val}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800">
+                    Dữ liệu được phân thành <strong>{k} cụm</strong> sử dụng thuật toán K-Means.
+                    Các cụm có kích thước: {clusterSizes.join(', ')}.
+                    Xem bảng Cluster Centers để hiểu đặc điểm của từng cụm dựa trên giá trị trung bình của các biến.
+                </p>
+            </div>
         </div>
     );
 }
