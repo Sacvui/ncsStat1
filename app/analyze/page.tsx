@@ -64,11 +64,19 @@ export default function AnalyzePage() {
                 if (profile?.tokens !== undefined) {
                     setNcsBalance(profile.tokens);
                 }
+            } else {
+                // Check for ORCID session cookie
+                const orcidCookie = document.cookie.split(';').find(c => c.trim().startsWith('orcid_user='));
+                if (!orcidCookie) {
+                    // No auth at all - redirect to login
+                    router.push('/login?next=/analyze');
+                    return;
+                }
             }
             setLoading(false);
         };
         getUser();
-    }, [])
+    }, [router])
     // Session State Management
     const {
         isPrivateMode, setIsPrivateMode,
