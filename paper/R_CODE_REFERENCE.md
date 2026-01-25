@@ -740,5 +740,152 @@ if (!is.na(n_factors_suggested)) {
 
 ---
 
+## 17. Moderation Analysis (Phân tích điều tiết)
+
+**Function:** `runModerationAnalysis()`
+
+**Mục đích:** Kiểm tra xem biến W có điều tiết mối quan hệ giữa X và Y không 
+
+**R Code:**
+```r
+# Moderation Analysis with Hierarchical Regression
+x <- c(...)  # Independent variable
+y <- c(...)  # Dependent variable
+w <- c(...)  # Moderator variable
+
+# Center predictors (recommended for moderation)
+x_c <- scale(x, center = TRUE, scale = FALSE)[,1]
+w_c <- scale(w, center = TRUE, scale = FALSE)[,1]
+
+# Create interaction term
+xw_c <- x_c * w_c
+
+# Model 1: X only
+model1 <- lm(y ~ x_c)
+
+# Model 2: X + W
+model2 <- lm(y ~ x_c + w_c)
+
+# Model 3: X + W + Interaction
+model3 <- lm(y ~ x_c + w_c + xw_c)
+m3_sum <- summary(model3)
+
+# R² change for interaction
+r2_change <- m3_sum$r.squared - summary(model2)$r.squared
+
+# Cohen's f² effect size
+f2_interaction <- r2_change / (1 - m3_sum$r.squared)
+
+# Simple slopes at ±1 SD of W
+w_sd <- sd(w)
+slope_low  <- b_x + b_xw * (-w_sd)   # Low W
+slope_mean <- b_x + b_xw * 0         # Mean W  
+slope_high <- b_x + b_xw * w_sd      # High W
+```
+
+**Giải thích:**
+- Moderator có ý nghĩa khi p-value của interaction < 0.05
+- Cohen's f² < 0.02: negligible, 0.02-0.15: small, 0.15-0.35: medium, >0.35: large
+- Simple slopes cho thấy tác động của X lên Y ở các mức khác nhau của W
+
+---
+
+## 18. Two-Way ANOVA (ANOVA 2 yếu tố)
+
+**Function:** `runTwoWayANOVA()`
+
+**Mục đích:** Phân tích tác động chính và tương tác của 2 nhân tố phân loại lên biến phụ thuộc
+
+**R Code:**
+```r
+# Two-Way ANOVA
+y <- c(...)           # Dependent variable
+f1 <- factor(c(...))  # Factor 1
+f2 <- factor(c(...))  # Factor 2
+df <- data.frame(y = y, f1 = f1, f2 = f2)
+
+# Fit ANOVA model  
+model <- aov(y ~ f1 * f2, data = df)
+anova_table <- summary(model)[[1]]
+
+# Extract results
+ss <- anova_table[, 'Sum Sq']        # Sums of Squares
+dfs <- anova_table[, 'Df']           # Degrees of Freedom
+ms <- anova_table[, 'Mean Sq']       # Mean Squares
+f_vals <- anova_table[, 'F value']   # F statistics
+p_vals <- anova_table[, 'Pr(>F)']    # P-values
+
+# Eta squared effect sizes
+ss_total <- sum(ss)
+eta_f1 <- ss[1] / ss_total           # Factor 1
+eta_f2 <- ss[2] / ss_total           # Factor 2
+eta_int <- ss[3] / ss_total          # Interaction
+
+# Cell means
+cell_means <- aggregate(y ~ f1 + f2, data = df, 
+                        FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
+
+# Levene's test for homogeneity
+levene_test <- car::leveneTest(y ~ f1 * f2, data = df)
+```
+
+**Giải thích:**
+- **Main Effect F1/F2:** Tác động chính của từng yếu tố
+- **Interaction:** Tương tác giữa 2 yếu tố (nếu có ý nghĩa, cần phân tích simple effects)
+- **Eta² (η²):** Tỷ lệ variance được giải thích (effect size)
+
+---
+
+## 19. Cluster Analysis (Phân tích cụm)
+
+**Function:** `runClusterAnalysis()`
+
+**Mục đích:** Phân nhóm/phân khúc đối tượng dựa trên sự tương đồng của các biến
+
+**R Code:**
+```r
+# Cluster Analysis (K-Means)
+data_mat <- matrix(c(...), nrow = n, byrow = TRUE)
+colnames(data_mat) <- c("V1", "V2", ...)
+
+# Standardize data
+data_scaled <- scale(data_mat)
+
+# K-Means clustering
+set.seed(123)
+k <- 3  # Number of clusters
+km <- kmeans(data_scaled, centers = k, nstart = 25)
+
+# Results
+clusters <- km$cluster    # Cluster assignment
+centers <- km$centers     # Cluster centers (standardized)
+sizes <- km$size          # Cluster sizes
+within_ss <- km$withinss  # Within-cluster SS
+between_ss <- km$betweenss
+total_ss <- km$totss
+
+# Silhouette score
+library(cluster)
+sil <- silhouette(km$cluster, dist(data_scaled))
+sil_avg <- mean(sil[, 3])
+
+# Elbow method for optimal k
+wss <- numeric(10)
+for (i in 1:10) {
+    wss[i] <- sum(kmeans(data_scaled, centers = i, nstart = 10)$withinss)
+}
+
+# Cluster profiles (original scale means)
+profile_means <- aggregate(data_mat, by = list(cluster = clusters), FUN = mean)
+profile_sds <- aggregate(data_mat, by = list(cluster = clusters), FUN = sd)
+```
+
+**Giải thích:**
+- **Silhouette Score:** >0.7: strong structure, 0.5-0.7: reasonable, 0.25-0.5: weak, <0.25: no structure
+- **Elbow Method:** Chọn k tại điểm "elbow" của đồ thị WSS
+- **Cluster Profiles:** Đặc điểm trung bình của từng cụm
+
+---
+
 *Tài liệu này được tạo tự động từ mã nguồn `lib/webr-wrapper.ts`*
-*Cập nhật lần cuối: 2026-01-24*
+*Cập nhật lần cuối: 2026-01-25*
