@@ -119,6 +119,14 @@ export async function updateSession(request: NextRequest) {
         }
     } catch (error) {
         console.error('[Middleware] Auth error:', error)
+        // On auth error for protected routes, redirect to login
+        const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
+        if (isProtectedRoute) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/login'
+            url.searchParams.set('next', pathname)
+            return NextResponse.redirect(url)
+        }
     }
 
     return response
