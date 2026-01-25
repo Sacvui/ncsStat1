@@ -8,6 +8,7 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/utils/supabase/client'
 import { getStoredLocale, t, type Locale } from '@/lib/i18n'
+import { useOrcidUser } from '@/hooks/useOrcidSession'
 
 interface HeaderProps {
     user: any
@@ -22,6 +23,19 @@ export default function Header({ user, profile: initialProfile, centerContent, r
     const [profile, setProfile] = useState<any>(initialProfile)
     const [locale, setLocale] = useState<Locale>('vi')
     const supabase = getSupabase()
+
+    // ORCID session check for users who logged in via ORCID
+    const { orcidUser } = useOrcidUser()
+
+    // Effective user: Supabase user OR ORCID user
+    const effectiveUser = user || (orcidUser ? { id: orcidUser.id, email: orcidUser.email } : null)
+    const effectiveProfile = profile || (orcidUser ? {
+        id: orcidUser.id,
+        full_name: orcidUser.full_name,
+        email: orcidUser.email,
+        tokens: orcidUser.tokens,
+        orcid_id: orcidUser.orcid_id
+    } : null)
 
     useEffect(() => {
         setLocale(getStoredLocale())
@@ -87,15 +101,9 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                     {!hideNav && !centerContent && (
                         <nav className="hidden md:flex items-center gap-1">
                             <NavLink href="/analyze" active={pathname?.startsWith('/analyze')}>{t(locale, 'nav.analyze')}</NavLink>
-                            {user && (
+                            {effectiveUser && (
                                 <NavLink href="/profile" active={pathname?.startsWith('/profile')}>{t(locale, 'nav.profile')}</NavLink>
                             )}
-
-                            {/* Check if user is admin - UserMenu has this logic but we don't know easily.
-                          Check props or metadata? 
-                          We can rely on user metadata if available, OR just let user explore.
-                          Better: We will just link to common pages. Admin is in UserMenu dropdown usually.
-                       */}
                         </nav>
                     )}
                 </div>
@@ -117,15 +125,15 @@ export default function Header({ user, profile: initialProfile, centerContent, r
                     {rightActions && <div className="h-6 w-px bg-slate-200 mx-1 hidden sm:block" />}
 
                     {/* NCS Balance Badge - show when user is logged in */}
-                    {user && profile?.tokens !== undefined && (
-                        <NcsBalanceBadge balance={profile.tokens || 0} size="sm" />
+                    {effectiveUser && effectiveProfile?.tokens !== undefined && (
+                        <NcsBalanceBadge balance={effectiveProfile.tokens || 0} size="sm" />
                     )}
 
                     {/* Language Switcher */}
                     <LanguageSwitcher compact />
 
-                    {user ? (
-                        <UserMenu user={user} profile={profile} />
+                    {effectiveUser ? (
+                        <UserMenu user={effectiveUser} profile={effectiveProfile} isOrcidUser={!!orcidUser} />
                     ) : (
                         <Link href="/login" className="px-5 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-all shadow-sm">
                             Login

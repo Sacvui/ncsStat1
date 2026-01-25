@@ -6,8 +6,9 @@ import { getSupabase } from '@/utils/supabase/client'
 import { User, LogOut, Settings, ChevronDown, MessageSquare, Database } from 'lucide-react'
 import FeedbackModal from './FeedbackModal'
 import { getAvatarUrl } from '@/utils/avatarHelper'
+import { clearOrcidSession } from '@/hooks/useOrcidSession'
 
-export default function UserMenu({ user, profile }: { user: any, profile?: any }) {
+export default function UserMenu({ user, profile, isOrcidUser = false }: { user: any, profile?: any, isOrcidUser?: boolean }) {
     const [isOpen, setIsOpen] = useState(false)
     const [isFeedbackOpen, setIsFeedbackOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
@@ -24,7 +25,19 @@ export default function UserMenu({ user, profile }: { user: any, profile?: any }
     }, [])
 
     const initial = user.email ? user.email[0].toUpperCase() : 'U'
-    const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+    const displayName = profile?.full_name || user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
+
+    // Handle logout for both Supabase and ORCID users
+    const handleLogout = async () => {
+        if (isOrcidUser) {
+            clearOrcidSession()
+            window.location.href = '/login'
+        } else {
+            // Submit form for Supabase signout
+            const form = document.getElementById('signout-form') as HTMLFormElement
+            form?.submit()
+        }
+    }
 
     return (
         <>
@@ -84,15 +97,15 @@ export default function UserMenu({ user, profile }: { user: any, profile?: any }
                         </div>
 
                         <div className="border-t border-slate-100 py-1">
-                            <form action="/auth/signout" method="post">
-                                <button
-                                    type="submit"
-                                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    Logout
-                                </button>
-                            </form>
+                            <form id="signout-form" action="/auth/signout" method="post" className="hidden" />
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors text-left"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                Logout
+                            </button>
                         </div>
                     </div>
                 )}
