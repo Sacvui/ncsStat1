@@ -4,8 +4,7 @@
  */
 
 import { getSupabase } from '@/utils/supabase/client';
-
-const REFERRAL_REWARD = 5000; // NCS points for successful referral
+import { getReferralReward } from '@/lib/ncs-credits';
 
 /**
  * Generate unique referral code for a user
@@ -57,6 +56,9 @@ export async function applyReferralCode(
 ): Promise<{ success: boolean; error?: string; referrerId?: string }> {
     const supabase = getSupabase();
 
+    // Get referral reward amount from config
+    const referralReward = await getReferralReward();
+
     // Find referrer by code
     const { data: referrer, error: findError } = await supabase
         .from('profiles')
@@ -76,7 +78,7 @@ export async function applyReferralCode(
     // Check if user was already referred
     const { data: currentUser } = await supabase
         .from('profiles')
-        .select('referred_by')
+        .select('referred_by, tokens, total_earned')
         .eq('id', userId)
         .single();
 
@@ -89,8 +91,8 @@ export async function applyReferralCode(
         .from('profiles')
         .update({
             referred_by: referralCode.toUpperCase(),
-            tokens: (currentUser as any)?.tokens + REFERRAL_REWARD || REFERRAL_REWARD,
-            total_earned: (currentUser as any)?.total_earned + REFERRAL_REWARD || REFERRAL_REWARD
+            tokens: (currentUser?.tokens || 0) + referralReward,
+            total_earned: (currentUser?.total_earned || 0) + referralReward
         })
         .eq('id', userId);
 
@@ -102,8 +104,8 @@ export async function applyReferralCode(
     await supabase
         .from('profiles')
         .update({
-            tokens: (referrer.tokens || 0) + REFERRAL_REWARD,
-            total_earned: (referrer.total_earned || 0) + REFERRAL_REWARD,
+            tokens: (referrer.tokens || 0) + referralReward,
+            total_earned: (referrer.total_earned || 0) + referralReward,
             referral_count: (referrer.referral_count || 0) + 1
         })
         .eq('id', referrer.id);
@@ -112,13 +114,13 @@ export async function applyReferralCode(
     await supabase.from('token_transactions').insert([
         {
             user_id: userId,
-            amount: REFERRAL_REWARD,
+            amount: referralReward,
             type: 'referral_bonus',
             description: `Thưởng đăng ký qua mã giới thiệu`
         },
         {
             user_id: referrer.id,
-            amount: REFERRAL_REWARD,
+            amount: referralReward,
             type: 'referral_reward',
             description: `Thưởng giới thiệu người dùng mới`
         }
@@ -136,6 +138,7 @@ export async function getReferralStats(userId: string): Promise<{
     totalEarned: number;
 }> {
     const supabase = getSupabase();
+    const referralReward = await getReferralReward();
 
     const { data } = await supabase
         .from('profiles')
@@ -146,7 +149,7 @@ export async function getReferralStats(userId: string): Promise<{
     return {
         referralCode: data?.referral_code || '',
         referralCount: data?.referral_count || 0,
-        totalEarned: (data?.referral_count || 0) * REFERRAL_REWARD
+        totalEarned: (data?.referral_count || 0) * referralReward
     };
 }
 
@@ -176,7 +179,7 @@ export async function getReferredUsers(userId: string): Promise<Array<{
         .order('created_at', { ascending: false })
         .limit(10);
 
-    return (referred || []).map(u => ({
+    return (referred || []).map((u: { email?: string; created_at: string }) => ({
         email: u.email?.replace(/(.{2}).*(@.*)/, '$1***$2') || 'unknown',
         createdAt: u.created_at
     }));

@@ -269,3 +269,40 @@ function getDefaultCosts(): Record<string, number> {
 export function clearCostCache(): void {
     costCache = null;
 }
+
+/**
+ * Get referral reward amount from database
+ */
+export async function getReferralReward(): Promise<number> {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+        .from('system_config')
+        .select('value')
+        .eq('key', 'referral_reward')
+        .single();
+
+    if (error || !data) {
+        console.warn('Failed to fetch referral reward, using 5000');
+        return 5000;
+    }
+
+    return typeof data.value === 'number'
+        ? data.value
+        : parseInt(data.value as string) || 5000;
+}
+
+/**
+ * Update referral reward amount (admin only)
+ */
+export async function updateReferralReward(amount: number): Promise<boolean> {
+    const supabase = getSupabase();
+    const { error } = await supabase
+        .from('system_config')
+        .upsert({
+            key: 'referral_reward',
+            value: amount,
+            updated_at: new Date().toISOString()
+        });
+
+    return !error;
+}

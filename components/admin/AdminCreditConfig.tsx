@@ -1,18 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Coins, Save, RefreshCw, Check, AlertCircle } from 'lucide-react';
+import { Coins, Save, RefreshCw, Check, AlertCircle, Gift } from 'lucide-react';
 import {
     getAnalysisCosts,
     getDefaultBalance,
+    getReferralReward,
     updateAnalysisCosts,
     updateDefaultBalance,
+    updateReferralReward,
     ANALYSIS_TYPES,
     clearCostCache
 } from '@/lib/ncs-credits';
 
 export function AdminCreditConfig() {
     const [defaultBalance, setDefaultBalance] = useState<number>(100000);
+    const [referralReward, setReferralReward] = useState<number>(5000);
     const [costs, setCosts] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -25,12 +28,14 @@ export function AdminCreditConfig() {
     async function loadConfig() {
         setLoading(true);
         try {
-            const [balance, analysisCosts] = await Promise.all([
+            const [balance, analysisCosts, refReward] = await Promise.all([
                 getDefaultBalance(),
-                getAnalysisCosts()
+                getAnalysisCosts(),
+                getReferralReward()
             ]);
             setDefaultBalance(balance);
             setCosts(analysisCosts);
+            setReferralReward(refReward);
         } catch (error) {
             console.error('Error loading config:', error);
         }
@@ -41,12 +46,13 @@ export function AdminCreditConfig() {
         setSaving(true);
         setSaveStatus('idle');
         try {
-            const [balanceSuccess, costsSuccess] = await Promise.all([
+            const [balanceSuccess, costsSuccess, referralSuccess] = await Promise.all([
                 updateDefaultBalance(defaultBalance),
-                updateAnalysisCosts(costs)
+                updateAnalysisCosts(costs),
+                updateReferralReward(referralReward)
             ]);
 
-            if (balanceSuccess && costsSuccess) {
+            if (balanceSuccess && costsSuccess && referralSuccess) {
                 clearCostCache();
                 setSaveStatus('success');
                 setTimeout(() => setSaveStatus('idle'), 3000);
@@ -147,6 +153,29 @@ export function AdminCreditConfig() {
                     Số credit này sẽ được cấp tự động khi user đăng ký tài khoản mới.
                 </p>
             </div>
+
+            {/* Referral Reward */}
+            <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 p-5">
+                <label className="block text-sm font-semibold text-green-900 mb-2 flex items-center gap-2">
+                    <Gift className="w-4 h-4" />
+                    Thưởng giới thiệu thành công
+                </label>
+                <div className="flex items-center gap-3">
+                    <input
+                        type="number"
+                        value={referralReward}
+                        onChange={(e) => setReferralReward(Math.max(0, parseInt(e.target.value) || 0))}
+                        className="w-48 px-4 py-2 text-lg font-bold border-2 border-green-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        min="0"
+                        step="1000"
+                    />
+                    <span className="text-green-700 font-medium">NCS / người</span>
+                </div>
+                <p className="text-xs text-green-600 mt-2">
+                    Số NCS thưởng cho CẢ người giới thiệu và người được giới thiệu khi đăng ký thành công.
+                </p>
+            </div>
+
 
             {/* Analysis Costs Table */}
             <div className="bg-white rounded-xl border shadow-sm overflow-hidden">
