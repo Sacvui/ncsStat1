@@ -2310,7 +2310,9 @@ export default function AnalyzePage() {
                                 </h2>
                                 <p className="text-gray-600">
                                     {analysisType === 'cronbach' && `Cronbach's Alpha${results?.scaleName ? ` - ${results.scaleName}` : ''}`}
+                                    {analysisType === 'omega' && `McDonald's Omega${results?.scaleName ? ` - ${results.scaleName}` : ''}`}
                                     {analysisType === 'cronbach-batch' && `Cronbach's Alpha - ${multipleResults.length} thang đo`}
+                                    {analysisType === 'omega-batch' && `McDonald's Omega - ${multipleResults.length} thang đo`}
                                     {analysisType === 'correlation' && "Ma trận tương quan"}
                                     {analysisType === 'descriptive' && "Thống kê mô tả"}
                                     {analysisType === 'ttest' && "Independent Samples T-test"}
@@ -2322,7 +2324,7 @@ export default function AnalyzePage() {
                             </div>
 
                             {/* Single Result Display */}
-                            {results && analysisType !== 'cronbach-batch' && (
+                            {results && analysisType !== 'cronbach-batch' && analysisType !== 'omega-batch' && (
                                 <ResultsDisplay
                                     analysisType={analysisType}
                                     results={results.data}
@@ -2336,7 +2338,7 @@ export default function AnalyzePage() {
                             )}
 
                             {/* Batch Results Display */}
-                            {analysisType === 'cronbach-batch' && multipleResults.length > 0 && (
+                            {(analysisType === 'cronbach-batch' || analysisType === 'omega-batch') && multipleResults.length > 0 && (
                                 <div className="space-y-8">
                                     {/* Summary Table */}
                                     <div className="bg-white rounded-xl shadow-lg p-6">
