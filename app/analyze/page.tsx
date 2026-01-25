@@ -393,6 +393,97 @@ export default function AnalyzePage() {
         }
     };
 
+    // Run McDonald's Omega with selected variables (distinct from Cronbach)
+    const runOmegaWithSelection = async (selectedColumns: string[], name: string) => {
+        if (selectedColumns.length < 3) {
+            showToast('McDonald\'s Omega cần ít nhất 3 biến', 'error');
+            return;
+        }
+
+        // NCS Credit Check  
+        if (user) {
+            const cost = await getAnalysisCost('omega');
+            const hasEnough = await checkBalance(user.id, cost);
+            if (!hasEnough) {
+                setRequiredCredits(cost);
+                setCurrentAnalysisCost(cost);
+                setShowInsufficientCredits(true);
+                return;
+            }
+        }
+
+        setIsAnalyzing(true);
+        setAnalysisType('omega'); // Different from cronbach
+        setScaleName(name);
+        setMultipleResults([]);
+
+        try {
+            const selectedData = data.map(row =>
+                selectedColumns.map(col => Number(row[col]) || 0)
+            );
+
+            const analysisResults = await runCronbachAlpha(selectedData);
+
+            // Deduct credits on success
+            if (user) {
+                const cost = await getAnalysisCost('omega');
+                await deductCredits(user.id, cost, `McDonald's Omega: ${name}`);
+                setNcsBalance(prev => Math.max(0, prev - cost));
+            }
+
+            setResults({
+                type: 'omega', // Set type as omega for distinct display
+                data: analysisResults,
+                columns: selectedColumns,
+                scaleName: name
+            });
+            setStep('results');
+            showToast('Phân tích Omega hoàn thành!', 'success');
+        } catch (error) {
+            handleAnalysisError(error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    // Run Omega for multiple groups (batch analysis)
+    const runOmegaBatch = async (groups: { name: string; columns: string[] }[]) => {
+        // Validate each group has at least 3 items (Omega needs more)
+        for (const group of groups) {
+            if (group.columns.length < 3) {
+                showToast(`Nhóm "${group.name}" cần ít nhất 3 biến cho Omega`, 'error');
+                return;
+            }
+        }
+
+        setIsAnalyzing(true);
+        setAnalysisType('omega-batch'); // Different from cronbach-batch
+        setResults(null);
+        setMultipleResults([]);
+
+        try {
+            const allResults = [];
+            for (const group of groups) {
+                const groupData = data.map(row =>
+                    group.columns.map(col => Number(row[col]) || 0)
+                );
+                const result = await runCronbachAlpha(groupData);
+                allResults.push({
+                    scaleName: group.name,
+                    columns: group.columns,
+                    data: result
+                });
+            }
+            setMultipleResults(allResults);
+            setStep('results');
+            showToast(`Phân tích Omega ${allResults.length} thang đo hoàn thành!`, 'success');
+        } catch (error) {
+            handleAnalysisError(error);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
     const runAnalysis = async (type: string) => {
         setIsAnalyzing(true);
         setAnalysisType(type);
@@ -858,9 +949,10 @@ export default function AnalyzePage() {
 
                             <SmartGroupSelector
                                 columns={getNumericColumns()}
-                                onAnalyzeGroup={runCronbachWithSelection}
-                                onAnalyzeAllGroups={runCronbachBatch}
+                                onAnalyzeGroup={runOmegaWithSelection}
+                                onAnalyzeAllGroups={runOmegaBatch}
                                 isAnalyzing={isAnalyzing}
+                                minItemsPerGroup={3}
                             />
 
                             <button
