@@ -83,6 +83,13 @@ export async function updateSession(request: NextRequest) {
         const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
 
         if (isProtectedRoute) {
+            // Check for ORCID session cookie first
+            const orcidUser = request.cookies.get('orcid_user')?.value
+            if (orcidUser) {
+                // ORCID user is authenticated via cookie, allow access
+                return response
+            }
+
             // For protected routes: Use getSession first (fast, from cookie)
             const { data: { session } } = await supabase.auth.getSession()
 
