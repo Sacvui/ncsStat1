@@ -23,6 +23,8 @@ export function useAnalysisSession() {
     const [moderationVars, setModerationVars] = useState<{ y: string; x: string; w: string }>({ y: '', x: '', w: '' });
     const [twoWayAnovaVars, setTwoWayAnovaVars] = useState<{ y: string; factor1: string; factor2: string }>({ y: '', factor1: '', factor2: '' });
     const [clusterVars, setClusterVars] = useState<{ variables: string[]; k: number }>({ variables: [], k: 3 });
+    const [mediationVars, setMediationVars] = useState<{ x: string; m: string; y: string }>({ x: '', m: '', y: '' });
+    const [logisticVars, setLogisticVars] = useState<{ y: string; xs: string[] }>({ y: '', xs: [] });
 
     // Load session on mount
     useEffect(() => {
@@ -69,7 +71,9 @@ export function useAnalysisSession() {
             regressionVars,
             moderationVars,
             twoWayAnovaVars,
-            clusterVars
+            clusterVars,
+            mediationVars,
+            logisticVars
         };
 
         try {
@@ -95,6 +99,8 @@ export function useAnalysisSession() {
         setModerationVars({ y: '', x: '', w: '' });
         setTwoWayAnovaVars({ y: '', factor1: '', factor2: '' });
         setClusterVars({ variables: [], k: 3 });
+        setMediationVars({ x: '', m: '', y: '' });
+        setLogisticVars({ y: '', xs: [] });
     }, []);
 
     return {
@@ -114,6 +120,8 @@ export function useAnalysisSession() {
         regressionVars, setRegressionVars,
         moderationVars, setModerationVars,
         twoWayAnovaVars, setTwoWayAnovaVars,
-        clusterVars, setClusterVars
+        clusterVars, setClusterVars,
+        mediationVars, setMediationVars,
+        logisticVars, setLogisticVars
     };
 }

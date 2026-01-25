@@ -10,7 +10,7 @@ import { DataProfiler } from '@/components/DataProfiler';
 import { ResultsDisplay } from '@/components/ResultsDisplay';
 import { SmartGroupSelector, VariableSelector, AISettings } from '@/components/VariableSelector';
 import { profileData, DataProfile } from '@/lib/data-profiler';
-import { runCronbachAlpha, runCorrelation, runDescriptiveStats, runTTestIndependent, runTTestPaired, runOneWayANOVA, runEFA, runLinearRegression, runChiSquare, runMannWhitneyU, runModerationAnalysis, runTwoWayANOVA, runClusterAnalysis, initWebR, getWebRStatus, setProgressCallback } from '@/lib/webr-wrapper';
+import { runCronbachAlpha, runCorrelation, runDescriptiveStats, runTTestIndependent, runTTestPaired, runOneWayANOVA, runEFA, runLinearRegression, runChiSquare, runMannWhitneyU, runModerationAnalysis, runTwoWayANOVA, runClusterAnalysis, runMediationAnalysis, runLogisticRegression, initWebR, getWebRStatus, setProgressCallback } from '@/lib/webr-wrapper';
 import { BarChart3, FileText, Shield, Trash2, Eye, EyeOff, Wifi, WifiOff } from 'lucide-react';
 import { Toast } from '@/components/ui/Toast';
 import { WebRStatus } from '@/components/WebRStatus';
@@ -121,7 +121,9 @@ export default function AnalyzePage() {
         regressionVars, setRegressionVars,
         moderationVars, setModerationVars,
         twoWayAnovaVars, setTwoWayAnovaVars,
-        clusterVars, setClusterVars
+        clusterVars, setClusterVars,
+        mediationVars, setMediationVars,
+        logisticVars, setLogisticVars
     } = useAnalysisSession();
 
 
@@ -2107,6 +2109,189 @@ export default function AnalyzePage() {
                                     className="mt-6 w-full py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg"
                                 >
                                     {isAnalyzing ? 'Đang phân tích...' : 'Chạy Cluster Analysis'}
+                                </button>
+                            </div>
+
+                            <button onClick={() => setStep('analyze')} className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg">
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Mediation Analysis Selection */}
+                    {step === 'mediation-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Phân tích Trung gian (Mediation)
+                                </h2>
+                                <p className="text-gray-600">
+                                    Kiểm tra biến M có đóng vai trò trung gian giữa X và Y không (Baron & Kenny)
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến độc lập (X - Predictor)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={mediationVars.x}
+                                            onChange={(e) => setMediationVars({ ...mediationVars, x: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={mediationVars.m === col || mediationVars.y === col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến trung gian (M - Mediator)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={mediationVars.m}
+                                            onChange={(e) => setMediationVars({ ...mediationVars, m: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={mediationVars.x === col || mediationVars.y === col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến phụ thuộc (Y - Outcome)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={mediationVars.y}
+                                            onChange={(e) => setMediationVars({ ...mediationVars, y: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={mediationVars.x === col || mediationVars.m === col}>{col}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (!mediationVars.x || !mediationVars.m || !mediationVars.y) {
+                                            showToast('Vui lòng chọn đủ 3 biến (X, M, Y)', 'error');
+                                            return;
+                                        }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('mediation');
+                                        try {
+                                            const cols = [mediationVars.x, mediationVars.m, mediationVars.y];
+                                            const medData = data.map(row => cols.map(c => Number(row[c]) || 0));
+                                            const result = await runMediationAnalysis(medData, cols);
+                                            setResults({ type: 'mediation', data: result, columns: cols });
+                                            setStep('results');
+                                            showToast('Phân tích Mediation hoàn thành!', 'success');
+                                        } catch (err) { handleAnalysisError(err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="mt-6 w-full py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Mediation Analysis'}
+                                </button>
+                            </div>
+
+                            <button onClick={() => setStep('analyze')} className="w-full py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold rounded-lg">
+                                ← Quay lại
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Logistic Regression Selection */}
+                    {step === 'logistic-select' && (
+                        <div className="max-w-2xl mx-auto space-y-6">
+                            <div className="text-center mb-8">
+                                <h2 className="text-3xl font-bold text-gray-800 mb-2">
+                                    Hồi quy Logistic (Nhị phân)
+                                </h2>
+                                <p className="text-gray-600">
+                                    Dự đoán biến phụ thuộc nhị phân (0/1 hoặc Yes/No)
+                                </p>
+                            </div>
+
+                            <div className="bg-white rounded-xl shadow-lg p-6 border">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Biến phụ thuộc (Y) - Phải là nhị phân (0/1)
+                                        </label>
+                                        <select
+                                            className="w-full px-3 py-2 border rounded-lg"
+                                            value={logisticVars.y}
+                                            onChange={(e) => setLogisticVars({ ...logisticVars, y: e.target.value })}
+                                        >
+                                            <option value="">Chọn biến...</option>
+                                            {getNumericColumns().map(col => (
+                                                <option key={col} value={col} disabled={logisticVars.xs.includes(col)}>{col}</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-xs text-gray-500 mt-1">Lưu ý: Biến Y chỉ nên chứa 2 giá trị (ví dụ: 0 và 1)</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Các biến độc lập (X1, X2...)
+                                        </label>
+                                        <div className="space-y-2 max-h-48 overflow-y-auto border rounded-lg p-2">
+                                            {getNumericColumns().map(col => (
+                                                <label key={col} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                                                    <input
+                                                        type="checkbox"
+                                                        value={col}
+                                                        checked={logisticVars.xs.includes(col)}
+                                                        onChange={(e) => {
+                                                            const isChecked = e.target.checked;
+                                                            setLogisticVars(prev => ({
+                                                                ...prev,
+                                                                xs: isChecked
+                                                                    ? [...prev.xs, col]
+                                                                    : prev.xs.filter(v => v !== col)
+                                                            }));
+                                                        }}
+                                                        disabled={logisticVars.y === col}
+                                                        className="w-4 h-4 text-blue-600"
+                                                    />
+                                                    <span>{col}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={async () => {
+                                        if (!logisticVars.y || logisticVars.xs.length === 0) {
+                                            showToast('Vui lòng chọn biến Y và ít nhất 1 biến X', 'error');
+                                            return;
+                                        }
+                                        setIsAnalyzing(true);
+                                        setAnalysisType('logistic');
+                                        try {
+                                            const cols = [logisticVars.y, ...logisticVars.xs];
+                                            const logData = data.map(row => cols.map(c => Number(row[c]) || 0));
+                                            const result = await runLogisticRegression(logData, cols);
+                                            setResults({ type: 'logistic', data: result, columns: cols });
+                                            setStep('results');
+                                            showToast('Phân tích Logistic Regression hoàn thành!', 'success');
+                                        } catch (err) { handleAnalysisError(err); }
+                                        finally { setIsAnalyzing(false); }
+                                    }}
+                                    disabled={isAnalyzing}
+                                    className="mt-6 w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
+                                >
+                                    {isAnalyzing ? 'Đang phân tích...' : 'Chạy Logistic Regression'}
                                 </button>
                             </div>
 

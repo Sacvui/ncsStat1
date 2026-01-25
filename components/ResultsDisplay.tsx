@@ -84,6 +84,10 @@ export function ResultsDisplay({
                 return <DescriptiveResults results={results} columns={columns || []} />;
             case 'moderation':
                 return <ModerationResults results={results} columns={results.columns || []} />;
+            case 'mediation':
+                return <MediationResults results={results} columns={results.columns || []} />;
+            case 'logistic':
+                return <LogisticResults results={results} columns={results.columns || []} />;
             case 'twoway-anova':
                 return <TwoWayANOVAResults results={results} columns={results.columns || []} />;
             case 'cluster':
@@ -2064,6 +2068,172 @@ function ClusterResults({ results, columns }: { results: any; columns: string[] 
                     Xem bảng Cluster Centers để hiểu đặc điểm của từng cụm dựa trên giá trị trung bình của các biến.
                 </p>
             </div>
+        </div>
+    );
+}
+
+// Mediation Analysis Results Component
+function MediationResults({ results, columns }: { results: any; columns: string[] }) {
+    // columns: [X, M, Y]
+    const sobelP = results.sobelP;
+    const significant = sobelP < 0.05;
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Mediation Analysis Results (Baron & Kenny)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-800">
+                            <strong>Mô hình:</strong> {columns[0]} (X) → {columns[1]} (M) → {columns[2]} (Y)
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div className="space-y-4">
+                            <h4 className="font-semibold text-gray-700 border-b pb-2">Path Coefficients</h4>
+                            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Path a (X → M):</span>
+                                    <span className="text-sm">{results.paths?.a?.est?.toFixed(4)} (p={results.paths?.a?.p?.toFixed(4)})</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Path b (M → Y):</span>
+                                    <span className="text-sm">{results.paths?.b?.est?.toFixed(4)} (p={results.paths?.b?.p?.toFixed(4)})</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Path c (Total Effect):</span>
+                                    <span className="text-sm">{results.paths?.c_prime?.est?.toFixed(4)} (p={results.paths?.c_prime?.p?.toFixed(4)})</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Path c&apos; (Direct Effect):</span>
+                                    <span className="text-sm">{results.paths?.c?.est?.toFixed(4)} (p={results.paths?.c?.p?.toFixed(4)})</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h4 className="font-semibold text-gray-700 border-b pb-2">Indirect Effect</h4>
+                            <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Estimate (a × b):</span>
+                                    <span className="text-sm font-bold">{results.indirectEffect?.est?.toFixed(4)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Sobel Test Z:</span>
+                                    <span className="text-sm">{results.sobelZ?.toFixed(3)}</span>
+                                </div>
+                                <div className={`flex justify-between items-center p-2 rounded ${significant ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
+                                    <span className="text-sm font-bold">Sobel p-value:</span>
+                                    <span className="text-sm font-bold">{sobelP?.toFixed(4)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm font-medium">Mediation Type:</span>
+                                    <span className="text-sm uppercase font-bold text-blue-600">{results.mediationType}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+            <div className="bg-gray-50 border border-gray-200 p-6 rounded-lg">
+                <h4 className="font-bold mb-4 text-gray-800 uppercase text-xs tracking-wider">Kết luận</h4>
+                <p className="text-sm text-gray-800">
+                    {significant
+                        ? `Có hiệu ứng trung gian có ý nghĩa thống kê (Sobel p = ${sobelP?.toFixed(4)} < 0.05). Biến ${columns[1]} là trung gian ${results.mediationType === 'full' ? 'toàn phần' : 'một phần'} trong mối quan hệ giữa ${columns[0]} và ${columns[2]}.`
+                        : `Không có hiệu ứng trung gian có ý nghĩa thống kê (Sobel p = ${sobelP?.toFixed(4)} >= 0.05).`
+                    }
+                </p>
+            </div>
+        </div>
+    );
+}
+
+// Logistic Regression Results Component
+function LogisticResults({ results, columns }: { results: any; columns: string[] }) {
+    // columns: [Y, X1, X2...]
+
+    return (
+        <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Logistic Regression Results</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <table className="w-full text-sm mb-6">
+                        <thead>
+                            <tr className="border-b border-gray-200 bg-gray-50">
+                                <th className="py-2 text-left font-semibold">Variable</th>
+                                <th className="py-2 text-right font-semibold">Estimate</th>
+                                <th className="py-2 text-right font-semibold">Std. Error</th>
+                                <th className="py-2 text-right font-semibold">z-value</th>
+                                <th className="py-2 text-right font-semibold">p-value</th>
+                                <th className="py-2 text-right font-semibold">Odds Ratio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {results.coefficients?.map((coeff: any, idx: number) => (
+                                <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                                    <td className="py-2 font-medium">{coeff.term}</td>
+                                    <td className="py-2 text-right">{coeff.estimate?.toFixed(4)}</td>
+                                    <td className="py-2 text-right">{coeff.stdError?.toFixed(4)}</td>
+                                    <td className="py-2 text-right">{coeff.zValue?.toFixed(3)}</td>
+                                    <td className={`py-2 text-right ${coeff.pValue < 0.05 ? 'font-bold text-green-600' : ''}`}>
+                                        {coeff.pValue?.toFixed(4)} {coeff.pValue < 0.05 && '***'}
+                                    </td>
+                                    <td className="py-2 text-right font-medium text-blue-600">
+                                        {coeff.oddsRatio?.toFixed(4)}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div className="p-3 bg-gray-50 rounded text-center">
+                            <div className="text-xs text-gray-500">AIC</div>
+                            <div className="font-bold">{results.modelFit?.aic?.toFixed(2)}</div>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded text-center">
+                            <div className="text-xs text-gray-500">Pseudo R² (McFadden)</div>
+                            <div className="font-bold">{results.modelFit?.pseudoR2?.toFixed(4)}</div>
+                        </div>
+                        <div className="p-3 bg-gray-50 rounded text-center">
+                            <div className="text-xs text-gray-500">Accuracy</div>
+                            <div className={`font-bold ${results.modelFit?.accuracy > 0.7 ? 'text-green-600' : ''}`}>
+                                {(results.modelFit?.accuracy * 100)?.toFixed(2)}%
+                            </div>
+                        </div>
+                    </div>
+
+                    {results.confusionMatrix && (
+                        <div className="border rounded-lg p-4 max-w-md mx-auto">
+                            <h4 className="text-center font-semibold mb-3">Confusion Matrix</h4>
+                            <div className="grid grid-cols-2 gap-2 text-center text-sm">
+                                <div className="bg-green-50 p-2 rounded">
+                                    <div className="font-bold text-green-700">{results.confusionMatrix.trueNegative}</div>
+                                    <div className="text-xs">True Negative</div>
+                                </div>
+                                <div className="bg-red-50 p-2 rounded">
+                                    <div className="font-bold text-red-700">{results.confusionMatrix.falsePositive}</div>
+                                    <div className="text-xs">False Positive</div>
+                                </div>
+                                <div className="bg-red-50 p-2 rounded">
+                                    <div className="font-bold text-red-700">{results.confusionMatrix.falseNegative}</div>
+                                    <div className="text-xs">False Negative</div>
+                                </div>
+                                <div className="bg-green-50 p-2 rounded">
+                                    <div className="font-bold text-green-700">{results.confusionMatrix.truePositive}</div>
+                                    <div className="text-xs">True Positive</div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </div>
     );
 }
