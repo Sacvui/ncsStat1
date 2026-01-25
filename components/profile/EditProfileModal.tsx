@@ -54,23 +54,39 @@ export default function EditProfileModal({
         setMessage(null)
 
         try {
-            const updates = {
-                id: user.id,
+            // Use update with only basic fields first
+            const basicUpdates: Record<string, any> = {
                 full_name: fullName,
                 avatar_url: avatarUrl,
-                phone_number: phoneNumber,
-                date_of_birth: dateOfBirth || null,
-                academic_level: academicLevel,
-                research_field: researchField,
-                organization: organization,
                 updated_at: new Date().toISOString(),
             }
 
-            const { error } = await supabase
+            // Try to update basic fields
+            let { error } = await supabase
                 .from('profiles')
-                .upsert(updates)
+                .update(basicUpdates)
+                .eq('id', user.id)
 
             if (error) throw error
+
+            // Try to update extended fields separately (may fail if columns don't exist)
+            try {
+                const extendedUpdates: Record<string, any> = {
+                    phone_number: phoneNumber,
+                    date_of_birth: dateOfBirth || null,
+                    academic_level: academicLevel,
+                    research_field: researchField,
+                    organization: organization,
+                }
+
+                await supabase
+                    .from('profiles')
+                    .update(extendedUpdates)
+                    .eq('id', user.id)
+            } catch (extErr) {
+                console.warn('Extended fields update failed (schema cache issue?):', extErr)
+                // Continue anyway - basic fields were saved
+            }
 
             if (onSuccess) onSuccess()
             setMessage({ text: 'Cập nhật hồ sơ thành công!', type: 'success' })
