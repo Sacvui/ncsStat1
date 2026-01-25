@@ -5,10 +5,12 @@ import { useState, Suspense, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { ProjectFlowAnimation } from '@/components/login/ProjectFlowAnimation'
 import { Loader2 } from 'lucide-react'
+import WebRPreloader from '@/components/WebRPreloader'
 
 export default function LoginPage() {
     return (
         <Suspense fallback={<div>Loading...</div>}>
+            <WebRPreloader />
             <LoginForm />
         </Suspense>
     )
