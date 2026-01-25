@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BarChart2, Shield, Network, Users, GitCompare, Layers, TrendingUp, Grid3x3, Activity, ChevronDown, ChevronRight, Star, Binary, FlaskConical, ArrowRightLeft, Target, CircleDot, Shuffle } from 'lucide-react';
+import { PointBadge } from '@/components/ui/PointBadge';
 
 interface AnalysisSelectorProps {
     onSelect: (step: string) => void;
@@ -14,6 +15,7 @@ interface AnalysisOption {
     icon: any;
     action: 'select' | 'run';
     recommended?: boolean;
+    costType?: string; // Maps to analysis cost type
 }
 
 interface AnalysisCategory {
@@ -46,9 +48,9 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-blue-50',
                 borderColor: 'border-blue-200',
                 options: [
-                    { id: 'descriptive-select', title: 'Descriptive Statistics', desc: 'Mean, SD, Min, Max, Median, Skewness, Kurtosis', icon: BarChart2, action: 'select' },
-                    { id: 'cronbach-select', title: "Cronbach's Alpha", desc: 'Classic scale reliability (α)', icon: Shield, action: 'select', recommended: true },
-                    { id: 'omega-select', title: "McDonald's Omega", desc: 'Modern reliability (ω) for better precision', icon: Shield, action: 'select' },
+                    { id: 'descriptive-select', title: 'Descriptive Statistics', desc: 'Mean, SD, Min, Max, Median, Skewness, Kurtosis', icon: BarChart2, action: 'select', costType: 'descriptive' },
+                    { id: 'cronbach-select', title: "Cronbach's Alpha", desc: 'Classic scale reliability (α)', icon: Shield, action: 'select', recommended: true, costType: 'cronbach' },
+                    { id: 'omega-select', title: "McDonald's Omega", desc: 'Modern reliability (ω) for better precision', icon: Shield, action: 'select', costType: 'cronbach' },
                 ]
             }
         },
@@ -61,13 +63,13 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-green-50',
                 borderColor: 'border-green-200',
                 options: [
-                    { id: 'ttest-select', title: 'Independent T-test', desc: 'Compare 2 independent groups', icon: GitCompare, action: 'select' },
-                    { id: 'ttest-paired-select', title: 'Paired T-test', desc: 'Compare before-after (paired)', icon: Users, action: 'select' },
-                    { id: 'anova-select', title: 'One-Way ANOVA / Welch', desc: 'Compare multiple groups', icon: Layers, action: 'select' },
-                    { id: 'twoway-anova-select', title: 'Two-Way ANOVA', desc: 'Factorial ANOVA with interaction', icon: Grid3x3, action: 'select' },
-                    { id: 'mannwhitney-select', title: 'Mann-Whitney U', desc: 'Non-parametric 2 groups', icon: Activity, action: 'select' },
-                    { id: 'kruskalwallis-select', title: 'Kruskal-Wallis H', desc: 'Non-parametric multiple groups', icon: Layers, action: 'select' },
-                    { id: 'wilcoxon-select', title: 'Wilcoxon Signed-Rank', desc: 'Non-parametric paired comparison', icon: ArrowRightLeft, action: 'select' },
+                    { id: 'ttest-select', title: 'Independent T-test', desc: 'Compare 2 independent groups', icon: GitCompare, action: 'select', costType: 'ttest-indep' },
+                    { id: 'ttest-paired-select', title: 'Paired T-test', desc: 'Compare before-after (paired)', icon: Users, action: 'select', costType: 'ttest-paired' },
+                    { id: 'anova-select', title: 'One-Way ANOVA / Welch', desc: 'Compare multiple groups', icon: Layers, action: 'select', costType: 'anova' },
+                    { id: 'twoway-anova-select', title: 'Two-Way ANOVA', desc: 'Factorial ANOVA with interaction', icon: Grid3x3, action: 'select', costType: 'anova' },
+                    { id: 'mannwhitney-select', title: 'Mann-Whitney U', desc: 'Non-parametric 2 groups', icon: Activity, action: 'select', costType: 'mann-whitney' },
+                    { id: 'kruskalwallis-select', title: 'Kruskal-Wallis H', desc: 'Non-parametric multiple groups', icon: Layers, action: 'select', costType: 'anova' },
+                    { id: 'wilcoxon-select', title: 'Wilcoxon Signed-Rank', desc: 'Non-parametric paired comparison', icon: ArrowRightLeft, action: 'select', costType: 'ttest-paired' },
                 ]
             }
         },
@@ -80,11 +82,11 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-purple-50',
                 borderColor: 'border-purple-200',
                 options: [
-                    { id: 'correlation', title: 'Correlation Matrix', desc: 'Pearson/Spearman correlation', icon: Network, action: 'run' },
-                    { id: 'regression-select', title: 'Linear Regression', desc: 'Multiple linear regression with β', icon: TrendingUp, action: 'select' },
-                    { id: 'logistic-select', title: 'Logistic Regression', desc: 'Binary outcome prediction', icon: Binary, action: 'select' },
-                    { id: 'mediation-select', title: 'Mediation Analysis', desc: 'Baron & Kenny + Sobel test', icon: Target, action: 'select' },
-                    { id: 'moderation-select', title: 'Moderation Analysis', desc: 'Interaction effect with simple slopes', icon: Shuffle, action: 'select' },
+                    { id: 'correlation', title: 'Correlation Matrix', desc: 'Pearson/Spearman correlation', icon: Network, action: 'run', costType: 'correlation' },
+                    { id: 'regression-select', title: 'Linear Regression', desc: 'Multiple linear regression with β', icon: TrendingUp, action: 'select', costType: 'regression' },
+                    { id: 'logistic-select', title: 'Logistic Regression', desc: 'Binary outcome prediction', icon: Binary, action: 'select', costType: 'regression' },
+                    { id: 'mediation-select', title: 'Mediation Analysis', desc: 'Baron & Kenny + Sobel test', icon: Target, action: 'select', costType: 'regression' },
+                    { id: 'moderation-select', title: 'Moderation Analysis', desc: 'Interaction effect with simple slopes', icon: Shuffle, action: 'select', costType: 'regression' },
                 ]
             }
         },
@@ -97,9 +99,9 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-orange-50',
                 borderColor: 'border-orange-200',
                 options: [
-                    { id: 'efa-select', title: 'EFA', desc: 'Exploratory Factor Analysis + Parallel Analysis', icon: Grid3x3, action: 'select', recommended: true },
-                    { id: 'cfa-select', title: 'CFA', desc: 'Confirmatory Factor Analysis', icon: Network, action: 'select' },
-                    { id: 'sem-select', title: 'SEM', desc: 'Structural Equation Modeling', icon: Layers, action: 'select' },
+                    { id: 'efa-select', title: 'EFA', desc: 'Exploratory Factor Analysis + Parallel Analysis', icon: Grid3x3, action: 'select', recommended: true, costType: 'efa' },
+                    { id: 'cfa-select', title: 'CFA', desc: 'Confirmatory Factor Analysis', icon: Network, action: 'select', costType: 'cfa' },
+                    { id: 'sem-select', title: 'SEM', desc: 'Structural Equation Modeling', icon: Layers, action: 'select', costType: 'sem' },
                 ]
             }
         },
@@ -112,8 +114,8 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-teal-50',
                 borderColor: 'border-teal-200',
                 options: [
-                    { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Test of independence (Large sample)', icon: Grid3x3, action: 'select' },
-                    { id: 'fisher-select', title: "Fisher's Exact Test", desc: 'Test of independence (Small sample)', icon: Grid3x3, action: 'select' },
+                    { id: 'chisq-select', title: 'Chi-Square Test', desc: 'Test of independence (Large sample)', icon: Grid3x3, action: 'select', costType: 'chisquare' },
+                    { id: 'fisher-select', title: "Fisher's Exact Test", desc: 'Test of independence (Small sample)', icon: Grid3x3, action: 'select', costType: 'chisquare' },
                 ]
             }
         },
@@ -126,7 +128,7 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                 bgColor: 'bg-pink-50',
                 borderColor: 'border-pink-200',
                 options: [
-                    { id: 'cluster-select', title: 'Cluster Analysis', desc: 'K-Means clustering with profiles', icon: CircleDot, action: 'select' },
+                    { id: 'cluster-select', title: 'Cluster Analysis', desc: 'K-Means clustering with profiles', icon: CircleDot, action: 'select', costType: 'efa' },
                 ]
             }
         }
@@ -209,6 +211,11 @@ export function AnalysisSelector({ onSelect, onRunAnalysis, isAnalyzing }: Analy
                                                     <p className="text-xs text-slate-500 mt-1 line-clamp-2">
                                                         {opt.desc}
                                                     </p>
+                                                    {opt.costType && (
+                                                        <div className="mt-1.5">
+                                                            <PointBadge analysisType={opt.costType} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </button>
