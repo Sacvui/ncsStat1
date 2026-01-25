@@ -61,7 +61,7 @@ export default async function ProfilePage() {
                         <ProfileHeader user={user} profile={profile} />
 
                         <div className="mt-8 space-y-4">
-                            <ReferralCard referralCode={profile?.referral_code} />
+                            <ReferralCard referralCode={profile?.referral_code} userId={user.id} />
 
                             {profile?.role === 'admin' && (
                                 <Link

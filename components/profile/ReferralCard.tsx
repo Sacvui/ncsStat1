@@ -1,13 +1,26 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Copy, Check, Share2, Facebook } from 'lucide-react'
+import { getOrCreateReferralCode } from '@/lib/referral'
 
-export default function ReferralCard({ referralCode }: { referralCode: string | null | undefined }) {
+export default function ReferralCard({ referralCode: initialCode, userId }: { referralCode: string | null | undefined, userId?: string }) {
     const [copied, setCopied] = useState(false)
+    const [code, setCode] = useState(initialCode || '')
+    const [isLoading, setIsLoading] = useState(!initialCode && !!userId)
 
-    // Fallback if no code
-    const code = referralCode || 'NCS-USER'
+    // Load or create referral code if not provided
+    useEffect(() => {
+        if (!initialCode && userId) {
+            setIsLoading(true)
+            getOrCreateReferralCode(userId).then(newCode => {
+                setCode(newCode)
+                setIsLoading(false)
+            }).catch(() => setIsLoading(false))
+        } else if (initialCode) {
+            setCode(initialCode)
+        }
+    }, [initialCode, userId])
 
     // Base URL from env or fallback
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://ncsstat1.ncskit.org'
