@@ -2094,3 +2094,739 @@ export async function runMediationAnalysis(
         rCode
     };
 }
+
+// Run Moderation Analysis (Hierarchical Regression with Interaction)
+// Tests if moderator (W) changes the relationship between X and Y
+// @param xData - Independent variable data
+// @param yData - Dependent variable data  
+// @param wData - Moderator variable data
+// @param xName - Name of X variable
+// @param yName - Name of Y variable
+// @param wName - Name of moderator variable
+export async function runModerationAnalysis(
+    xData: number[],
+    yData: number[],
+    wData: number[],
+    xName: string = 'X',
+    yName: string = 'Y',
+    wName: string = 'W'
+): Promise<{
+    // Model 1: X -> Y (without moderator)
+    model1: {
+        r2: number;
+        adjR2: number;
+        fValue: number;
+        fPValue: number;
+        xCoef: number;
+        xSE: number;
+        xT: number;
+        xP: number;
+    };
+    // Model 2: X + W -> Y
+    model2: {
+        r2: number;
+        adjR2: number;
+        r2Change: number;
+        fChange: number;
+        fChangePValue: number;
+        xCoef: number;
+        xP: number;
+        wCoef: number;
+        wP: number;
+    };
+    // Model 3: X + W + X*W -> Y (full moderation model)
+    model3: {
+        r2: number;
+        adjR2: number;
+        r2Change: number;
+        fChange: number;
+        fChangePValue: number;
+        xCoef: number;
+        xP: number;
+        wCoef: number;
+        wP: number;
+        interactionCoef: number;
+        interactionSE: number;
+        interactionT: number;
+        interactionP: number;
+    };
+    // Simple slopes at different levels of W
+    simpleSlopes: {
+        lowW: { slope: number; se: number; t: number; p: number };
+        meanW: { slope: number; se: number; t: number; p: number };
+        highW: { slope: number; se: number; t: number; p: number };
+    };
+    // Effect sizes
+    effectSize: {
+        f2Interaction: number; // Cohen's f² for interaction
+        interpretation: string; // small/medium/large
+    };
+    // Moderator descriptives
+    moderatorStats: {
+        mean: number;
+        sd: number;
+        lowValue: number;  // Mean - 1 SD
+        highValue: number; // Mean + 1 SD
+    };
+    // Interpretation
+    isSignificant: boolean;
+    interpretation: string;
+    rCode: string;
+}> {
+    const webR = await initWebR();
+
+    // Build data vectors
+    const xVec = xData.join(',');
+    const yVec = yData.join(',');
+    const wVec = wData.join(',');
+
+    const rCode = `
+    # Moderation Analysis with Hierarchical Regression
+    x <- c(${xVec})
+    y <- c(${yVec})
+    w <- c(${wVec})
+    
+    # Center predictors (recommended for moderation)
+    x_c <- scale(x, center = TRUE, scale = FALSE)[,1]
+    w_c <- scale(w, center = TRUE, scale = FALSE)[,1]
+    
+    # Create interaction term
+    xw_c <- x_c * w_c
+    
+    # Model 1: X only
+    model1 <- lm(y ~ x_c)
+    m1_sum <- summary(model1)
+    
+    # Model 2: X + W
+    model2 <- lm(y ~ x_c + w_c)
+    m2_sum <- summary(model2)
+    
+    # Model 3: X + W + Interaction
+    model3 <- lm(y ~ x_c + w_c + xw_c)
+    m3_sum <- summary(model3)
+    
+    # R² change calculations
+    r2_change_m2 <- m2_sum$r.squared - m1_sum$r.squared
+    r2_change_m3 <- m3_sum$r.squared - m2_sum$r.squared
+    
+    # F-change for Model 2 vs 1
+    n <- length(y)
+    df1_m2 <- 1  # one additional predictor
+    df2_m2 <- n - 3
+    f_change_m2 <- (r2_change_m2 * df2_m2) / ((1 - m2_sum$r.squared) * df1_m2)
+    f_change_p_m2 <- pf(f_change_m2, df1_m2, df2_m2, lower.tail = FALSE)
+    
+    # F-change for Model 3 vs 2
+    df1_m3 <- 1  # one additional predictor (interaction)
+    df2_m3 <- n - 4
+    f_change_m3 <- (r2_change_m3 * df2_m3) / ((1 - m3_sum$r.squared) * df1_m3)
+    f_change_p_m3 <- pf(f_change_m3, df1_m3, df2_m3, lower.tail = FALSE)
+    
+    # Extract coefficients from Model 3
+    coefs <- m3_sum$coefficients
+    
+    # Simple slopes analysis
+    w_mean <- mean(w)
+    w_sd <- sd(w)
+    w_low <- -w_sd   # centered, so -1 SD
+    w_high <- w_sd   # centered, so +1 SD
+    
+    # Simple slope formula: b_X + b_XW * W
+    b_x <- coefs['x_c', 'Estimate']
+    b_xw <- coefs['xw_c', 'Estimate']
+    
+    # Variance-covariance matrix for SE calculation
+    vcov_m3 <- vcov(model3)
+    
+    # Simple slope at low W (-1 SD)
+    slope_low <- b_x + b_xw * w_low
+    se_low <- sqrt(vcov_m3['x_c', 'x_c'] + 2 * w_low * vcov_m3['x_c', 'xw_c'] + w_low^2 * vcov_m3['xw_c', 'xw_c'])
+    t_low <- slope_low / se_low
+    p_low <- 2 * pt(abs(t_low), df = n - 4, lower.tail = FALSE)
+    
+    # Simple slope at mean W (0, since centered)
+    slope_mean <- b_x + b_xw * 0
+    se_mean <- sqrt(vcov_m3['x_c', 'x_c'])
+    t_mean <- slope_mean / se_mean
+    p_mean <- 2 * pt(abs(t_mean), df = n - 4, lower.tail = FALSE)
+    
+    # Simple slope at high W (+1 SD)
+    slope_high <- b_x + b_xw * w_high
+    se_high <- sqrt(vcov_m3['x_c', 'x_c'] + 2 * w_high * vcov_m3['x_c', 'xw_c'] + w_high^2 * vcov_m3['xw_c', 'xw_c'])
+    t_high <- slope_high / se_high
+    p_high <- 2 * pt(abs(t_high), df = n - 4, lower.tail = FALSE)
+    
+    # Cohen's f² for interaction effect
+    f2_interaction <- r2_change_m3 / (1 - m3_sum$r.squared)
+    
+    list(
+        # Model 1
+        m1_r2 = m1_sum$r.squared,
+        m1_adjr2 = m1_sum$adj.r.squared,
+        m1_f = ifelse(is.null(m1_sum$fstatistic), 0, m1_sum$fstatistic[1]),
+        m1_fp = ifelse(is.null(m1_sum$fstatistic), 1, pf(m1_sum$fstatistic[1], m1_sum$fstatistic[2], m1_sum$fstatistic[3], lower.tail = FALSE)),
+        m1_x_coef = m1_sum$coefficients['x_c', 'Estimate'],
+        m1_x_se = m1_sum$coefficients['x_c', 'Std. Error'],
+        m1_x_t = m1_sum$coefficients['x_c', 't value'],
+        m1_x_p = m1_sum$coefficients['x_c', 'Pr(>|t|)'],
+        
+        # Model 2
+        m2_r2 = m2_sum$r.squared,
+        m2_adjr2 = m2_sum$adj.r.squared,
+        m2_r2change = r2_change_m2,
+        m2_fchange = f_change_m2,
+        m2_fchange_p = f_change_p_m2,
+        m2_x_coef = m2_sum$coefficients['x_c', 'Estimate'],
+        m2_x_p = m2_sum$coefficients['x_c', 'Pr(>|t|)'],
+        m2_w_coef = m2_sum$coefficients['w_c', 'Estimate'],
+        m2_w_p = m2_sum$coefficients['w_c', 'Pr(>|t|)'],
+        
+        # Model 3
+        m3_r2 = m3_sum$r.squared,
+        m3_adjr2 = m3_sum$adj.r.squared,
+        m3_r2change = r2_change_m3,
+        m3_fchange = f_change_m3,
+        m3_fchange_p = f_change_p_m3,
+        m3_x_coef = coefs['x_c', 'Estimate'],
+        m3_x_p = coefs['x_c', 'Pr(>|t|)'],
+        m3_w_coef = coefs['w_c', 'Estimate'],
+        m3_w_p = coefs['w_c', 'Pr(>|t|)'],
+        m3_int_coef = coefs['xw_c', 'Estimate'],
+        m3_int_se = coefs['xw_c', 'Std. Error'],
+        m3_int_t = coefs['xw_c', 't value'],
+        m3_int_p = coefs['xw_c', 'Pr(>|t|)'],
+        
+        # Simple slopes
+        slope_low = slope_low,
+        se_low = se_low,
+        t_low = t_low,
+        p_low = p_low,
+        slope_mean = slope_mean,
+        se_mean = se_mean,
+        t_mean = t_mean,
+        p_mean = p_mean,
+        slope_high = slope_high,
+        se_high = se_high,
+        t_high = t_high,
+        p_high = p_high,
+        
+        # Effect size
+        f2_interaction = f2_interaction,
+        
+        # Moderator stats
+        w_mean = w_mean,
+        w_sd = w_sd,
+        w_low_val = w_mean - w_sd,
+        w_high_val = w_mean + w_sd
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    const interactionP = getValue('m3_int_p')?.[0] || 1;
+    const f2 = getValue('f2_interaction')?.[0] || 0;
+
+    // Determine effect size interpretation
+    let effectInterpretation = 'negligible';
+    if (f2 >= 0.35) effectInterpretation = 'large';
+    else if (f2 >= 0.15) effectInterpretation = 'medium';
+    else if (f2 >= 0.02) effectInterpretation = 'small';
+
+    const isSignificant = interactionP < 0.05;
+
+    return {
+        model1: {
+            r2: getValue('m1_r2')?.[0] || 0,
+            adjR2: getValue('m1_adjr2')?.[0] || 0,
+            fValue: getValue('m1_f')?.[0] || 0,
+            fPValue: getValue('m1_fp')?.[0] || 1,
+            xCoef: getValue('m1_x_coef')?.[0] || 0,
+            xSE: getValue('m1_x_se')?.[0] || 0,
+            xT: getValue('m1_x_t')?.[0] || 0,
+            xP: getValue('m1_x_p')?.[0] || 1
+        },
+        model2: {
+            r2: getValue('m2_r2')?.[0] || 0,
+            adjR2: getValue('m2_adjr2')?.[0] || 0,
+            r2Change: getValue('m2_r2change')?.[0] || 0,
+            fChange: getValue('m2_fchange')?.[0] || 0,
+            fChangePValue: getValue('m2_fchange_p')?.[0] || 1,
+            xCoef: getValue('m2_x_coef')?.[0] || 0,
+            xP: getValue('m2_x_p')?.[0] || 1,
+            wCoef: getValue('m2_w_coef')?.[0] || 0,
+            wP: getValue('m2_w_p')?.[0] || 1
+        },
+        model3: {
+            r2: getValue('m3_r2')?.[0] || 0,
+            adjR2: getValue('m3_adjr2')?.[0] || 0,
+            r2Change: getValue('m3_r2change')?.[0] || 0,
+            fChange: getValue('m3_fchange')?.[0] || 0,
+            fChangePValue: getValue('m3_fchange_p')?.[0] || 1,
+            xCoef: getValue('m3_x_coef')?.[0] || 0,
+            xP: getValue('m3_x_p')?.[0] || 1,
+            wCoef: getValue('m3_w_coef')?.[0] || 0,
+            wP: getValue('m3_w_p')?.[0] || 1,
+            interactionCoef: getValue('m3_int_coef')?.[0] || 0,
+            interactionSE: getValue('m3_int_se')?.[0] || 0,
+            interactionT: getValue('m3_int_t')?.[0] || 0,
+            interactionP: interactionP
+        },
+        simpleSlopes: {
+            lowW: {
+                slope: getValue('slope_low')?.[0] || 0,
+                se: getValue('se_low')?.[0] || 0,
+                t: getValue('t_low')?.[0] || 0,
+                p: getValue('p_low')?.[0] || 1
+            },
+            meanW: {
+                slope: getValue('slope_mean')?.[0] || 0,
+                se: getValue('se_mean')?.[0] || 0,
+                t: getValue('t_mean')?.[0] || 0,
+                p: getValue('p_mean')?.[0] || 1
+            },
+            highW: {
+                slope: getValue('slope_high')?.[0] || 0,
+                se: getValue('se_high')?.[0] || 0,
+                t: getValue('t_high')?.[0] || 0,
+                p: getValue('p_high')?.[0] || 1
+            }
+        },
+        effectSize: {
+            f2Interaction: f2,
+            interpretation: effectInterpretation
+        },
+        moderatorStats: {
+            mean: getValue('w_mean')?.[0] || 0,
+            sd: getValue('w_sd')?.[0] || 0,
+            lowValue: getValue('w_low_val')?.[0] || 0,
+            highValue: getValue('w_high_val')?.[0] || 0
+        },
+        isSignificant,
+        interpretation: isSignificant
+            ? `Hiệu ứng điều tiết có ý nghĩa thống kê (p = ${interactionP.toFixed(4)}). ${wName} điều tiết mối quan hệ giữa ${xName} và ${yName}.`
+            : `Không có hiệu ứng điều tiết có ý nghĩa (p = ${interactionP.toFixed(4)}). ${wName} không điều tiết mối quan hệ giữa ${xName} và ${yName}.`,
+        rCode
+    };
+}
+
+// Run Two-Way ANOVA (Factorial ANOVA)
+// Tests main effects and interaction of two factors on a dependent variable
+export async function runTwoWayANOVA(
+    yData: number[],
+    factor1: (string | number)[],
+    factor2: (string | number)[],
+    factor1Name: string = 'Factor1',
+    factor2Name: string = 'Factor2',
+    yName: string = 'Y'
+): Promise<{
+    mainEffect1: {
+        ss: number;
+        df: number;
+        ms: number;
+        f: number;
+        pValue: number;
+        etaSquared: number;
+    };
+    mainEffect2: {
+        ss: number;
+        df: number;
+        ms: number;
+        f: number;
+        pValue: number;
+        etaSquared: number;
+    };
+    interaction: {
+        ss: number;
+        df: number;
+        ms: number;
+        f: number;
+        pValue: number;
+        etaSquared: number;
+    };
+    residual: {
+        ss: number;
+        df: number;
+        ms: number;
+    };
+    total: {
+        ss: number;
+        df: number;
+    };
+    cellMeans: {
+        level1: string;
+        level2: string;
+        mean: number;
+        sd: number;
+        n: number;
+    }[];
+    marginalMeans1: { level: string; mean: number; n: number }[];
+    marginalMeans2: { level: string; mean: number; n: number }[];
+    assumptions: {
+        leveneP: number;
+        normalityP: number;
+    };
+    interpretation: string;
+    rCode: string;
+}> {
+    const webR = await initWebR();
+
+    const yVec = yData.join(',');
+    const f1Vec = factor1.map(v => `"${v}"`).join(',');
+    const f2Vec = factor2.map(v => `"${v}"`).join(',');
+
+    const rCode = `
+    # Two-Way ANOVA
+    y <- c(${yVec})
+    f1 <- factor(c(${f1Vec}))
+    f2 <- factor(c(${f2Vec}))
+    df <- data.frame(y = y, f1 = f1, f2 = f2)
+    
+    # Fit ANOVA model
+    model <- aov(y ~ f1 * f2, data = df)
+    anova_table <- summary(model)[[1]]
+    
+    # Extract sums of squares
+    ss <- anova_table[, 'Sum Sq']
+    dfs <- anova_table[, 'Df']
+    ms <- anova_table[, 'Mean Sq']
+    f_vals <- anova_table[, 'F value']
+    p_vals <- anova_table[, 'Pr(>F)']
+    
+    ss_total <- sum(ss)
+    
+    # Eta squared
+    eta_f1 <- ss[1] / ss_total
+    eta_f2 <- ss[2] / ss_total
+    eta_int <- ss[3] / ss_total
+    
+    # Cell means
+    cell_means <- aggregate(y ~ f1 + f2, data = df, FUN = function(x) c(mean = mean(x), sd = sd(x), n = length(x)))
+    
+    # Marginal means
+    marg1 <- aggregate(y ~ f1, data = df, FUN = mean)
+    marg1_n <- aggregate(y ~ f1, data = df, FUN = length)
+    marg2 <- aggregate(y ~ f2, data = df, FUN = mean)
+    marg2_n <- aggregate(y ~ f2, data = df, FUN = length)
+    
+    # Levene's test for homogeneity of variance
+    levene_p <- tryCatch({
+        res <- residuals(model)
+        groups <- interaction(f1, f2)
+        abs_res <- abs(res - ave(res, groups, FUN = median))
+        anova(lm(abs_res ~ groups))$'Pr(>F)'[1]
+    }, error = function(e) NA)
+    
+    # Normality test on residuals
+    shapiro_p <- tryCatch({
+        shapiro.test(residuals(model))$p.value
+    }, error = function(e) NA)
+    
+    list(
+        ss_f1 = ss[1], df_f1 = dfs[1], ms_f1 = ms[1], f_f1 = f_vals[1], p_f1 = p_vals[1], eta_f1 = eta_f1,
+        ss_f2 = ss[2], df_f2 = dfs[2], ms_f2 = ms[2], f_f2 = f_vals[2], p_f2 = p_vals[2], eta_f2 = eta_f2,
+        ss_int = ss[3], df_int = dfs[3], ms_int = ms[3], f_int = f_vals[3], p_int = p_vals[3], eta_int = eta_int,
+        ss_resid = ss[4], df_resid = dfs[4], ms_resid = ms[4],
+        ss_total = ss_total, df_total = sum(dfs),
+        
+        cell_levels1 = as.character(cell_means$f1),
+        cell_levels2 = as.character(cell_means$f2),
+        cell_mean = cell_means$y[, 'mean'],
+        cell_sd = cell_means$y[, 'sd'],
+        cell_n = cell_means$y[, 'n'],
+        
+        marg1_levels = as.character(marg1$f1),
+        marg1_means = marg1$y,
+        marg1_n = marg1_n$y,
+        marg2_levels = as.character(marg2$f2),
+        marg2_means = marg2$y,
+        marg2_n = marg2_n$y,
+        
+        levene_p = levene_p,
+        shapiro_p = shapiro_p
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    // Build cell means
+    const cellLevels1 = getValue('cell_levels1') || [];
+    const cellLevels2 = getValue('cell_levels2') || [];
+    const cellMean = getValue('cell_mean') || [];
+    const cellSd = getValue('cell_sd') || [];
+    const cellN = getValue('cell_n') || [];
+
+    const cellMeans = [];
+    for (let i = 0; i < cellLevels1.length; i++) {
+        cellMeans.push({
+            level1: String(cellLevels1[i]),
+            level2: String(cellLevels2[i]),
+            mean: cellMean[i] || 0,
+            sd: cellSd[i] || 0,
+            n: cellN[i] || 0
+        });
+    }
+
+    // Marginal means
+    const marg1Levels = getValue('marg1_levels') || [];
+    const marg1Means = getValue('marg1_means') || [];
+    const marg1N = getValue('marg1_n') || [];
+    const marginalMeans1 = marg1Levels.map((level: string, i: number) => ({
+        level: String(level),
+        mean: marg1Means[i] || 0,
+        n: marg1N[i] || 0
+    }));
+
+    const marg2Levels = getValue('marg2_levels') || [];
+    const marg2Means = getValue('marg2_means') || [];
+    const marg2N = getValue('marg2_n') || [];
+    const marginalMeans2 = marg2Levels.map((level: string, i: number) => ({
+        level: String(level),
+        mean: marg2Means[i] || 0,
+        n: marg2N[i] || 0
+    }));
+
+    const pF1 = getValue('p_f1')?.[0] || 1;
+    const pF2 = getValue('p_f2')?.[0] || 1;
+    const pInt = getValue('p_int')?.[0] || 1;
+
+    let interpretation = '';
+    if (pInt < 0.05) {
+        interpretation = `Có tương tác có ý nghĩa giữa ${factor1Name} và ${factor2Name} (p = ${pInt.toFixed(4)}). Cần phân tích đơn giản (simple effects).`;
+    } else {
+        const effects = [];
+        if (pF1 < 0.05) effects.push(`${factor1Name} (p = ${pF1.toFixed(4)})`);
+        if (pF2 < 0.05) effects.push(`${factor2Name} (p = ${pF2.toFixed(4)})`);
+        interpretation = effects.length > 0
+            ? `Có tác động chính có ý nghĩa của: ${effects.join(', ')}.`
+            : 'Không có tác động chính hay tương tác có ý nghĩa thống kê.';
+    }
+
+    return {
+        mainEffect1: {
+            ss: getValue('ss_f1')?.[0] || 0,
+            df: getValue('df_f1')?.[0] || 0,
+            ms: getValue('ms_f1')?.[0] || 0,
+            f: getValue('f_f1')?.[0] || 0,
+            pValue: pF1,
+            etaSquared: getValue('eta_f1')?.[0] || 0
+        },
+        mainEffect2: {
+            ss: getValue('ss_f2')?.[0] || 0,
+            df: getValue('df_f2')?.[0] || 0,
+            ms: getValue('ms_f2')?.[0] || 0,
+            f: getValue('f_f2')?.[0] || 0,
+            pValue: pF2,
+            etaSquared: getValue('eta_f2')?.[0] || 0
+        },
+        interaction: {
+            ss: getValue('ss_int')?.[0] || 0,
+            df: getValue('df_int')?.[0] || 0,
+            ms: getValue('ms_int')?.[0] || 0,
+            f: getValue('f_int')?.[0] || 0,
+            pValue: pInt,
+            etaSquared: getValue('eta_int')?.[0] || 0
+        },
+        residual: {
+            ss: getValue('ss_resid')?.[0] || 0,
+            df: getValue('df_resid')?.[0] || 0,
+            ms: getValue('ms_resid')?.[0] || 0
+        },
+        total: {
+            ss: getValue('ss_total')?.[0] || 0,
+            df: getValue('df_total')?.[0] || 0
+        },
+        cellMeans,
+        marginalMeans1,
+        marginalMeans2,
+        assumptions: {
+            leveneP: getValue('levene_p')?.[0] || 1,
+            normalityP: getValue('shapiro_p')?.[0] || 1
+        },
+        interpretation,
+        rCode
+    };
+}
+
+// Run Cluster Analysis (K-Means)
+// Segments data into k clusters based on variable similarity
+export async function runClusterAnalysis(
+    data: number[][],
+    k: number = 3,
+    method: 'kmeans' | 'hierarchical' = 'kmeans',
+    varNames: string[] = []
+): Promise<{
+    clusters: number[];  // Cluster assignment for each observation
+    nClusters: number;
+    clusterSizes: number[];
+    clusterCenters: number[][];  // Mean values for each cluster
+    clusterProfiles: {
+        cluster: number;
+        size: number;
+        percentage: number;
+        means: { variable: string; mean: number; sd: number }[];
+    }[];
+    withinSS: number[];    // Within-cluster sum of squares
+    betweenSS: number;
+    totalSS: number;
+    silhouetteAvg: number; // Average silhouette score
+    optimalK: {
+        elbow: number;
+        silhouette: number;
+    };
+    interpretation: string;
+    rCode: string;
+}> {
+    const webR = await initWebR();
+
+    const nVars = data[0]?.length || 0;
+    const names = varNames.length > 0 ? varNames : Array.from({ length: nVars }, (_, i) => `V${i + 1}`);
+
+    // Build data matrix
+    const dataMatrix = arrayToRMatrix(data);
+
+    const rCode = `
+    # Cluster Analysis (K-Means)
+    data_mat <- ${dataMatrix}
+    colnames(data_mat) <- c(${names.map(n => `"${n}"`).join(',')})
+    
+    # Standardize data
+    data_scaled <- scale(data_mat)
+    
+    # K-Means clustering
+    set.seed(123)
+    k <- ${k}
+    km <- kmeans(data_scaled, centers = k, nstart = 25)
+    
+    # Results
+    clusters <- km$cluster
+    centers <- km$centers
+    sizes <- km$size
+    within_ss <- km$withinss
+    between_ss <- km$betweenss
+    total_ss <- km$totss
+    
+    # Calculate silhouette (simplified)
+    dist_mat <- dist(data_scaled)
+    n <- nrow(data_scaled)
+    sil_scores <- numeric(n)
+    for (i in 1:n) {
+        my_cluster <- clusters[i]
+        my_points <- which(clusters == my_cluster)
+        other_points <- which(clusters != my_cluster)
+        
+        a <- if (length(my_points) > 1) mean(as.matrix(dist_mat)[i, my_points[-which(my_points == i)]]) else 0
+        b <- if (length(other_points) > 0) min(sapply(unique(clusters[other_points]), function(c) {
+            mean(as.matrix(dist_mat)[i, which(clusters == c)])
+        })) else 0
+        
+        sil_scores[i] <- if (max(a, b) > 0) (b - a) / max(a, b) else 0
+    }
+    sil_avg <- mean(sil_scores)
+    
+    # Elbow method for optimal k
+    wss <- numeric(10)
+    for (i in 1:min(10, nrow(data_scaled) - 1)) {
+        wss[i] <- sum(kmeans(data_scaled, centers = i, nstart = 10)$withinss)
+    }
+    
+    # Simple elbow detection (max drop)
+    drops <- diff(wss)
+    optimal_elbow <- which.max(abs(drops)) + 1
+    
+    # Optimal by silhouette
+    sil_scores_k <- numeric(9)
+    for (i in 2:10) {
+        km_temp <- kmeans(data_scaled, centers = i, nstart = 10)
+        # Simplified silhouette calculation
+        sil_scores_k[i-1] <- km_temp$betweenss / km_temp$totss
+    }
+    optimal_sil <- which.max(sil_scores_k) + 1
+    
+    # Cluster profiles (on original scale)
+    profile_means <- aggregate(data_mat, by = list(cluster = clusters), FUN = mean)
+    profile_sds <- aggregate(data_mat, by = list(cluster = clusters), FUN = sd)
+    
+    list(
+        clusters = clusters,
+        n_clusters = k,
+        sizes = sizes,
+        centers = as.vector(centers),
+        n_vars = ncol(centers),
+        within_ss = within_ss,
+        between_ss = between_ss,
+        total_ss = total_ss,
+        sil_avg = sil_avg,
+        optimal_elbow = optimal_elbow,
+        optimal_sil = optimal_sil,
+        profile_means = as.vector(as.matrix(profile_means[, -1])),
+        profile_sds = as.vector(as.matrix(profile_sds[, -1]))
+    )
+    `;
+
+    const result = await webR.evalR(rCode);
+    const jsResult = await result.toJs() as any;
+    const getValue = parseWebRResult(jsResult);
+
+    const clusters = getValue('clusters') || [];
+    const sizes = getValue('sizes') || [];
+    const nClusters = getValue('n_clusters')?.[0] || k;
+    const nVarsResult = getValue('n_vars')?.[0] || nVars;
+    const centersFlat = getValue('centers') || [];
+    const profileMeansFlat = getValue('profile_means') || [];
+    const profileSdsFlat = getValue('profile_sds') || [];
+
+    // Parse centers matrix
+    const clusterCenters: number[][] = [];
+    for (let i = 0; i < nClusters; i++) {
+        const row: number[] = [];
+        for (let j = 0; j < nVarsResult; j++) {
+            row.push(centersFlat[j * nClusters + i] || 0);
+        }
+        clusterCenters.push(row);
+    }
+
+    // Build cluster profiles
+    const totalN = clusters.length;
+    const clusterProfiles = [];
+    for (let c = 0; c < nClusters; c++) {
+        const means: { variable: string; mean: number; sd: number }[] = [];
+        for (let v = 0; v < nVarsResult; v++) {
+            means.push({
+                variable: names[v] || `V${v + 1}`,
+                mean: profileMeansFlat[v * nClusters + c] || 0,
+                sd: profileSdsFlat[v * nClusters + c] || 0
+            });
+        }
+        clusterProfiles.push({
+            cluster: c + 1,
+            size: sizes[c] || 0,
+            percentage: ((sizes[c] || 0) / totalN) * 100,
+            means
+        });
+    }
+
+    const silAvg = getValue('sil_avg')?.[0] || 0;
+    const interpretation = `Phân ${nClusters} cụm với Silhouette = ${silAvg.toFixed(3)} (${silAvg > 0.7 ? 'cấu trúc mạnh' : silAvg > 0.5 ? 'cấu trúc hợp lý' : silAvg > 0.25 ? 'cấu trúc yếu' : 'không có cấu trúc rõ ràng'}).`;
+
+    return {
+        clusters: clusters.map((c: number) => c),
+        nClusters,
+        clusterSizes: sizes.map((s: number) => s),
+        clusterCenters,
+        clusterProfiles,
+        withinSS: (getValue('within_ss') || []).map((v: number) => v),
+        betweenSS: getValue('between_ss')?.[0] || 0,
+        totalSS: getValue('total_ss')?.[0] || 0,
+        silhouetteAvg: silAvg,
+        optimalK: {
+            elbow: getValue('optimal_elbow')?.[0] || 3,
+            silhouette: getValue('optimal_sil')?.[0] || 3
+        },
+        interpretation,
+        rCode
+    };
+}
